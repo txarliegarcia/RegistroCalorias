@@ -8,8 +8,11 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Comidas">
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="apple-touch-icon" href="icono-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Instrument+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -71,15 +74,22 @@ input:focus-visible{outline:2px solid var(--pine);outline-offset:-1px}
 .logrow .info{flex:1 1 230px;min-width:0}
 .logrow .ctrl{display:grid;grid-template-columns:64px 96px 130px 76px;gap:6px;align-items:center;
   flex:0 0 auto;margin-left:auto}
+.logrow .ctrl>*{min-width:0}
 .logrow .ctrl input{width:100%;text-align:center;font-weight:700;font-size:16px;padding:8px 3px}
 .logrow .ctrl select{width:100%}
 .logrow .uni{font-size:13.5px;font-weight:600;line-height:1.15;overflow-wrap:break-word;hyphens:auto}
 .logrow .ctrl .btn{width:100%;padding:6px 4px}
 @media (max-width:640px){
+  .logrow{gap:6px}
   .logrow .info{flex:1 1 100%}
-  .logrow .ctrl{margin-left:0;grid-template-columns:58px 82px 1fr 72px;gap:5px}
-  .logrow .ctrl input{font-size:15px;padding:8px 2px}
-  .logrow .uni{font-size:12.5px}
+  /* dos filas: cantidad + unidad + quitar arriba, franja abajo a lo ancho */
+  .logrow .ctrl{margin-left:0;width:100%;gap:6px 8px;
+    grid-template-columns:62px minmax(0,1fr) 84px;
+    grid-template-areas:"cant uni quitar" "franja franja franja"}
+  .logrow .ctrl input{grid-area:cant;font-size:16px;padding:9px 2px}
+  .logrow .uni{grid-area:uni;font-size:13px}
+  .logrow .ctrl select{grid-area:franja;width:100%}
+  .logrow .ctrl .btn{grid-area:quitar}
 }
 .restante{font-family:'Bricolage Grotesque','Instrument Sans',sans-serif;font-weight:800;
   letter-spacing:-.02em;font-size:26px;line-height:1}
@@ -127,7 +137,8 @@ td.num,th.num{text-align:right;font-family:'IBM Plex Mono',monospace;font-varian
 #restante .rn{font-size:14px;font-weight:500;color:#E4EAE6}
 #restante .rv{font-family:'IBM Plex Mono',monospace;font-size:13.5px;font-weight:700;
   white-space:nowrap;text-align:right}
-#restante .rc{display:block;font-weight:500;color:var(--hero-soft);font-size:12.5px}
+#restante .rc{display:block;font-weight:600;font-size:12.5px}
+#restante .obj{color:var(--hero-soft);font-weight:500}
 #restante .ru{font-family:'Instrument Sans',sans-serif;font-size:16px;font-weight:600}
 #restante .rt2{font-family:'IBM Plex Mono',monospace;font-size:12.5px;font-weight:600;
   color:var(--hero-soft);margin-top:3px}
@@ -144,12 +155,17 @@ td.num,th.num{text-align:right;font-family:'IBM Plex Mono',monospace;font-varian
     box-shadow:0 -6px 20px rgba(14,24,21,.3)}
   #restante .cab{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
   #restante .rk{font-size:27px}
-  #restante .rejilla{display:grid;grid-template-columns:1fr 1fr;gap:2px 16px;margin-top:6px}
-  #restante .rf{border:none;padding:1px 0;gap:6px}
-  #restante .rn{font-size:12.5px}
-  #restante .rv{font-size:12.5px;display:flex;gap:7px;align-items:baseline}
-  #restante .rc{display:inline;font-size:11.5px}
+  #restante .rejilla{display:grid;grid-template-columns:1fr 1fr;gap:1px 14px;margin-top:5px}
+  #restante .rf{border:none;padding:1px 0;gap:6px;justify-content:flex-start}
+  #restante .rn{font-size:12px;flex:0 0 auto}
+  #restante .rv{font-size:12px;margin-left:auto}
+  #restante .rc{display:inline;font-size:12px}
 }
+/* campo con la unidad pegada a la derecha del recuadro */
+.campo .fila{display:flex;align-items:center;gap:7px;margin-top:5px}
+.campo .fila input,.campo .fila select{flex:1 1 auto;min-width:0}
+.campo .fila .u{flex:0 0 auto;font-size:13.5px;font-weight:600;color:var(--ink);white-space:nowrap}
+.campo .pie{font-size:12px;color:var(--ink);margin-top:3px}
 @media (max-width:520px){.grid2,.grid3{grid-template-columns:1fr}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 .bloqueo{position:fixed;inset:0;background:var(--ink);color:#fff;z-index:9999;
@@ -177,6 +193,7 @@ const ITEMS = [["Batido de proteína con creatina", "Post-entreno 6:30", 116, 23
 const PLAN  = [{"sem": 1, "dia": "Lunes", "tipo": "Fuerza 6:00 + pasos", "items": [["Batido de proteína con creatina", "Desayuno"], ["Avena overnight (cúrcuma, canela y leche)", "Desayuno"], ["Café solo o cortado", "Desayuno"], ["Lasaña de atún", "Comida"], ["Yogur natural Danone", "Comida", 120], ["Fruta (1 pieza)", "Comida", 1], ["Pechuga de pavo cocida ahumada (Aldi)", "Merienda"], ["Ensalada con todo", "Cena"], ["Skyr proteico maracuyá (Milsani, Aldi)", "Cena", 150], ["Fruta (1 pieza)", "Cena", 1], ["Cerveza 0,0 (lata de 33 cl)", "Cena"]], "nota": ""}, {"sem": 1, "dia": "Martes", "tipo": "Solo pasos", "items": [["Batido de proteína con creatina", "Desayuno"], ["Tostada de guacamole con atun", "Desayuno"], ["Café solo o cortado", "Desayuno"], ["KFC (alitas de pollo)", "Comida"], ["Yogur natural Danone", "Comida", 120], ["Fruta (1 pieza)", "Comida", 1], ["Pechuga de pavo cocida ahumada (Aldi)", "Merienda"], ["Figuras de merluza al horno con verduras", "Cena"], ["Skyr proteico maracuyá (Milsani, Aldi)", "Cena", 150], ["Fruta (1 pieza)", "Cena", 1], ["Agua", "Cena"]], "nota": "COMIDA FUERA. Con la cerveza diaria, este día solo cuadra con cena ligera"}, {"sem": 1, "dia": "Miércoles", "tipo": "Fuerza 6:00 + pasos", "items": [["Batido de proteína con creatina", "Desayuno"], ["Pintxo de tortilla con bonito y mayonesa (doble)", "Desayuno"], ["Café solo o cortado", "Desayuno"], ["Tabulé con sardinas", "Comida"], ["Yogur natural Danone", "Comida", 120], ["Fruta (1 pieza)", "Comida", 1], ["Pechuga de pavo cocida ahumada (Aldi)", "Merienda"], ["Huevos a la plancha con ensalada", "Cena"], ["Skyr proteico maracuyá (Milsani, Aldi)", "Cena", 150], ["Fruta (1 pieza)", "Cena", 1], ["Cerveza 0,0 (lata de 33 cl)", "Cena"]], "nota": "El pintxo doble son 690 kcal: el resto del día va ligero"}, {"sem": 1, "dia": "Jueves", "tipo": "Solo pasos", "items": [["Batido de proteína con creatina", "Desayuno"], ["Yogur proteico con fruta y nueces", "Desayuno"], ["Café solo o cortado", "Desayuno"], ["Pollo hindú Mercadona", "Comida"], ["Yogur natural Danone", "Comida", 120], ["Fruta (1 pieza)", "Comida", 1], ["Jamón de pavo y queso fresco", "Merienda"], ["Sushi (10-12 piezas)", "Cena"], ["Skyr proteico maracuyá (Milsani, Aldi)", "Cena", 150], ["Fruta (1 pieza)", "Cena", 1], ["Cerveza (lata de 33 cl)", "Cena"], ["Skyr proteico maracuyá (Milsani, Aldi)", "Extras"]], "nota": "Sushi cada 15 días. Merluza 1 vez al mes (el martes)"}, {"sem": 1, "dia": "Viernes", "tipo": "Fuerza 6:00 + pasos", "items": [["Batido de proteína con creatina", "Desayuno"], ["Huevos a la plancha", "Desayuno"], ["Café solo o cortado", "Desayuno"], ["Alubias o lentejas con verduras", "Comida"], ["Yogur natural Danone", "Comida", 120], ["Fruta (1 pieza)", "Comida", 1], ["Jamón de pavo y queso fresco", "Merienda"], ["Arroz furikake con pollo", "Cena"], ["Skyr proteico maracuyá (Milsani, Aldi)", "Cena", 150], ["Fruta (1 pieza)", "Cena", 1], ["Cerveza (lata de 33 cl)", "Cena"], ["Skyr proteico maracuyá (Milsani, Aldi)", "Extras"]], "nota": "Furikake 1 vez al mes. Viernes no es día de taper"}, {"sem": 1, "dia": "Sábado", "tipo": "Solo pasos", "items": [["Batido de proteína con creatina", "Desayuno"], ["Tostada de salmón y aguacate", "Desayuno"], ["Café solo o cortado", "Desayuno"], ["Txuletón", "Comida"], ["Yogur natural Danone", "Comida", 120], ["Fruta (1 pieza)", "Comida", 1], ["Pechuga de pavo cocida ahumada (Aldi)", "Merienda"], ["Sopa y ensalada de huevo", "Cena"], ["Skyr proteico maracuyá (Milsani, Aldi)", "Cena", 150], ["Fruta (1 pieza)", "Cena", 1], ["Cerveza (lata de 33 cl)", "Cena"], ["Skyr proteico maracuyá (Milsani, Aldi)", "Extras"]], "nota": "Txuletón 1 vez al mes"}, {"sem": 1, "dia": "Domingo", "tipo": "Fuerza 6:00 + pasos", "items": [["Batido de proteína con creatina", "Desayuno"], ["Avena overnight (cúrcuma, canela y leche)", "Desayuno"], ["Café solo o cortado", "Desayuno"], ["Sopa y garbanzos", "Comida"], ["Yogur natural Danone", "Comida", 120], ["Fruta (1 pieza)", "Comida", 1], ["Pechuga de pavo cocida ahumada (Aldi)", "Merienda"], ["Hamburguesa casera con ensalada", "Cena"], ["Skyr proteico maracuyá (Milsani, Aldi)", "Cena", 150], ["Fruta (1 pieza)", "Cena", 1], ["Cerveza (lata de 33 cl)", "Cena"], ["Picoteo de pintxos", "Extras"]], "nota": "Sopa y garbanzos: domingo. Hamburguesa 1 de 2"}, {"sem": 2, "dia": "Lunes", "tipo": "Solo pasos", "items": [["Batido de proteína con creatina", "Desayuno"], ["Tostada de guacamole con atun", "Desayuno"], ["Café solo o cortado", "Desayuno"], ["Lasaña de atún", "Comida"], ["Yogur natural Danone", "Comida", 120], ["Fruta (1 pieza)", "Comida", 1], ["Pechuga de pavo cocida ahumada (Aldi)", "Merienda"], ["Arroz thai con pollo", "Cena"], ["Skyr proteico maracuyá (Milsani, Aldi)", "Cena", 150], ["Fruta (1 pieza)", "Cena", 1], ["Cerveza 0,0 (lata de 33 cl)", "Cena"]], "nota": "Arroz thai como cena"}, {"sem": 2, "dia": "Martes", "tipo": "Fuerza 6:00 + pasos", "items": [["Batido de proteína con creatina", "Desayuno"], ["Avena overnight (cúrcuma, canela y leche)", "Desayuno"], ["Café solo o cortado", "Desayuno"], ["Ensalada con todo", "Comida"], ["Yogur natural Danone", "Comida", 120], ["Fruta (1 pieza)", "Comida", 1], ["Pechuga de pavo cocida ahumada (Aldi)", "Merienda"], ["Noodles de sobre con pollo", "Cena"], ["Skyr proteico maracuyá (Milsani, Aldi)", "Cena", 150], ["Fruta (1 pieza)", "Cena", 1], ["Cerveza 0,0 (lata de 33 cl)", "Cena"]], "nota": "Noodles con pollo 1 vez al mes"}, {"sem": 2, "dia": "Miércoles", "tipo": "Solo pasos", "items": [["Batido de proteína con creatina", "Desayuno"], ["Jamón serrano con pan", "Desayuno"], ["Café solo o cortado", "Desayuno"], ["Ramen tantanmen", "Comida"], ["Yogur natural Danone", "Comida", 120], ["Fruta (1 pieza)", "Comida", 1], ["Skyr proteico maracuyá (Milsani, Aldi)", "Merienda"], ["Sandwich de atún con tomate", "Cena"], ["Skyr proteico maracuyá (Milsani, Aldi)", "Cena", 150], ["Fruta (1 pieza)", "Cena", 1], ["Agua", "Cena"]], "nota": "COMIDA FUERA de la semana. Desayuno ligero para dejar hueco"}, {"sem": 2, "dia": "Jueves", "tipo": "Fuerza 6:00 + pasos", "items": [["Batido de proteína con creatina", "Desayuno"], ["Pintxo de tortilla con bonito y mayonesa (doble)", "Desayuno"], ["Café solo o cortado", "Desayuno"], ["Vainas", "Comida"], ["Yogur natural Danone", "Comida", 120], ["Fruta (1 pieza)", "Comida", 1], ["Pechuga de pavo cocida ahumada (Aldi)", "Merienda"], ["Ceviche", "Cena"], ["Skyr proteico maracuyá (Milsani, Aldi)", "Cena", 150], ["Fruta (1 pieza)", "Cena", 1], ["Cerveza (lata de 33 cl)", "Cena"], ["Skyr proteico maracuyá (Milsani, Aldi)", "Extras"]], "nota": "Pintxo doble"}, {"sem": 2, "dia": "Viernes", "tipo": "Solo pasos", "items": [["Batido de proteína con creatina", "Desayuno"], ["Tostada de salmón y aguacate", "Desayuno"], ["Café solo o cortado", "Desayuno"], ["Garbanzos con verduras", "Comida"], ["Yogur natural Danone", "Comida", 120], ["Fruta (1 pieza)", "Comida", 1], ["Skyr proteico maracuyá (Milsani, Aldi)", "Merienda"], ["Sushi (10-12 piezas)", "Cena"], ["Skyr proteico maracuyá (Milsani, Aldi)", "Cena", 150], ["Fruta (1 pieza)", "Cena", 1], ["Cerveza (lata de 33 cl)", "Cena"]], "nota": "Sushi cada 15 días"}, {"sem": 2, "dia": "Sábado", "tipo": "Fuerza 6:00 + pasos", "items": [["Batido de proteína con creatina", "Desayuno"], ["Huevos a la plancha", "Desayuno"], ["Café solo o cortado", "Desayuno"], ["Costillas BBQ (Kamado)", "Comida"], ["Yogur natural Danone", "Comida", 120], ["Fruta (1 pieza)", "Comida", 1], ["Jamón de pavo y queso fresco", "Merienda"], ["Tallarines konjak con verduras", "Cena"], ["Skyr proteico maracuyá (Milsani, Aldi)", "Cena", 150], ["Fruta (1 pieza)", "Cena", 1], ["Cerveza (lata de 33 cl)", "Cena"], ["Chocolate a la taza", "Extras"]], "nota": "Costillas BBQ 1 vez al mes. GUARDA la carne que sobre: el lunes son tacos"}, {"sem": 2, "dia": "Domingo", "tipo": "Solo pasos", "items": [["Batido de proteína con creatina", "Desayuno"], ["Avena overnight (cúrcuma, canela y leche)", "Desayuno"], ["Café solo o cortado", "Desayuno"], ["Sopa y garbanzos", "Comida"], ["Yogur natural Danone", "Comida", 120], ["Fruta (1 pieza)", "Comida", 1], ["Skyr proteico maracuyá (Milsani, Aldi)", "Merienda"], ["Rabas (txipirones) a la plancha", "Cena"], ["Skyr proteico maracuyá (Milsani, Aldi)", "Cena", 150], ["Fruta (1 pieza)", "Cena", 1], ["Cerveza (lata de 33 cl)", "Cena"], ["Domingo de chucherías", "Extras"]], "nota": "Domingo de chucherías: palomitas con risketos y patatas fritas"}, {"sem": 3, "dia": "Lunes", "tipo": "Fuerza 6:00 + pasos", "items": [["Batido de proteína con creatina", "Desayuno"], ["Avena overnight (cúrcuma, canela y leche)", "Desayuno"], ["Café solo o cortado", "Desayuno"], ["Ensalada mixta con atún", "Comida"], ["Yogur natural Danone", "Comida", 120], ["Fruta (1 pieza)", "Comida", 1], ["Muslo de pavo braseado y ahumado (Aldi)", "Merienda"], ["Texmex", "Cena"], ["Skyr proteico maracuyá (Milsani, Aldi)", "Cena", 150], ["Fruta (1 pieza)", "Cena", 1], ["Cerveza 0,0 (lata de 33 cl)", "Cena"], ["Skyr proteico maracuyá (Milsani, Aldi)", "Extras"]], "nota": "Tacos con la carne mechada que sobró de las costillas del sábado"}, {"sem": 3, "dia": "Martes", "tipo": "Solo pasos", "items": [["Batido de proteína con creatina", "Desayuno"], ["Tostada de guacamole con atun", "Desayuno"], ["Café solo o cortado", "Desayuno"], ["Hamburguesa de restaurante", "Comida"], ["Yogur natural Danone", "Comida", 120], ["Fruta (1 pieza)", "Comida", 1], ["Queso fresco batido desnatado", "Merienda"], ["Tallarines konjak con verduras", "Cena"], ["Skyr proteico maracuyá (Milsani, Aldi)", "Cena", 150], ["Fruta (1 pieza)", "Cena", 1], ["Agua", "Cena"]], "nota": "COMIDA FUERA. NO CUADRA: con la cerveza diaria se pasa ~108 kcal aun con la cena más ligera del catálogo"}, {"sem": 3, "dia": "Miércoles", "tipo": "Fuerza 6:00 + pasos", "items": [["Batido de proteína con creatina", "Desayuno"], ["Pintxo de tortilla con bonito y mayonesa (doble)", "Desayuno"], ["Café solo o cortado", "Desayuno"], ["Alubias o lentejas con verduras", "Comida"], ["Yogur natural Danone", "Comida", 120], ["Fruta (1 pieza)", "Comida", 1], ["Pechuga de pavo cocida ahumada (Aldi)", "Merienda"], ["Tallarines konjak con verduras", "Cena"], ["Skyr proteico maracuyá (Milsani, Aldi)", "Cena", 150], ["Fruta (1 pieza)", "Cena", 1], ["Cerveza 0,0 (lata de 33 cl)", "Cena"]], "nota": "Pintxo doble"}, {"sem": 3, "dia": "Jueves", "tipo": "Solo pasos", "items": [["Batido de proteína con creatina", "Desayuno"], ["Tostada de guacamole con atun", "Desayuno"], ["Café solo o cortado", "Desayuno"], ["Lasaña de atún", "Comida"], ["Yogur natural Danone", "Comida", 120], ["Fruta (1 pieza)", "Comida", 1], ["Jamón de pavo y queso fresco", "Merienda"], ["Pollo hindú Mercadona", "Cena"], ["Skyr proteico maracuyá (Milsani, Aldi)", "Cena", 150], ["Fruta (1 pieza)", "Cena", 1], ["Cerveza (lata de 33 cl)", "Cena"], ["Skyr proteico maracuyá (Milsani, Aldi)", "Extras"]], "nota": "Arroz hindú como cena"}, {"sem": 3, "dia": "Viernes", "tipo": "Fuerza 6:00 + pasos", "items": [["Batido de proteína con creatina", "Desayuno"], ["Huevos a la plancha", "Desayuno"], ["Café solo o cortado", "Desayuno"], ["Tabulé con sardinas", "Comida"], ["Yogur natural Danone", "Comida", 120], ["Fruta (1 pieza)", "Comida", 1], ["Jamón de pavo y queso fresco", "Merienda"], ["Sandwich de atún", "Cena"], ["Skyr proteico maracuyá (Milsani, Aldi)", "Cena", 150], ["Fruta (1 pieza)", "Cena", 1], ["Cerveza (lata de 33 cl)", "Cena"], ["Tostada con AOVE y tomate", "Extras"]], "nota": "Tabulé cada 2 semanas"}, {"sem": 3, "dia": "Sábado", "tipo": "Solo pasos", "items": [["Batido de proteína con creatina", "Desayuno"], ["Tostada de salmón y aguacate", "Desayuno"], ["Café solo o cortado", "Desayuno"], ["Parrillada de carne (Kamado)", "Comida"], ["Yogur natural Danone", "Comida", 120], ["Fruta (1 pieza)", "Comida", 1], ["Pechuga de pavo cocida ahumada (Aldi)", "Merienda"], ["Latas y crudités", "Cena"], ["Skyr proteico maracuyá (Milsani, Aldi)", "Cena", 150], ["Fruta (1 pieza)", "Cena", 1], ["Cerveza (lata de 33 cl)", "Cena"]], "nota": ""}, {"sem": 3, "dia": "Domingo", "tipo": "Fuerza 6:00 + pasos", "items": [["Batido de proteína con creatina", "Desayuno"], ["Avena overnight (cúrcuma, canela y leche)", "Desayuno"], ["Café solo o cortado", "Desayuno"], ["Sopa y garbanzos", "Comida"], ["Yogur natural Danone", "Comida", 120], ["Fruta (1 pieza)", "Comida", 1], ["Jamón de pavo y queso fresco", "Merienda"], ["Zorza del Mercadona con patatas y huevos", "Cena"], ["Skyr proteico maracuyá (Milsani, Aldi)", "Cena", 150], ["Fruta (1 pieza)", "Cena", 1], ["Cerveza (lata de 33 cl)", "Cena"], ["Skyr proteico maracuyá (Milsani, Aldi)", "Extras"]], "nota": "Zorza 1 vez al mes"}, {"sem": 4, "dia": "Lunes", "tipo": "Solo pasos", "items": [["Batido de proteína con creatina", "Desayuno"], ["Tostada de guacamole con atun", "Desayuno"], ["Café solo o cortado", "Desayuno"], ["Lasaña de atún", "Comida"], ["Yogur natural Danone", "Comida", 120], ["Fruta (1 pieza)", "Comida", 1], ["Pechuga de pavo cocida ahumada (Aldi)", "Merienda"], ["Ensalada mixta con atún", "Cena"], ["Skyr proteico maracuyá (Milsani, Aldi)", "Cena", 150], ["Fruta (1 pieza)", "Cena", 1], ["Cerveza (lata de 33 cl)", "Cena"], ["Skyr proteico maracuyá (Milsani, Aldi)", "Extras"]], "nota": "Lasaña de atún: 1 por semana"}, {"sem": 4, "dia": "Martes", "tipo": "Fuerza 6:00 + pasos", "items": [["Batido de proteína con creatina", "Desayuno"], ["Avena overnight (cúrcuma, canela y leche)", "Desayuno"], ["Café solo o cortado", "Desayuno"], ["Arroz thai con pollo", "Comida"], ["Yogur natural Danone", "Comida", 120], ["Fruta (1 pieza)", "Comida", 1], ["Pechuga de pavo cocida ahumada (Aldi)", "Merienda"], ["Gulas con huevos", "Cena"], ["Skyr proteico maracuyá (Milsani, Aldi)", "Cena", 150], ["Fruta (1 pieza)", "Cena", 1], ["Cerveza (lata de 33 cl)", "Cena"], ["Skyr proteico maracuyá (Milsani, Aldi)", "Extras"]], "nota": "Arroz thai como comida"}, {"sem": 4, "dia": "Miércoles", "tipo": "Solo pasos", "items": [["Batido de proteína con creatina", "Desayuno"], ["Jamón serrano con pan", "Desayuno"], ["Café solo o cortado", "Desayuno"], ["KFC (alitas de pollo)", "Comida"], ["Yogur natural Danone", "Comida", 120], ["Fruta (1 pieza)", "Comida", 1], ["Skyr proteico maracuyá (Milsani, Aldi)", "Merienda"], ["Tortilla francesa con ensalada", "Cena"], ["Skyr proteico maracuyá (Milsani, Aldi)", "Cena", 150], ["Fruta (1 pieza)", "Cena", 1], ["Agua", "Cena"]], "nota": "COMIDA FUERA de la semana"}, {"sem": 4, "dia": "Jueves", "tipo": "Fuerza 6:00 + pasos", "items": [["Batido de proteína con creatina", "Desayuno"], ["Pintxo de tortilla con bonito y mayonesa (doble)", "Desayuno"], ["Café solo o cortado", "Desayuno"], ["Pavo al curry madrás", "Comida"], ["Yogur natural Danone", "Comida", 120], ["Fruta (1 pieza)", "Comida", 1], ["Pechuga de pavo cocida ahumada (Aldi)", "Merienda"], ["Sepia al ajillo", "Cena"], ["Skyr proteico maracuyá (Milsani, Aldi)", "Cena", 150], ["Fruta (1 pieza)", "Cena", 1], ["Cerveza 0,0 (lata de 33 cl)", "Cena"], ["Skyr proteico maracuyá (Milsani, Aldi)", "Extras"]], "nota": "Pintxo doble"}, {"sem": 4, "dia": "Viernes", "tipo": "Solo pasos", "items": [["Batido de proteína con creatina", "Desayuno"], ["Tostada de salmón y aguacate", "Desayuno"], ["Café solo o cortado", "Desayuno"], ["Garbanzos con verduras", "Comida"], ["Yogur natural Danone", "Comida", 120], ["Fruta (1 pieza)", "Comida", 1], ["Pechuga de pavo cocida ahumada (Aldi)", "Merienda"], ["Alitas de pollo al horno con ensalada", "Cena"], ["Skyr proteico maracuyá (Milsani, Aldi)", "Cena", 150], ["Fruta (1 pieza)", "Cena", 1], ["Cerveza 0,0 (lata de 33 cl)", "Cena"]], "nota": ""}, {"sem": 4, "dia": "Sábado", "tipo": "Fuerza 6:00 + pasos", "items": [["Batido de proteína con creatina", "Desayuno"], ["Huevos a la plancha", "Desayuno"], ["Café solo o cortado", "Desayuno"], ["Tallarines boloñesa", "Comida"], ["Yogur natural Danone", "Comida", 120], ["Fruta (1 pieza)", "Comida", 1], ["Jamón de pavo y queso fresco", "Merienda"], ["Pizza Kamado casera", "Cena"], ["Skyr proteico maracuyá (Milsani, Aldi)", "Cena", 150], ["Fruta (1 pieza)", "Cena", 1], ["Cerveza (lata de 33 cl)", "Cena"], ["Pan integral (60 g)", "Extras"]], "nota": "Boloñesa en fin de semana. Pizza Kamado 1 vez al mes"}, {"sem": 4, "dia": "Domingo", "tipo": "Solo pasos", "items": [["Batido de proteína con creatina", "Desayuno"], ["Avena overnight (cúrcuma, canela y leche)", "Desayuno"], ["Café solo o cortado", "Desayuno"], ["Sopa y garbanzos", "Comida"], ["Yogur natural Danone", "Comida", 120], ["Fruta (1 pieza)", "Comida", 1], ["Jamón de pavo y queso fresco", "Merienda"], ["Pulpo a feira", "Cena"], ["Skyr proteico maracuyá (Milsani, Aldi)", "Cena", 150], ["Fruta (1 pieza)", "Cena", 1], ["Cerveza (lata de 33 cl)", "Cena"], ["Aperitivo en casa (latas, patatas, queso)", "Extras"]], "nota": "Revisión: compara medias semanales en «Seguimiento»"}];
 const VIAB  = [["Txuletón", "Comida"], ["Parrillada de carne (Kamado)", "Comida"], ["Costillas BBQ (Kamado)", "Comida"], ["Hamburguesa Berty's (Emily Love's)", "Comida"], ["Patatas fritas de restaurante", "Comida"], ["Hamburguesa de restaurante", "Comida"], ["KFC (alitas de pollo)", "Comida"], ["Ramen tantanmen", "Comida"], ["Tallarines boloñesa", "Comida"], ["Lasaña de atún", "Comida"], ["Arroz thai con pollo", "Comida"], ["Pollo hindú Mercadona", "Comida"], ["Arroz hindú con pollo (casero)", "Comida"], ["Sopa y garbanzos", "Comida"], ["Ensalada con todo", "Comida"], ["Tabulé con sardinas", "Comida"], ["Filet mignon con verduras", "Comida"], ["Zarzuela de marisco", "Comida"], ["Fabada Cidacos", "Comida"], ["Lentejas Cidacos", "Comida"], ["Arroz de pescado (Hacendado)", "Comida"], ["Arroz de secreto ibérico con setas", "Comida"], ["Empanada de cochinita pibil (Aldi)", "Comida"], ["Ensalada de tomate y bonito", "Cena"], ["Pizza Kamado casera", "Cena"], ["Zorza del Mercadona con patatas y huevos", "Cena"], ["Hamburguesa casera con ensalada", "Cena"], ["Sushi (10-12 piezas)", "Cena"], ["Texmex", "Cena"], ["Noodles de sobre con pollo", "Cena"], ["Arroz furikake con pollo", "Cena"], ["Figuras de merluza al horno con verduras", "Cena"], ["Pintxo de tortilla con bonito y mayonesa (doble)", "Desayuno"], ["Jamón serrano con pan", "Desayuno"], ["Domingo de chucherías", "Extras"]];
 
+const VERSION = "2026.08.27-2";
 /* ---------- datos derivados ---------- */
 const BY = {}; ITEMS.forEach(i => BY[i[0]] = i);
 const FRANJAS = ["Desayuno","Hamaiketako","Comida","Merienda","Cena","Extras"];
@@ -438,8 +455,8 @@ function hero() {
     + '<div style="text-align:right"><div class="mono" style="font-size:17px;font-weight:700;color:#FFFFFF">'+fmt(kcalSem)+'</div>'
     + '<div class="eyebrow">consumidas</div></div></div>'
     + '<div class="gauge">'+cols+'</div><div class="collab">'+labs+'</div>'
-    + '<p class="note" style="color:var(--hero-soft);margin:10px 0 0">La línea blanca de cada columna es el objetivo de ese día. '
-    + 'Lo que cuenta es el total de la semana, no cuadrar cada día por separado.</p></div>';
+    + '<p class="note" style="color:var(--hero-soft);margin:9px 0 0">La línea blanca de cada columna es el objetivo diario. '
+    + 'Lo que cuenta es el total de la semana, no cada día por separado.</p></div>';
 }
 
 function vistaRegistro() {
@@ -825,29 +842,26 @@ function vistaAjustes() {
 /* ---------- panel flotante: lo que queda por comer ---------- */
 function panelRestante(t, objD, o) {
   const filas = [
-    ["Proteína",        t.prot,               o.prot,          "g", "min"],
-    ["Grasa",           t.grasa,              o.grasa,         "g", "min"],
-    ["Hidratos",        t.hidratos,           o.hidratos,      "g", "max"],
-    ["Verdura y fruta", t.verdura + t.fruta,  S.params.objVF,  "g", "min"]
+    ["Proteína",        t.prot,               o.prot,          "min"],
+    ["Grasa",           t.grasa,              o.grasa,         "min"],
+    ["Hidratos",        t.hidratos,           o.hidratos,      "max"],
+    ["Verdura y fruta", t.verdura + t.fruta,  S.params.objVF,  "min"]
   ];
   const kcal = objD - t.kcal;
   let h = '<div id="restante" aria-live="polite"><div class="cab"><div>'
     + '<div class="rt">'+(kcal >= 0 ? "te queda por comer" : "te has pasado")+'</div>'
     + '<div class="rk '+(kcal >= 0 ? "rok" : "rno")+'">'+fmt(Math.abs(kcal))+' <span class="ru">kcal</span></div>'
-    + '<div class="rt2">'+fmt(t.kcal)+' de '+fmt(objD)+' kcal</div></div></div><div class="rejilla">';
+    + '<div class="rt2"><span class="'+(kcal >= 0 ? "rok" : "rno")+'">'+fmt(t.kcal)+'</span>'
+    + '<span class="obj"> / '+fmt(objD)+' kcal</span></div></div></div><div class="rejilla">';
   filas.forEach(function (f) {
-    const falta = f[2] - f[1];
-    let txt, cls;
-    if (f[4] === "min") {
-      if (falta > 0.5) { txt = "faltan "+fmt(falta); cls = "rno"; }
-      else { txt = falta < -0.5 ? "+"+fmt(-falta) : "justo"; cls = "rok"; }
-    } else {
-      if (falta >= 0) { txt = "quedan "+fmt(falta); cls = "rok"; }
-      else { txt = "+"+fmt(-falta); cls = "rno"; }
-    }
+    const dif = f[2] - f[1];
+    // mínimo: verde al alcanzarlo. máximo: verde mientras no se pase.
+    const ok = f[3] === "min" ? dif <= 0.5 : dif >= 0;
+    const cls = ok ? "rok" : "rno";
     h += '<div class="rf"><span class="rn">'+f[0]+'</span>'
-      + '<span class="rv"><span class="rc">'+fmt(f[1])+' / '+fmt(f[2])+' '+f[3]+'</span>'
-      + '<span class="'+cls+'">'+txt+'</span></span></div>';
+      + '<span class="rv"><span class="'+cls+'">'+fmt(f[1])+'</span>'
+      + '<span class="obj"> / '+fmt(f[2])+'</span>'
+      + ' <span class="'+cls+'">'+fmt(Math.abs(dif))+'</span></span></div>';
   });
   h += '</div></div>';
   return h;
@@ -992,7 +1006,8 @@ function bloqueSync() {
   const p = pendientes();
   const conf = S.sync.url && S.sync.token;
   const col = !conf ? "var(--ink)" : (p ? "var(--quince)" : "var(--verde)");
-  let h = '<div class="card"><span class="eyebrow">Sincronización entre el PC y el móvil</span>';
+  let h = '<div class="card"><div class="row"><span class="eyebrow">Sincronización entre el PC y el móvil</span>'
+    + '<span class="eyebrow" title="Versión de la app que estás viendo">versión '+VERSION+'</span></div>';
   h += '<p class="note" style="margin:8px 0 10px;font-weight:600;color:'+col+'">'
     + (!conf ? "Sin configurar: los datos solo viven en este navegador."
              : (p ? p+(p===1?" cambio pendiente de subir":" cambios pendientes de subir")
@@ -1130,8 +1145,9 @@ function vistaSugerencias(reg, objD, o) {
 const CATS_SEL = ["Alimentos sueltos","Mis alimentos","Desayuno","Hamaiketako","Comida","Postre",
   "Aperitivo / Merienda","Cena","Bebida","Extras","Suplemento","Post-entreno 6:30"];
 const UNIS_SEL = ["raciones","g","ml","cl","unidades","piezas","rebanadas","tazas","latas","huevos","alitas","porciones"];
-const CAMPOS_ED = [["kcal","Calorías","kcal",2],["prot","Proteína","g",3],["grasa","Grasa","g",4],
-  ["hidratos","Hidratos","g",5],["alc","Alcohol","g",6],["verdura","Verdura","g",7],["fruta","Fruta","g",8]];
+const CAMPOS_ED = [["kcal","Calorías","kcal",""],["prot","Proteína","g",""],["grasa","Grasa","g",""],
+  ["hidratos","Hidratos","g",""],["alc","Alcohol","g",""],
+  ["vf","Verdura y fruta","g","solo para el objetivo diario de 500 g"]];
 
 function abrirEd(nombre) {
   const it = BY[nombre];
@@ -1150,8 +1166,9 @@ function guardarEd() {
   if (!nom) return "Ponle un nombre.";
   if (nom !== e.nombreOrig && BY[nom]) return "Ya existe otro alimento con ese nombre.";
   const bs = cantidad(e.base) || 1;
+  const vfTotal = e.vf != null ? num(e.vf) : (num(e.verdura) + num(e.fruta));
   const it = [nom, e.cat || "Mis alimentos", num(e.kcal), num(e.prot), num(e.grasa), num(e.hidratos),
-              num(e.alc), num(e.verdura), num(e.fruta), "N.A.",
+              num(e.alc), vfTotal, 0, "N.A.",
               String(e.racion || "").trim() || (fmtCant(bs) + " " + (e.unidad || "raciones")),
               0, bs, e.unidad || "raciones", "propio"];
   S.propios = S.propios.filter(x => x[0] !== e.nombreOrig && x[0] !== nom).concat([it]);
@@ -1189,10 +1206,14 @@ function vistaAlimentos() {
     h += '</select><div class="note">solo decide la franja sugerida</div></div></div>';
     h += '<div class="grid3" style="margin-top:10px">';
     CAMPOS_ED.forEach(function(c){
-      h += '<div><span class="eyebrow">'+esc(c[1])+'</span>'
-        + '<input id="ed_'+c[0]+'" data-ed="'+c[0]+'" value="'+esc(String(e[c[0]] == null ? "" : e[c[0]]))+'" '
-        + 'type="number" inputmode="decimal" step="0.1" aria-label="'+esc(c[1])+'" style="margin-top:5px">'
-        + '<div class="note">'+esc(c[2])+'</div></div>';
+      const val = c[0] === "vf"
+        ? (Number(e.verdura || 0) + Number(e.fruta || 0)) || ""
+        : (e[c[0]] == null ? "" : e[c[0]]);
+      h += '<div class="campo"><span class="eyebrow">'+esc(c[1])+'</span>'
+        + '<div class="fila"><input id="ed_'+c[0]+'" data-ed="'+c[0]+'" value="'+esc(String(val))+'" '
+        + 'type="number" inputmode="decimal" step="0.1" aria-label="'+esc(c[1])+' en '+esc(c[2])+'">'
+        + '<span class="u">'+esc(c[2])+'</span></div>'
+        + (c[3] ? '<div class="pie">'+esc(c[3])+'</div>' : '') + '</div>';
     });
     h += '</div>';
     const bNueva = cantidad(e.base), bVieja = e.baseOrig;
@@ -1211,7 +1232,8 @@ function vistaAlimentos() {
         + '. Se guarda igual, pero uno de los dos está mal.</p>';
     if (original) h += '<p class="note" style="margin-top:10px">Valores originales del catálogo: '+fmt(original[2])
       + ' kcal, '+fmt(original[3])+' g de proteína, '+fmt(original[4])+' g de grasa, '+fmt(original[5])
-      + ' g de hidratos, por '+fmtCant(original[12])+' '+esc(original[13])+'.</p>';
+      + ' g de hidratos y '+fmt(original[7]+original[8])+' g de verdura y fruta, por '+fmtCant(original[12])
+      + ' '+esc(original[13])+'.</p>';
     h += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">'
       + '<button class="btn" data-act="edok">Guardar</button>'
       + '<button class="btn ghost" data-act="edno">Cancelar</button>';
@@ -1347,7 +1369,8 @@ document.getElementById("app").addEventListener("click", function(ev){
 });
 
 /* ---------- render y eventos ---------- */
-const TABS = [["registro","Registro"],["alimentos","Alimentos"],["peso","Peso"],["viabilidad","¿Cabe?"],["ajustes","Ajustes"]];
+const TABS = [["registro","Registro"],["alimentos","Alimentos"],["peso","Peso"],["ajustes","Ajustes"]];
+/* «¿Cabe?» sigue existiendo (vistaViabilidad) pero no se muestra como pestaña. */
 
 function render() {
   if (esEdge() && !edgeAceptado) { pantallaEdge(); return; }
