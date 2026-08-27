@@ -792,6 +792,7 @@ function vistaAjustes() {
     h += '</tbody></table></div></div>';
   }
 
+  h += bloqueInstalar();
   h += bloqueSync();
 
   const dias = fechasConRegistro().length, pes = Object.keys(S.pesos).length;
@@ -852,6 +853,47 @@ function panelRestante(t, objD, o) {
   return h;
 }
 
+/* ---------- instalación como app (PWA) ---------- */
+let promptInstalar = null;
+let swRegistrado = false;
+function esStandalone() {
+  try {
+    if (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) return true;
+    if (navigator.standalone) return true;
+  } catch (e) {}
+  return false;
+}
+function bloqueInstalar() {
+  const yaInstalada = esStandalone();
+  let h = '<div class="card"><span class="eyebrow">Instalar en el móvil</span>';
+  if (yaInstalada) {
+    h += '<p class="note" style="margin:8px 0 0;font-weight:600;color:var(--verde)">'
+      + 'Ya la estás usando como aplicación instalada.</p></div>';
+    return h;
+  }
+  if (promptInstalar) {
+    h += '<p class="note" style="margin:8px 0 10px;font-weight:600;color:var(--verde)">'
+      + 'Este navegador puede instalarla. Pulsa el botón y confirma.</p>'
+      + '<button class="btn" data-act="instalar">Instalar la app</button>';
+  } else {
+    h += '<p class="note" style="margin:8px 0 10px">Este navegador no me ha ofrecido instalarla. '
+      + 'Puede ser porque ya lo hiciste, porque no es Chrome, o porque el service worker aún no se ha '
+      + 'registrado (recarga la página y vuelve aquí).</p>'
+      + '<p class="note" style="margin:0 0 10px">A mano: en <b>Chrome para Android</b>, menú ⋮ → '
+      + '<b>Añadir a la pantalla de inicio</b> o <b>Instalar aplicación</b>. En <b>Samsung Internet</b>, '
+      + 'menú ☰ → <b>Añadir página a</b> → <b>Pantalla de inicio</b>. En <b>Chrome de escritorio</b>, '
+      + 'el icono de instalar aparece a la derecha de la barra de direcciones.</p>';
+  }
+  h += '<div class="grid2" style="margin-top:4px">'
+    + '<div class="note">Service worker registrado<br><b style="color:'+(swRegistrado?"var(--verde)":"var(--rojo)")+'">'
+    + (swRegistrado ? "sí" : "no") + '</b></div>'
+    + '<div class="note">El navegador ofrece instalar<br><b style="color:'+(promptInstalar?"var(--verde)":"var(--rojo)")+'">'
+    + (promptInstalar ? "sí" : "no") + '</b></div></div>';
+  h += '<p class="note" style="margin-top:10px">Instalarla es opcional: la app funciona igual desde el '
+    + 'navegador. Instalada solo gana icono propio, pantalla completa y arranque sin cobertura.</p></div>';
+  return h;
+}
+
 /* ---------- sincronización con Google Apps Script ---------- */
 let sincronizando = false;
 
@@ -871,8 +913,18 @@ async function sincronizar(silencioso) {
 sincronizar(true);
 document.addEventListener("visibilitychange", function(){ if (!document.hidden) sincronizar(true); });
 window.addEventListener("online", function(){ sincronizar(true); });
+window.addEventListener("beforeinstallprompt", function (e) {
+  e.preventDefault(); promptInstalar = e;
+  if (S.vista === "ajustes") render();
+});
+window.addEventListener("appinstalled", function () { promptInstalar = null; render(); });
 if ("serviceWorker" in navigator) {
-  window.addEventListener("load", function(){ navigator.serviceWorker.register("sw.js").catch(function(){}); });
+  window.addEventListener("load", function () {
+    navigator.serviceWorker.register("sw.js").then(function () {
+      swRegistrado = true;
+      if (S.vista === "ajustes") render();
+    }).catch(function () { swRegistrado = false; });
+  });
 }
 
   const cuerpo = {
@@ -1331,6 +1383,15 @@ document.getElementById("app").addEventListener("click", function(ev){
   else if (a === "ir") { S.fecha = b.dataset.f; S.vista = "registro"; }
   else if (a === "dia") { S.fecha = iso(addDays(parseIso(S.fecha), +b.dataset.n)); }
   else if (a === "franja") { S.franja = b.dataset.v; }
+  else if (a === "instalar") {
+    if (promptInstalar) {
+      const p = promptInstalar;
+      promptInstalar = null;
+      p.prompt();
+      if (p.userChoice) p.userChoice.then(function(){ render(); });
+    }
+    return;
+  }
   else if (a === "sincronizar") { guardar(); sincronizar(false); return; }
   else if (a === "resync") { S.sync.ultimo = 0; S.sync.estado = ""; guardar(); sincronizar(false); return; }
   else if (a === "pegar") {
@@ -1523,8 +1584,18 @@ render();
 sincronizar(true);
 document.addEventListener("visibilitychange", function(){ if (!document.hidden) sincronizar(true); });
 window.addEventListener("online", function(){ sincronizar(true); });
+window.addEventListener("beforeinstallprompt", function (e) {
+  e.preventDefault(); promptInstalar = e;
+  if (S.vista === "ajustes") render();
+});
+window.addEventListener("appinstalled", function () { promptInstalar = null; render(); });
 if ("serviceWorker" in navigator) {
-  window.addEventListener("load", function(){ navigator.serviceWorker.register("sw.js").catch(function(){}); });
+  window.addEventListener("load", function () {
+    navigator.serviceWorker.register("sw.js").then(function () {
+      swRegistrado = true;
+      if (S.vista === "ajustes") render();
+    }).catch(function () { swRegistrado = false; });
+  });
 }
 
 </script>
