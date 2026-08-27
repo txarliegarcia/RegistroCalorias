@@ -1,0 +1,1532 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Registro de comidas — Carlos</title>
+<meta name="theme-color" content="#0E1815">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Comidas">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icono-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Instrument+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#E8EBE6; --surface:#FFFFFF; --ink:#0E1815; --soft:#2C3B36; --line:#A9B5AE;
+  --pine:#0A6B4C; --quince:#8A5410; --slate:#2F536F; --pimenton:#B3271A; --mint:#12A277;
+  --verde:#0A6B4C; --rojo:#B3271A;
+  --verde-claro:#6FE0AC; --rojo-claro:#FF9E8B; --hero-soft:#C6D2CC;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{font-family:'Instrument Sans',system-ui,-apple-system,sans-serif;color:var(--ink);font-size:16px;
+  background:var(--bg);min-height:100vh;padding:18px 16px 60px;letter-spacing:-.01em;
+  -webkit-text-size-adjust:100%}
+.wrap{max-width:760px;margin:0 auto}
+.mono{font-family:'IBM Plex Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums}
+.disp{font-family:'Bricolage Grotesque','Instrument Sans',sans-serif;font-weight:800;letter-spacing:-.03em;line-height:.92}
+.eyebrow{font-family:'IBM Plex Mono',monospace;font-size:11.5px;letter-spacing:.13em;
+  text-transform:uppercase;color:var(--soft);font-weight:500}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:3px;padding:16px;margin-bottom:12px}
+.hero{background:var(--ink);color:#EDF0EC;border:none;padding:18px}
+.hero .eyebrow{color:var(--hero-soft)}
+.big{font-size:clamp(38px,10vw,58px)}
+.gauge{display:flex;gap:5px;align-items:flex-end;height:82px;margin:14px 0 6px}
+.col{flex:1;position:relative;height:100%;background:#22302B;border-radius:2px 2px 0 0;
+  cursor:pointer;overflow:hidden;border:none;padding:0}
+.col:focus-visible{outline:2px solid #EDF0EC;outline-offset:2px}
+.fill{position:absolute;left:0;right:0;bottom:0;transition:height .45s cubic-bezier(.2,.7,.2,1)}
+.tick{position:absolute;left:0;right:0;height:2px;background:#FFFFFF;opacity:.85}
+.collab{display:flex;gap:5px}
+.collab span{flex:1;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:9.5px;
+  color:var(--hero-soft);letter-spacing:.04em}
+.collab span.on{color:#FFFFFF;font-weight:700}
+.row{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.bar{height:10px;background:#CFD8D2;border-radius:99px;overflow:hidden;margin-top:5px}
+.bar i{display:block;height:100%;border-radius:99px;transition:width .4s ease}
+.metric{margin-bottom:11px}
+.metric .lab{font-size:14.5px;color:var(--ink);font-weight:500}
+.metric .val{font-family:'IBM Plex Mono',monospace;font-size:14.5px;font-weight:600}
+button{font-family:inherit;cursor:pointer}
+.btn{background:var(--ink);color:#FFFFFF;border:none;border-radius:2px;padding:10px 15px;
+  font-size:14px;font-weight:600}
+.btn.ghost{background:#FFFFFF;color:var(--ink);border:1.5px solid var(--ink)}
+.btn.tiny{padding:6px 10px;font-size:13px}
+.btn[disabled]{opacity:.4;cursor:not-allowed}
+.btn:focus-visible,.tab:focus-visible{outline:2px solid var(--pine);outline-offset:2px}
+.tabs{display:flex;gap:2px;margin-bottom:14px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.tab{background:none;border:none;padding:10px 14px;font-size:14.5px;color:var(--soft);
+  border-bottom:3px solid transparent;margin-bottom:-1px;font-weight:500}
+.tab.on{color:var(--ink);font-weight:700;border-bottom-color:var(--pine)}
+input,select{font-family:inherit;font-size:15px;padding:8px 9px;border:1px solid var(--line);
+  border-radius:2px;background:#fff;color:var(--ink);width:100%}
+input:focus-visible{outline:2px solid var(--pine);outline-offset:-1px}
+.logrow{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.logrow:last-child{border-bottom:none}
+/* los controles van en una rejilla de anchos fijos: así todas las filas quedan alineadas
+   aunque la unidad sea "g" o "hamburguesas" */
+.logrow .info{flex:1 1 230px;min-width:0}
+.logrow .ctrl{display:grid;grid-template-columns:64px 96px 130px 76px;gap:6px;align-items:center;
+  flex:0 0 auto;margin-left:auto}
+.logrow .ctrl input{width:100%;text-align:center;font-weight:700;font-size:16px;padding:8px 3px}
+.logrow .ctrl select{width:100%}
+.logrow .uni{font-size:13.5px;font-weight:600;line-height:1.15;overflow-wrap:break-word;hyphens:auto}
+.logrow .ctrl .btn{width:100%;padding:6px 4px}
+@media (max-width:640px){
+  .logrow .info{flex:1 1 100%}
+  .logrow .ctrl{margin-left:0;grid-template-columns:58px 82px 1fr 72px;gap:5px}
+  .logrow .ctrl input{font-size:15px;padding:8px 2px}
+  .logrow .uni{font-size:12.5px}
+}
+.restante{font-family:'Bricolage Grotesque','Instrument Sans',sans-serif;font-weight:800;
+  letter-spacing:-.02em;font-size:26px;line-height:1}
+.restlab{font-size:14px;font-weight:600;margin-top:3px}
+/* ---- bloques por franja en el registro del día ---- */
+.grupo{border:1.5px solid var(--ink);border-radius:3px;margin:12px 0;overflow:hidden}
+.grupo .gcab{background:var(--ink);color:#fff;padding:9px 13px;display:flex;
+  justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
+.grupo .gnom{font-family:'Bricolage Grotesque','Instrument Sans',sans-serif;font-weight:800;
+  font-size:17px;letter-spacing:-.02em}
+.grupo .gsub{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:700;color:#fff}
+.grupo .gcue{padding:3px 13px 7px}
+.grupo .logrow:first-child{padding-top:9px}
+.res{max-height:250px;overflow-y:auto;border:1px solid var(--line);border-top:none;background:#fff}
+.res button{display:block;width:100%;text-align:left;background:none;border:none;padding:10px;
+  font-size:14.5px;border-bottom:1px solid var(--line)}
+.res button:hover,.res button:focus-visible{background:#DCE7E0}
+.chip{font-family:'IBM Plex Mono',monospace;font-size:13px;padding:3px 7px;border-radius:2px;
+  background:#DCE7E0;color:var(--ink);font-weight:600}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.note{font-size:13.5px;color:var(--ink);line-height:1.55}
+.aviso{background:#FBEDE6;border:1.5px solid #C98A66;color:#6B2F16;font-size:14px;
+  padding:9px 11px;border-radius:2px;margin-bottom:12px;line-height:1.45}
+.veredicto{font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:700;letter-spacing:.05em;
+  padding:2px 6px;border-radius:2px;text-transform:uppercase;white-space:nowrap}
+.v-cabe{background:#C7E7D6;color:#064B33}
+.v-justo{background:#F6E2B8;color:#6B3F06}
+.v-no{background:#F7CFC9;color:#8A1C11}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{text-align:left;font-family:'IBM Plex Mono',monospace;font-size:11.5px;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--ink);font-weight:600;padding:8px 8px 8px 0;
+  border-bottom:2px solid var(--ink)}
+td{padding:9px 8px 9px 0;border-bottom:1px solid var(--line);vertical-align:top}
+td.num,th.num{text-align:right;font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums}
+/* ---- panel de lo que queda por comer ---- */
+#restante{position:fixed;z-index:80;background:var(--ink);color:#fff;border-radius:3px;
+  box-shadow:0 6px 24px rgba(14,24,21,.28)}
+#restante .rt{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.13em;
+  text-transform:uppercase;color:var(--hero-soft);font-weight:500}
+#restante .rk{font-family:'Bricolage Grotesque','Instrument Sans',sans-serif;font-weight:800;
+  letter-spacing:-.03em;line-height:.95}
+#restante .rf{display:flex;justify-content:space-between;align-items:baseline;gap:10px;
+  padding:7px 0;border-top:1px solid #2C3B36}
+#restante .rn{font-size:14px;font-weight:500;color:#E4EAE6}
+#restante .rv{font-family:'IBM Plex Mono',monospace;font-size:13.5px;font-weight:700;
+  white-space:nowrap;text-align:right}
+#restante .rc{display:block;font-weight:500;color:var(--hero-soft);font-size:12.5px}
+#restante .ru{font-family:'Instrument Sans',sans-serif;font-size:16px;font-weight:600}
+#restante .rt2{font-family:'IBM Plex Mono',monospace;font-size:12.5px;font-weight:600;
+  color:var(--hero-soft);margin-top:3px}
+.rok{color:var(--verde-claro)} .rno{color:var(--rojo-claro)}
+/* pantalla ancha: columna flotante a la derecha */
+@media (min-width:1240px){
+  #restante{top:88px;right:22px;width:262px;padding:16px 17px}
+  #restante .rk{font-size:38px}
+}
+/* pantalla estrecha: barra inferior compacta */
+@media (max-width:1239px){
+  body{padding-bottom:132px}
+  #restante{left:0;right:0;bottom:0;border-radius:0;padding:10px 16px 12px;
+    box-shadow:0 -6px 20px rgba(14,24,21,.3)}
+  #restante .cab{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+  #restante .rk{font-size:27px}
+  #restante .rejilla{display:grid;grid-template-columns:1fr 1fr;gap:2px 16px;margin-top:6px}
+  #restante .rf{border:none;padding:1px 0;gap:6px}
+  #restante .rn{font-size:12.5px}
+  #restante .rv{font-size:12.5px;display:flex;gap:7px;align-items:baseline}
+  #restante .rc{display:inline;font-size:11.5px}
+}
+@media (max-width:520px){.grid2,.grid3{grid-template-columns:1fr}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+.bloqueo{position:fixed;inset:0;background:var(--ink);color:#fff;z-index:9999;
+  display:flex;align-items:center;justify-content:center;padding:24px;overflow-y:auto}
+.bloqueo .caja{max-width:560px}
+.bloqueo h1{font-family:'Bricolage Grotesque',sans-serif;font-weight:800;letter-spacing:-.03em;
+  font-size:clamp(30px,7vw,44px);line-height:1.02;margin:0 0 14px}
+.bloqueo p{font-size:16px;line-height:1.55;color:#E4EAE6;margin:0 0 14px}
+.bloqueo .grande{background:#fff;color:var(--ink);border:none;border-radius:3px;
+  padding:16px 22px;font-size:18px;font-weight:700;font-family:inherit;cursor:pointer;width:100%;margin-bottom:9px}
+.bloqueo .sec{background:transparent;color:#fff;border:2px solid #fff;border-radius:3px;
+  padding:13px 20px;font-size:15px;font-weight:600;font-family:inherit;cursor:pointer;width:100%;margin-bottom:9px}
+.bloqueo .peque{background:none;border:none;color:#AFC0B8;text-decoration:underline;
+  font-family:inherit;font-size:13.5px;cursor:pointer;padding:8px 0}
+.bloqueo code{font-family:'IBM Plex Mono',monospace;background:#25332E;padding:2px 6px;border-radius:2px;
+  font-size:14px;word-break:break-all}
+.bloqueo .ok{color:#6FE0AC;font-weight:700}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+<script>
+"use strict";
+const ITEMS = [["Batido de proteína con creatina", "Post-entreno 6:30", 116, 23.6, 1.4, 1.6, 0, 0, 0, "N.A.", "1 scoop colmado (31 g de polvo, datos del bote) + 3,2 g de creatina, en agua", 0, 1, "toma", ""], ["Creatina sola (3,2 g)", "Post-entreno 6:30", 0, 0, 0, 0, 0, 0, 0, "N.A.", "Un cacito de 3,2 g en agua o con el yogur. Días sin batido", 0, 3.2, "g", ""], ["Avena overnight (cúrcuma, canela y leche)", "Desayuno", 315, 12.5, 10.7, 39, 0, 0, 0, "N.A.", "50 g de avena + 200 ml de leche entera Kaiku (ya verificada) + cúrcuma y canela", 0, 1, "raciones", ""], ["Huevos a la plancha", "Desayuno", 190, 13, 15, 1, 0, 0, 0, "N.A.", "2 huevos + 5 g AOVE", 0, 2, "huevos", ""], ["Jamón serrano con pan", "Desayuno", 215, 19, 7, 19, 0, 0, 0, "N.A.", "50 g de jamón + un trozo de barra de ~8 cm (≈35 g de pan)", 0, 1, "raciones", ""], ["Tostada de salmón y aguacate", "Desayuno", 373, 20, 22, 24, 0, 0, 60, "N.A.", "1 tostada", 1, 1, "tostadas", ""], ["Tostada de guacamole con atun", "Desayuno", 180, 12, 8, 15, 0, 0, 50, "N.A.", "1 tostada", 1, 1, "tostadas", ""], ["Yogur proteico con fruta y nueces", "Desayuno", 320, 24, 12, 29, 0, 0, 160, "N.A.", "1 yogur 200 g + 1 pieza + 15 g nueces", 0, 1, "raciones", ""], ["Revuelto de pollo asado con queso", "Desayuno", 370, 36, 24, 3, 0, 0, 0, "N.A.", "2 huevos + 80 g pollo + 20 g queso", 0, 1, "raciones", ""], ["Huevos revueltos con jamón de pavo", "Desayuno", 310, 30, 18, 7, 0, 0, 0, "N.A.", "3 huevos + 60 g pavo braseado", 0, 1, "raciones", ""], ["Tostada integral con jamón y tomate", "Desayuno", 280, 17, 8, 35, 0, 50, 0, "N.A.", "2 rebanadas + 40 g jamón", 0, 2, "rebanadas", ""], ["Pintxo de tortilla con bonito y mayonesa (doble)", "Desayuno", 690, 26, 50, 34, 0, 30, 0, "N.A.", "Pintxo grande = 2 raciones, con capa de bonito y mayonesa. Solo entre semana", 0, 1, "pintxos", ""], ["Café solo o cortado", "Hamaiketako", 15, 1, 1, 0, 0, 0, 0, "N.A.", "Con un chorro de leche entera. Endulzado con eritritol o sacarina: 0 kcal", 0, 1, "taza", ""], ["Fruta (1 pieza)", "Hamaiketako", 95, 1, 0, 23, 0, 0, 160, "N.A.", "1 manzana / plátano", 0, 1, "piezas", ""], ["Puñado de nueces", "Hamaiketako", 130, 3, 13, 0, 0, 0, 0, "N.A.", "20 g", 0, 20, "g", ""], ["Cerveza (lata de 33 cl)", "Bebida", 150, 0, 0, 13, 14, 0, 0, "N.A.", "Rubia o tostada de ~5,5% (Estrella Galicia o similar). ≈14 g de alcohol", 0, 33, "cl", ""], ["Cerveza (botella o jarra de 50 cl)", "Bebida", 227, 0, 0, 20, 21, 0, 0, "N.A.", "Rubia o tostada de ~5,5%. ≈21 g de alcohol", 0, 50, "cl", ""], ["Cerveza 0,0 (lata de 33 cl)", "Bebida", 70, 1, 0, 16, 0, 0, 0, "N.A.", "Sin alcohol. Mismo ritual, menos de la mitad de calorías", 0, 33, "cl", ""], ["Cerveza 0,0 (botella de 50 cl)", "Bebida", 105, 1, 0, 25, 0, 0, 0, "N.A.", "Sin alcohol, 50 cl", 0, 50, "cl", ""], ["Agua", "Bebida", 0, 0, 0, 0, 0, 0, 0, "N.A.", "Sin calorías", 0, 1, "vaso", ""], ["Psyllium (cáscara, 5 g)", "Suplemento", 10, 0, 0, 4, 0, 0, 0, "Sí", "Fibra soluble. Casi todas sus kcal son fibra no digerible", 0, 5, "g", ""], ["Arroz de pescado (Hacendado)", "Platos preparados", 594, 16.6, 19, 91, 0, 30, 0, "Sí", "Bandeja de 280 g. Datos del envase", 2, 280, "g", ""], ["Arroz de secreto ibérico con setas", "Platos preparados", 580, 18.2, 24.6, 68.6, 0, 60, 0, "Sí", "Bandeja de 280 g. Datos del envase", 2, 280, "g", ""], ["Pollo hindú Mercadona", "Platos preparados", 380, 23, 14, 39, 0, 40, 0, "Sí", "Bandeja de 280 g de Platos Tradicionales. Datos del envase", 2, 280, "g", ""], ["Fabada Cidacos", "Platos preparados", 588, 30.7, 31.1, 39.1, 0, 20, 0, "Sí", "Lata de 420 g. Datos del envase", 2, 420, "g", ""], ["Lentejas Cidacos", "Platos preparados", 479, 22.3, 23.5, 39.9, 0, 40, 0, "Sí", "Lata de 420 g. Datos del envase", 2, 420, "g", ""], ["Kéfir natural Mercadona", "Alimentos sueltos", 74, 3.9, 4.2, 5.1, 0, 0, 0, "No", "100 g (datos del envase de 500 g)", 2, 100, "g", ""], ["Proteína whey Optimum Nutrition (polvo)", "Alimentos sueltos", 374, 76, 4.6, 5.3, 0, 0, 0, "Sí", "100 g de polvo (datos del bote). 1 scoop colmado = 31 g", 2, 100, "g", ""], ["Pechuga de pavo cocida ahumada (Aldi)", "Alimentos sueltos", 111, 24, 1.1, 0.9, 0, 0, 0, "Sí", "100 g (datos del envase). 1,7 g de sal", 2, 100, "g", ""], ["Muslo de pavo braseado y ahumado (Aldi)", "Alimentos sueltos", 108, 19, 3, 0.9, 0, 0, 0, "Sí", "100 g (datos del envase). 1,5 g de sal", 2, 100, "g", ""], ["Leche entera Kaiku Km.0", "Alimentos sueltos", 62, 3.0, 3.6, 4.5, 0, 0, 0, "Sí", "100 ml (etiqueta del brik)", 2, 100, "ml", ""], ["Empanada de cochinita pibil (Aldi)", "Alimentos sueltos", 394, 14.1, 14.4, 49.6, 0, 0, 0, "Sí", "Paquete de 160 g = 2 empanadas de 80 g (etiqueta)", 2, 160, "g", ""], ["Queso fresco de Burgos", "Alimentos sueltos", 175, 12, 13, 2.5, 0, 0, 0, "Sí", "100 g. ESTIMADO: mándame la etiqueta y lo ajusto", 0, 100, "g", ""], ["Queso fresco batido desnatado", "Alimentos sueltos", 60, 10, 0.5, 4, 0, 0, 0, "Sí", "100 g. ESTIMADO: mándame la etiqueta y lo ajusto", 0, 100, "g", ""], ["Smoothie de agua de coco con espinacas", "Alimentos sueltos", 167, 3.6, 0.5, 36, 0, 30, 140, "Sí", "1 vaso: 250 ml de agua de coco, un puñado de espinacas, 1 plátano y zumo de medio limón", 0, 1, "vasos", ""], ["Skyr proteico maracuyá (Milsani, Aldi)", "Alimentos sueltos", 71, 12, 0.8, 8.2, 0, 0, 0, "Sí", "1 bote de 150 g (0,79 €). Etiqueta del bote: 47 kcal/100 g", 2, 150, "g", ""], ["Yogur natural La Ermita", "Alimentos sueltos", 69, 2.7, 4.5, 4, 0, 0, 0, "Sí", "100 g (datos del envase). Leche entera y nata", 2, 100, "g", ""], ["Yogur natural Danone", "Alimentos sueltos", 56, 3.3, 2.9, 4.3, 0, 0, 0, "Sí", "120 g (datos del envase)", 2, 120, "g", ""], ["Manzana", "Alimentos sueltos", 95, 0.5, 0.3, 22, 0, 0, 180, "Sí", "1 pieza de unos 180 g", 0, 1, "piezas", ""], ["Plátano", "Alimentos sueltos", 90, 1.1, 0.3, 21, 0, 0, 120, "Sí", "1 pieza de unos 120 g", 0, 1, "piezas", ""], ["Naranja", "Alimentos sueltos", 80, 1.6, 0.2, 18, 0, 0, 200, "Sí", "1 pieza de unos 200 g", 0, 1, "piezas", ""], ["Pera", "Alimentos sueltos", 100, 0.6, 0.2, 24, 0, 0, 180, "Sí", "1 pieza de unos 180 g", 0, 1, "piezas", ""], ["Pan de molde", "Alimentos sueltos", 80, 2.5, 1, 15, 0, 0, 0, "Sí", "1 rebanada de 30 g", 0, 1, "rebanadas", ""], ["Pan bao relleno", "Alimentos sueltos", 250, 10, 8, 34, 0, 20, 0, "Sí", "1 unidad con relleno de cerdo", 0, 1, "unidades", ""], ["Chorizo", "Alimentos sueltos", 450, 22, 40, 2, 0, 0, 0, "Sí", "100 g", 0, 100, "g", ""], ["Longaniza fresca", "Alimentos sueltos", 300, 16, 26, 1, 0, 0, 0, "No", "100 g", 0, 100, "g", ""], ["Caracoles guisados", "Alimentos sueltos", 260, 24, 12, 14, 0, 60, 0, "Sí", "200 g", 0, 200, "g", ""], ["Aceitunas", "Alimentos sueltos", 73, 0.5, 7, 2, 0, 0, 0, "Sí", "50 g", 0, 50, "g", ""], ["Postre: yogur natural Danone con fruta", "Postre", 151, 4, 3, 26, 0, 0, 160, "Sí", "1 yogur Danone de 120 g + 1 pieza de fruta. Va al taper sin problema", 0, 1, "raciones", ""], ["Postre: skyr con fruta", "Postre", 166, 12.7, 1, 30, 0, 0, 160, "Sí", "1 bote de skyr de 150 g + 1 pieza de fruta", 0, 1, "raciones", ""], ["Postre: kéfir natural Mercadona con fruta", "Postre", 188, 5.3, 5.5, 28, 0, 0, 160, "No", "125 g de kéfir + 1 pieza de fruta. SOLO EN CASA: desayuno, merienda o cena", 0, 1, "raciones", ""], ["Lasaña de atún", "Comida", 700, 36, 28, 76, 0, 80, 0, "Sí", "1 ración generosa", 0, 1, "raciones", ""], ["Tabulé con sardinas", "Comida", 490, 29, 20, 49, 0, 120, 0, "Sí", "60 g cuscús en seco + 2 latas de sardinas", 0, 1, "raciones", ""], ["Alubias o lentejas con verduras", "Comida", 490, 26, 11, 72, 0, 150, 0, "Sí", "80 g legumbre en seco + verduras", 1, 1, "raciones", ""], ["Garbanzos con verduras", "Comida", 520, 23, 16, 71, 0, 150, 0, "Sí", "80 g garbanzo en seco + verduras", 0, 1, "raciones", ""], ["Sopa y garbanzos", "Comida", 510, 26, 14, 70, 0, 120, 0, "Sí", "Sopa + plato de garbanzos. Normalmente domingo", 0, 1, "raciones", ""], ["Ensalada con todo", "Comida", 506, 32, 30, 27, 0, 250, 0, "Sí", "Ensalada completa con huevo, atún y queso", 1, 1, "raciones", ""], ["Ensalada de tomate y bonito", "Comida", 228, 15.3, 14.7, 7.4, 0, 230, 0, "Sí", "1 tomate grande (220 g) + 15 ml de AOVE + 10 g de cebolleta + 1 lata de atún al natural escurrida (52 g)", 0, 1, "raciones", ""], ["Ensalada mixta con atún", "Comida", 420, 32, 22, 24, 0, 250, 0, "Sí", "Ensalada grande + 120 g atún + 10 g AOVE", 0, 1, "raciones", ""], ["Arroz con pollo", "Comida", 632, 40, 17, 80, 0, 120, 0, "Sí", "Ración de arroz con pollo y verduras", 1, 1, "raciones", ""], ["Arroz hindú con pollo (casero)", "Comida", 610, 40, 22, 63, 0, 120, 0, "Sí", "Tu receta: 150 g de pollo + 120 g de arroz cocido. ESTIMADO", 0, 1, "raciones", ""], ["Arroz thai con pollo", "Comida", 601, 38, 28, 49, 0, 120, 0, "Sí", "Tu receta de curry verde, que YA incluye el arroz glutinoso", 1, 1, "raciones", ""], ["Pavo al curry madrás", "Comida", 251, 32, 10, 8, 0, 100, 0, "Sí", "Ración de curry, sin guarnición", 1, 1, "raciones", ""], ["Arroz con leche de coco", "Comida", 372, 6, 10, 64, 0, 0, 0, "Sí", "Guarnición de arroz", 1, 1, "raciones", ""], ["Arroz de rejos", "Comida", 280, 16, 5, 43, 0, 60, 0, "Sí", "Ración de arroz de rejos", 1, 1, "raciones", ""], ["Ensaladilla Rusa", "Comida", 444, 14, 31, 28, 0, 100, 0, "Sí", "1 ración", 1, 1, "raciones", ""], ["Vainas", "Comida", 301, 10, 12, 38, 0, 300, 0, "Sí", "Ración de vainas con patata", 1, 1, "raciones", ""], ["Vainas con patata y huevo", "Comida", 420, 20, 16, 49, 0, 300, 0, "Sí", "300 g vainas + 150 g patata + 2 huevos", 0, 1, "raciones", ""], ["Macarrones con atún", "Comida", 650, 36, 20, 82, 0, 80, 0, "Sí", "90 g pasta en seco + 120 g atún", 0, 1, "raciones", ""], ["Cuscús con verdura y pollo", "Comida", 600, 33, 18, 77, 0, 200, 0, "Sí", "70 g cuscús en seco + 130 g pollo", 0, 1, "raciones", ""], ["Quinoa con verduras y setas", "Comida", 480, 18, 16, 66, 0, 250, 0, "Sí", "70 g quinoa en seco + verduras", 0, 1, "raciones", ""], ["Raviolis", "Comida", 660, 26, 22, 90, 0, 80, 0, "Sí", "250 g raviolis frescos + salsa de tomate", 0, 1, "raciones", ""], ["Tallarines putanesca", "Comida", 640, 22, 24, 84, 0, 100, 0, "Sí", "90 g pasta en seco + anchoas y aceitunas", 0, 1, "raciones", ""], ["Filet mignon con verduras", "Comida", 480, 46, 25, 18, 0, 200, 0, "No", "200 g de solomillo de vacuno + 10 g AOVE + 200 g de verdura", 0, 1, "raciones", ""], ["Zarzuela de marisco", "Comida", 520, 45, 26, 26, 0, 120, 0, "No", "150 g de pescado blanco + 100 g de marisco + sofrito con almendra", 0, 1, "raciones", ""], ["Sepia al ajillo", "Comida", 440, 38, 29, 7, 0, 30, 0, "Sí", "Ración de sepia al ajillo", 1, 1, "raciones", ""], ["Menestra con jamón", "Comida", 390, 22, 14, 44, 0, 350, 0, "Sí", "350 g menestra + 60 g jamón", 0, 1, "raciones", ""], ["Porrusalda con bacalao", "Comida", 400, 30, 12, 43, 0, 200, 0, "Sí", "Plato hondo + 100 g bacalao", 0, 1, "raciones", ""], ["Brócoli con patatas y pollo", "Comida", 490, 36, 14, 55, 0, 300, 0, "Sí", "300 g brócoli + 150 g patata + 130 g pollo", 0, 1, "raciones", ""], ["Wok de verduras con ternera", "Comida", 500, 36, 20, 44, 0, 400, 0, "Sí", "400 g verdura + 130 g ternera", 0, 1, "raciones", ""], ["Tallarines konjak con salsa de pollo y setas", "Comida", 370, 36, 18, 16, 0, 100, 0, "Sí", "1 paquete konjak + 150 g pollo", 0, 1, "raciones", ""], ["Arroz de coliflor con pollo", "Comida", 430, 40, 18, 27, 0, 300, 0, "Sí", "Coliflor rallada + 150 g pollo", 0, 1, "raciones", ""], ["Crema de puerros con pescado a la plancha", "Comida", 430, 36, 18, 31, 0, 200, 0, "Sí", "Bol + 150 g merluza", 0, 1, "raciones", ""], ["Merluza al limón con verduras", "Comida", 390, 38, 14, 28, 0, 200, 0, "Sí", "180 g merluza + guarnición", 0, 1, "raciones", ""], ["Poke de salmón", "Comida", 560, 36, 22, 55, 0, 150, 0, "Sí", "120 g arroz cocido + 130 g salmón + verduras", 0, 1, "raciones", ""], ["Garbanzos con callos", "Comida", 760, 36, 36, 73, 0, 60, 0, "Sí", "1 plato generoso", 0, 1, "raciones", ""], ["Tallarines boloñesa", "Comida", 567, 36, 18, 65, 0, 100, 0, "Sí", "90 g pasta en seco + carne picada. Fin de semana", 1, 1, "raciones", ""], ["Lazos con nata", "Comida", 860, 26, 40, 99, 0, 20, 0, "Sí", "90 g pasta + nata y bacon", 0, 1, "raciones", ""], ["Lasaña", "Comida", 860, 42, 40, 83, 0, 80, 0, "Sí", "1 ración generosa", 0, 1, "raciones", ""], ["Fabada o alubiada con compango", "Comida", 900, 42, 44, 84, 0, 40, 0, "Sí", "1 plato con compango", 0, 1, "raciones", ""], ["Pollo asado con ensalada", "Comida", 470, 46, 24, 18, 0, 200, 0, "No", "1 muslo + contramuslo sin piel + ensalada", 0, 1, "raciones", ""], ["Ramen", "Comida", 700, 36, 26, 81, 0, 100, 0, "No", "1 bol completo con huevo y cerdo", 0, 1, "boles", ""], ["Txuletón", "Comida", 1050, 62, 72, 39, 0, 100, 0, "No", "400 g de txuleta + guarnición", 0, 400, "g", ""], ["Parrillada de carne (Kamado)", "Comida", 1150, 66, 78, 46, 0, 120, 0, "No", "Surtido + guarnición", 0, 1, "raciones", ""], ["Costillas asadas (Kamado)", "Comida", 980, 56, 70, 32, 0, 100, 0, "No", "350 g costilla", 0, 350, "g", ""], ["Costillas BBQ (Kamado)", "Comida", 1055, 56, 70, 50, 0, 80, 0, "No", "350 g costilla + salsa BBQ. Guarda la carne que sobre para el texmex", 0, 350, "g", ""], ["Hamburguesa completa con patatas", "Comida", 1150, 46, 62, 102, 0, 60, 0, "No", "Hamburguesa doble + patatas", 0, 1, "hamburguesas", ""], ["Pizza (media Domino's)", "Comida", 900, 36, 34, 113, 0, 40, 0, "No", "4 porciones", 0, 4, "porciones", ""], ["KFC (alitas de pollo)", "Comida", 1015, 52, 54, 80, 0, 20, 0, "Excepción", "8 alitas (715 kcal) + patatas (300 kcal). Refresco zero, 0 kcal", 0, 8, "alitas", ""], ["Hamburguesa Berty's (Emily Love's)", "Comida", 1040, 50, 69, 52, 0, 60, 0, "No", "180 g de carne dry aged, Monterey Jack, cebolla caramelizada, pepinillos y salsa Emily, en pan brioche. SIN patatas", 0, 1, "hamburguesas", ""], ["Patatas fritas de restaurante", "Comida", 520, 6, 26, 62, 0, 0, 0, "No", "Ración de acompañamiento, unos 170 g", 0, 170, "g", ""], ["Hamburguesa de restaurante", "Comida", 1150, 46, 62, 102, 0, 60, 0, "Excepción", "Whopper o similar (850 kcal) + patatas (300 kcal). Refresco zero, 0 kcal", 0, 1, "hamburguesas", ""], ["Ramen tantanmen", "Comida", 945, 40, 47, 90, 0, 90, 0, "Excepción", "1 bol de tantanmen (caldo de sésamo y cerdo)", 0, 1, "boles", ""], ["Fuera (comida de trabajo, menú)", "Comida", 900, 40, 42, 91, 0, 100, 0, "Excepción", "Menú del día completo", 0, 1, "raciones", ""], ["Skyr con fruta", "Aperitivo / Merienda", 166, 12.7, 1, 30, 0, 0, 160, "N.A.", "1 bote de skyr de 150 g + 1 pieza de fruta", 0, 1, "raciones", ""], ["Fruta y nueces", "Aperitivo / Merienda", 225, 4, 13, 23, 0, 0, 160, "N.A.", "1 pieza + 20 g nueces", 0, 1, "raciones", ""], ["Jamón de pavo y queso fresco", "Aperitivo / Merienda", 190, 26, 5, 10, 0, 0, 0, "N.A.", "80 g pavo + 100 g queso fresco", 0, 1, "raciones", ""], ["Queso fresco batido con nueces", "Aperitivo / Merienda", 190, 13, 13, 5, 0, 0, 0, "N.A.", "100 g de queso fresco batido + 20 g de nueces", 0, 1, "raciones", ""], ["Sushi (10-12 piezas)", "Cena", 560, 26, 14, 83, 0, 30, 0, "N.A.", "1 bandeja mediana", 0, 11, "piezas", ""], ["Noodles de sobre con pollo", "Cena", 640, 44, 24, 62, 0, 40, 0, "N.A.", "1 sobre de noodles saborizados + 130 g de pollo a la plancha con salsa", 0, 1, "sobres", ""], ["Arroz furikake con pollo", "Cena", 610, 42, 14, 79, 0, 30, 0, "N.A.", "200 g arroz blanco cocido + furikake + 150 g pollo con salsa dulce japonesa (eritritol y algo de miel)", 0, 1, "raciones", ""], ["Pizza Kamado casera", "Cena", 850, 36, 34, 100, 0, 60, 0, "N.A.", "1 pizza casera al Kamado", 0, 1, "pizzas", ""], ["Zorza del Mercadona con patatas y huevos", "Cena", 925, 42, 62, 50, 0, 20, 0, "N.A.", "150 g zorza + patatas fritas + 2 huevos revueltos", 0, 1, "raciones", ""], ["Hamburguesa casera con ensalada", "Cena", 620, 42, 30, 46, 0, 150, 0, "N.A.", "150 g carne + pan + ensalada", 0, 1, "hamburguesas", ""], ["Figuras de merluza al horno con verduras", "Cena", 400, 33, 16, 31, 0, 250, 0, "N.A.", "200 g merluza + verduras", 0, 1, "raciones", ""], ["Huevos a la plancha con ensalada", "Cena", 320, 17, 25, 7, 0, 200, 0, "N.A.", "3 huevos a la plancha + ensalada", 0, 1, "raciones", ""], ["Sandwich de atún con tomate", "Cena", 455, 30, 18, 44, 0, 60, 0, "N.A.", "1 sándwich", 1, 1, "sándwiches", ""], ["Sandwich de atún", "Cena", 378, 26, 14, 38, 0, 20, 0, "N.A.", "1 sándwich", 1, 1, "sándwiches", ""], ["Ensala de Aguacate", "Cena", 341, 8, 27, 16, 0, 150, 60, "N.A.", "1 ensalada", 1, 1, "raciones", ""], ["Sopa y ensalada de huevo", "Cena", 370, 22, 20, 26, 0, 200, 0, "N.A.", "Sopa + ensalada con 2 huevos", 0, 1, "raciones", ""], ["Latas y crudités", "Cena", 350, 29, 16, 23, 0, 200, 0, "N.A.", "Mejillones o berberechos + verdura cruda", 0, 1, "raciones", ""], ["Gulas con huevos", "Cena", 400, 31, 24, 15, 0, 20, 0, "N.A.", "100 g gulas + 2 huevos", 0, 1, "raciones", ""], ["Tortilla francesa con ensalada", "Cena", 370, 25, 26, 9, 0, 180, 0, "N.A.", "3 huevos + ensalada", 0, 1, "raciones", ""], ["Ceviche", "Cena", 350, 36, 10, 29, 0, 80, 0, "N.A.", "200 g pescado blanco + lima y cebolla", 0, 1, "raciones", ""], ["Salpicón de rejos", "Cena", 360, 31, 16, 23, 0, 150, 0, "N.A.", "200 g rejos + verduras", 0, 1, "raciones", ""], ["Pulpo a feira", "Cena", 410, 36, 18, 26, 0, 0, 0, "N.A.", "200 g pulpo + patata", 0, 1, "raciones", ""], ["Sashimi de salmón con ensalada", "Cena", 410, 40, 24, 9, 0, 180, 0, "N.A.", "150 g salmón + ensalada", 0, 1, "raciones", ""], ["Rabas (txipirones) a la plancha", "Cena", 400, 36, 18, 24, 0, 20, 0, "N.A.", "200 g txipirón", 0, 1, "raciones", ""], ["Ensalada de tomate con lomo y queso", "Cena", 420, 26, 28, 16, 0, 200, 0, "N.A.", "Tomate + 80 g lomo + 30 g queso", 0, 1, "raciones", ""], ["Tallarines konjak con verduras", "Cena", 310, 16, 14, 30, 0, 250, 0, "N.A.", "1 paquete + verduras + salsa de soja", 0, 1, "raciones", ""], ["Ensalada de rúcula y burrata", "Cena", 450, 21, 34, 15, 0, 150, 0, "N.A.", "Rúcula + 1 burrata + tomate", 0, 1, "raciones", ""], ["Sobras (ración medida)", "Cena", 450, 26, 18, 46, 0, 100, 0, "N.A.", "Media ración de la comida", 0, 1, "raciones", ""], ["Lomo con huevos", "Cena", 560, 46, 36, 13, 0, 0, 0, "N.A.", "120 g lomo + 2 huevos", 0, 1, "raciones", ""], ["Alitas de pollo al horno con ensalada", "Cena", 570, 46, 38, 11, 0, 180, 0, "N.A.", "400 g alitas + ensalada", 0, 400, "g", ""], ["Tartar y gyozas", "Cena", 570, 31, 30, 44, 0, 60, 0, "N.A.", "Tartar + 5 gyozas", 0, 1, "raciones", ""], ["Kebab casero", "Cena", 660, 46, 24, 65, 0, 150, 0, "N.A.", "200 g pollo + pan de pita + verduras", 0, 1, "raciones", ""], ["Texmex", "Cena", 720, 31, 38, 64, 0, 150, 0, "N.A.", "Fajitas con carne, queso y guacamole", 0, 1, "raciones", ""], ["Piadinas", "Cena", 720, 31, 34, 73, 0, 80, 0, "N.A.", "2 piadinas rellenas", 0, 2, "piadinas", ""], ["Parrillada (Kamado)", "Cena", 1050, 60, 74, 36, 0, 100, 0, "N.A.", "Surtido de carne", 0, 1, "raciones", ""], ["Fuera (cena con gente)", "Cena", 1000, 40, 52, 93, 0, 80, 0, "N.A.", "Cena de restaurante o pintxos", 0, 1, "raciones", ""], ["Pan integral (60 g)", "Extras", 160, 6, 2, 30, 0, 0, 0, "N.A.", "2 rebanadas", 0, 60, "g", ""], ["Fruta extra (2 piezas)", "Extras", 190, 2, 1, 43, 0, 0, 320, "N.A.", "2 piezas", 0, 2, "piezas", ""], ["Tostada con AOVE y tomate", "Extras", 250, 6, 12, 30, 0, 50, 0, "N.A.", "1 rebanada + 10 g AOVE", 0, 1, "rebanadas", ""], ["Chocolate a la taza", "Extras", 183, 6, 6, 26, 0, 0, 0, "N.A.", "1 taza", 1, 1, "taza", ""], ["2 cañas", "Extras", 180, 0, 0, 17, 16, 0, 0, "N.A.", "2 x 200 ml (≈16 g de alcohol)", 0, 40, "cl", ""], ["Copa de vino", "Extras", 125, 0, 0, 1, 17, 0, 0, "N.A.", "150 ml (≈17 g de alcohol)", 0, 15, "cl", ""], ["Postre casero", "Extras", 280, 5, 12, 38, 0, 0, 0, "N.A.", "1 ración", 0, 1, "raciones", ""], ["Cañas y postre", "Extras", 460, 7, 10, 57, 16, 0, 0, "N.A.", "2 cañas + postre", 0, 1, "raciones", ""], ["Picoteo de pintxos", "Extras", 450, 18, 26, 36, 0, 30, 0, "N.A.", "2-3 pintxos", 0, 1, "raciones", ""], ["Aperitivo en casa (latas, patatas, queso)", "Extras", 600, 22, 38, 42, 0, 40, 0, "N.A.", "Aperitivo completo", 0, 1, "raciones", ""], ["Pan y postre", "Extras", 440, 11, 14, 67, 0, 0, 0, "N.A.", "60 g pan + 1 postre", 0, 1, "raciones", ""], ["Domingo de chucherías", "Extras", 700, 8, 42, 72, 0, 0, 0, "N.A.", "Palomitas con risketos + patatas fritas (Lays, Pringles o de sabores)", 0, 1, "sesiones", ""]];
+const PLAN  = [{"sem": 1, "dia": "Lunes", "tipo": "Fuerza 6:00 + pasos", "items": [["Batido de proteína con creatina", "Desayuno"], ["Avena overnight (cúrcuma, canela y leche)", "Desayuno"], ["Café solo o cortado", "Desayuno"], ["Lasaña de atún", "Comida"], ["Yogur natural Danone", "Comida", 120], ["Fruta (1 pieza)", "Comida", 1], ["Pechuga de pavo cocida ahumada (Aldi)", "Merienda"], ["Ensalada con todo", "Cena"], ["Skyr proteico maracuyá (Milsani, Aldi)", "Cena", 150], ["Fruta (1 pieza)", "Cena", 1], ["Cerveza 0,0 (lata de 33 cl)", "Cena"]], "nota": ""}, {"sem": 1, "dia": "Martes", "tipo": "Solo pasos", "items": [["Batido de proteína con creatina", "Desayuno"], ["Tostada de guacamole con atun", "Desayuno"], ["Café solo o cortado", "Desayuno"], ["KFC (alitas de pollo)", "Comida"], ["Yogur natural Danone", "Comida", 120], ["Fruta (1 pieza)", "Comida", 1], ["Pechuga de pavo cocida ahumada (Aldi)", "Merienda"], ["Figuras de merluza al horno con verduras", "Cena"], ["Skyr proteico maracuyá (Milsani, Aldi)", "Cena", 150], ["Fruta (1 pieza)", "Cena", 1], ["Agua", "Cena"]], "nota": "COMIDA FUERA. Con la cerveza diaria, este día solo cuadra con cena ligera"}, {"sem": 1, "dia": "Miércoles", "tipo": "Fuerza 6:00 + pasos", "items": [["Batido de proteína con creatina", "Desayuno"], ["Pintxo de tortilla con bonito y mayonesa (doble)", "Desayuno"], ["Café solo o cortado", "Desayuno"], ["Tabulé con sardinas", "Comida"], ["Yogur natural Danone", "Comida", 120], ["Fruta (1 pieza)", "Comida", 1], ["Pechuga de pavo cocida ahumada (Aldi)", "Merienda"], ["Huevos a la plancha con ensalada", "Cena"], ["Skyr proteico maracuyá (Milsani, Aldi)", "Cena", 150], ["Fruta (1 pieza)", "Cena", 1], ["Cerveza 0,0 (lata de 33 cl)", "Cena"]], "nota": "El pintxo doble son 690 kcal: el resto del día va ligero"}, {"sem": 1, "dia": "Jueves", "tipo": "Solo pasos", "items": [["Batido de proteína con creatina", "Desayuno"], ["Yogur proteico con fruta y nueces", "Desayuno"], ["Café solo o cortado", "Desayuno"], ["Pollo hindú Mercadona", "Comida"], ["Yogur natural Danone", "Comida", 120], ["Fruta (1 pieza)", "Comida", 1], ["Jamón de pavo y queso fresco", "Merienda"], ["Sushi (10-12 piezas)", "Cena"], ["Skyr proteico maracuyá (Milsani, Aldi)", "Cena", 150], ["Fruta (1 pieza)", "Cena", 1], ["Cerveza (lata de 33 cl)", "Cena"], ["Skyr proteico maracuyá (Milsani, Aldi)", "Extras"]], "nota": "Sushi cada 15 días. Merluza 1 vez al mes (el martes)"}, {"sem": 1, "dia": "Viernes", "tipo": "Fuerza 6:00 + pasos", "items": [["Batido de proteína con creatina", "Desayuno"], ["Huevos a la plancha", "Desayuno"], ["Café solo o cortado", "Desayuno"], ["Alubias o lentejas con verduras", "Comida"], ["Yogur natural Danone", "Comida", 120], ["Fruta (1 pieza)", "Comida", 1], ["Jamón de pavo y queso fresco", "Merienda"], ["Arroz furikake con pollo", "Cena"], ["Skyr proteico maracuyá (Milsani, Aldi)", "Cena", 150], ["Fruta (1 pieza)", "Cena", 1], ["Cerveza (lata de 33 cl)", "Cena"], ["Skyr proteico maracuyá (Milsani, Aldi)", "Extras"]], "nota": "Furikake 1 vez al mes. Viernes no es día de taper"}, {"sem": 1, "dia": "Sábado", "tipo": "Solo pasos", "items": [["Batido de proteína con creatina", "Desayuno"], ["Tostada de salmón y aguacate", "Desayuno"], ["Café solo o cortado", "Desayuno"], ["Txuletón", "Comida"], ["Yogur natural Danone", "Comida", 120], ["Fruta (1 pieza)", "Comida", 1], ["Pechuga de pavo cocida ahumada (Aldi)", "Merienda"], ["Sopa y ensalada de huevo", "Cena"], ["Skyr proteico maracuyá (Milsani, Aldi)", "Cena", 150], ["Fruta (1 pieza)", "Cena", 1], ["Cerveza (lata de 33 cl)", "Cena"], ["Skyr proteico maracuyá (Milsani, Aldi)", "Extras"]], "nota": "Txuletón 1 vez al mes"}, {"sem": 1, "dia": "Domingo", "tipo": "Fuerza 6:00 + pasos", "items": [["Batido de proteína con creatina", "Desayuno"], ["Avena overnight (cúrcuma, canela y leche)", "Desayuno"], ["Café solo o cortado", "Desayuno"], ["Sopa y garbanzos", "Comida"], ["Yogur natural Danone", "Comida", 120], ["Fruta (1 pieza)", "Comida", 1], ["Pechuga de pavo cocida ahumada (Aldi)", "Merienda"], ["Hamburguesa casera con ensalada", "Cena"], ["Skyr proteico maracuyá (Milsani, Aldi)", "Cena", 150], ["Fruta (1 pieza)", "Cena", 1], ["Cerveza (lata de 33 cl)", "Cena"], ["Picoteo de pintxos", "Extras"]], "nota": "Sopa y garbanzos: domingo. Hamburguesa 1 de 2"}, {"sem": 2, "dia": "Lunes", "tipo": "Solo pasos", "items": [["Batido de proteína con creatina", "Desayuno"], ["Tostada de guacamole con atun", "Desayuno"], ["Café solo o cortado", "Desayuno"], ["Lasaña de atún", "Comida"], ["Yogur natural Danone", "Comida", 120], ["Fruta (1 pieza)", "Comida", 1], ["Pechuga de pavo cocida ahumada (Aldi)", "Merienda"], ["Arroz thai con pollo", "Cena"], ["Skyr proteico maracuyá (Milsani, Aldi)", "Cena", 150], ["Fruta (1 pieza)", "Cena", 1], ["Cerveza 0,0 (lata de 33 cl)", "Cena"]], "nota": "Arroz thai como cena"}, {"sem": 2, "dia": "Martes", "tipo": "Fuerza 6:00 + pasos", "items": [["Batido de proteína con creatina", "Desayuno"], ["Avena overnight (cúrcuma, canela y leche)", "Desayuno"], ["Café solo o cortado", "Desayuno"], ["Ensalada con todo", "Comida"], ["Yogur natural Danone", "Comida", 120], ["Fruta (1 pieza)", "Comida", 1], ["Pechuga de pavo cocida ahumada (Aldi)", "Merienda"], ["Noodles de sobre con pollo", "Cena"], ["Skyr proteico maracuyá (Milsani, Aldi)", "Cena", 150], ["Fruta (1 pieza)", "Cena", 1], ["Cerveza 0,0 (lata de 33 cl)", "Cena"]], "nota": "Noodles con pollo 1 vez al mes"}, {"sem": 2, "dia": "Miércoles", "tipo": "Solo pasos", "items": [["Batido de proteína con creatina", "Desayuno"], ["Jamón serrano con pan", "Desayuno"], ["Café solo o cortado", "Desayuno"], ["Ramen tantanmen", "Comida"], ["Yogur natural Danone", "Comida", 120], ["Fruta (1 pieza)", "Comida", 1], ["Skyr proteico maracuyá (Milsani, Aldi)", "Merienda"], ["Sandwich de atún con tomate", "Cena"], ["Skyr proteico maracuyá (Milsani, Aldi)", "Cena", 150], ["Fruta (1 pieza)", "Cena", 1], ["Agua", "Cena"]], "nota": "COMIDA FUERA de la semana. Desayuno ligero para dejar hueco"}, {"sem": 2, "dia": "Jueves", "tipo": "Fuerza 6:00 + pasos", "items": [["Batido de proteína con creatina", "Desayuno"], ["Pintxo de tortilla con bonito y mayonesa (doble)", "Desayuno"], ["Café solo o cortado", "Desayuno"], ["Vainas", "Comida"], ["Yogur natural Danone", "Comida", 120], ["Fruta (1 pieza)", "Comida", 1], ["Pechuga de pavo cocida ahumada (Aldi)", "Merienda"], ["Ceviche", "Cena"], ["Skyr proteico maracuyá (Milsani, Aldi)", "Cena", 150], ["Fruta (1 pieza)", "Cena", 1], ["Cerveza (lata de 33 cl)", "Cena"], ["Skyr proteico maracuyá (Milsani, Aldi)", "Extras"]], "nota": "Pintxo doble"}, {"sem": 2, "dia": "Viernes", "tipo": "Solo pasos", "items": [["Batido de proteína con creatina", "Desayuno"], ["Tostada de salmón y aguacate", "Desayuno"], ["Café solo o cortado", "Desayuno"], ["Garbanzos con verduras", "Comida"], ["Yogur natural Danone", "Comida", 120], ["Fruta (1 pieza)", "Comida", 1], ["Skyr proteico maracuyá (Milsani, Aldi)", "Merienda"], ["Sushi (10-12 piezas)", "Cena"], ["Skyr proteico maracuyá (Milsani, Aldi)", "Cena", 150], ["Fruta (1 pieza)", "Cena", 1], ["Cerveza (lata de 33 cl)", "Cena"]], "nota": "Sushi cada 15 días"}, {"sem": 2, "dia": "Sábado", "tipo": "Fuerza 6:00 + pasos", "items": [["Batido de proteína con creatina", "Desayuno"], ["Huevos a la plancha", "Desayuno"], ["Café solo o cortado", "Desayuno"], ["Costillas BBQ (Kamado)", "Comida"], ["Yogur natural Danone", "Comida", 120], ["Fruta (1 pieza)", "Comida", 1], ["Jamón de pavo y queso fresco", "Merienda"], ["Tallarines konjak con verduras", "Cena"], ["Skyr proteico maracuyá (Milsani, Aldi)", "Cena", 150], ["Fruta (1 pieza)", "Cena", 1], ["Cerveza (lata de 33 cl)", "Cena"], ["Chocolate a la taza", "Extras"]], "nota": "Costillas BBQ 1 vez al mes. GUARDA la carne que sobre: el lunes son tacos"}, {"sem": 2, "dia": "Domingo", "tipo": "Solo pasos", "items": [["Batido de proteína con creatina", "Desayuno"], ["Avena overnight (cúrcuma, canela y leche)", "Desayuno"], ["Café solo o cortado", "Desayuno"], ["Sopa y garbanzos", "Comida"], ["Yogur natural Danone", "Comida", 120], ["Fruta (1 pieza)", "Comida", 1], ["Skyr proteico maracuyá (Milsani, Aldi)", "Merienda"], ["Rabas (txipirones) a la plancha", "Cena"], ["Skyr proteico maracuyá (Milsani, Aldi)", "Cena", 150], ["Fruta (1 pieza)", "Cena", 1], ["Cerveza (lata de 33 cl)", "Cena"], ["Domingo de chucherías", "Extras"]], "nota": "Domingo de chucherías: palomitas con risketos y patatas fritas"}, {"sem": 3, "dia": "Lunes", "tipo": "Fuerza 6:00 + pasos", "items": [["Batido de proteína con creatina", "Desayuno"], ["Avena overnight (cúrcuma, canela y leche)", "Desayuno"], ["Café solo o cortado", "Desayuno"], ["Ensalada mixta con atún", "Comida"], ["Yogur natural Danone", "Comida", 120], ["Fruta (1 pieza)", "Comida", 1], ["Muslo de pavo braseado y ahumado (Aldi)", "Merienda"], ["Texmex", "Cena"], ["Skyr proteico maracuyá (Milsani, Aldi)", "Cena", 150], ["Fruta (1 pieza)", "Cena", 1], ["Cerveza 0,0 (lata de 33 cl)", "Cena"], ["Skyr proteico maracuyá (Milsani, Aldi)", "Extras"]], "nota": "Tacos con la carne mechada que sobró de las costillas del sábado"}, {"sem": 3, "dia": "Martes", "tipo": "Solo pasos", "items": [["Batido de proteína con creatina", "Desayuno"], ["Tostada de guacamole con atun", "Desayuno"], ["Café solo o cortado", "Desayuno"], ["Hamburguesa de restaurante", "Comida"], ["Yogur natural Danone", "Comida", 120], ["Fruta (1 pieza)", "Comida", 1], ["Queso fresco batido desnatado", "Merienda"], ["Tallarines konjak con verduras", "Cena"], ["Skyr proteico maracuyá (Milsani, Aldi)", "Cena", 150], ["Fruta (1 pieza)", "Cena", 1], ["Agua", "Cena"]], "nota": "COMIDA FUERA. NO CUADRA: con la cerveza diaria se pasa ~108 kcal aun con la cena más ligera del catálogo"}, {"sem": 3, "dia": "Miércoles", "tipo": "Fuerza 6:00 + pasos", "items": [["Batido de proteína con creatina", "Desayuno"], ["Pintxo de tortilla con bonito y mayonesa (doble)", "Desayuno"], ["Café solo o cortado", "Desayuno"], ["Alubias o lentejas con verduras", "Comida"], ["Yogur natural Danone", "Comida", 120], ["Fruta (1 pieza)", "Comida", 1], ["Pechuga de pavo cocida ahumada (Aldi)", "Merienda"], ["Tallarines konjak con verduras", "Cena"], ["Skyr proteico maracuyá (Milsani, Aldi)", "Cena", 150], ["Fruta (1 pieza)", "Cena", 1], ["Cerveza 0,0 (lata de 33 cl)", "Cena"]], "nota": "Pintxo doble"}, {"sem": 3, "dia": "Jueves", "tipo": "Solo pasos", "items": [["Batido de proteína con creatina", "Desayuno"], ["Tostada de guacamole con atun", "Desayuno"], ["Café solo o cortado", "Desayuno"], ["Lasaña de atún", "Comida"], ["Yogur natural Danone", "Comida", 120], ["Fruta (1 pieza)", "Comida", 1], ["Jamón de pavo y queso fresco", "Merienda"], ["Pollo hindú Mercadona", "Cena"], ["Skyr proteico maracuyá (Milsani, Aldi)", "Cena", 150], ["Fruta (1 pieza)", "Cena", 1], ["Cerveza (lata de 33 cl)", "Cena"], ["Skyr proteico maracuyá (Milsani, Aldi)", "Extras"]], "nota": "Arroz hindú como cena"}, {"sem": 3, "dia": "Viernes", "tipo": "Fuerza 6:00 + pasos", "items": [["Batido de proteína con creatina", "Desayuno"], ["Huevos a la plancha", "Desayuno"], ["Café solo o cortado", "Desayuno"], ["Tabulé con sardinas", "Comida"], ["Yogur natural Danone", "Comida", 120], ["Fruta (1 pieza)", "Comida", 1], ["Jamón de pavo y queso fresco", "Merienda"], ["Sandwich de atún", "Cena"], ["Skyr proteico maracuyá (Milsani, Aldi)", "Cena", 150], ["Fruta (1 pieza)", "Cena", 1], ["Cerveza (lata de 33 cl)", "Cena"], ["Tostada con AOVE y tomate", "Extras"]], "nota": "Tabulé cada 2 semanas"}, {"sem": 3, "dia": "Sábado", "tipo": "Solo pasos", "items": [["Batido de proteína con creatina", "Desayuno"], ["Tostada de salmón y aguacate", "Desayuno"], ["Café solo o cortado", "Desayuno"], ["Parrillada de carne (Kamado)", "Comida"], ["Yogur natural Danone", "Comida", 120], ["Fruta (1 pieza)", "Comida", 1], ["Pechuga de pavo cocida ahumada (Aldi)", "Merienda"], ["Latas y crudités", "Cena"], ["Skyr proteico maracuyá (Milsani, Aldi)", "Cena", 150], ["Fruta (1 pieza)", "Cena", 1], ["Cerveza (lata de 33 cl)", "Cena"]], "nota": ""}, {"sem": 3, "dia": "Domingo", "tipo": "Fuerza 6:00 + pasos", "items": [["Batido de proteína con creatina", "Desayuno"], ["Avena overnight (cúrcuma, canela y leche)", "Desayuno"], ["Café solo o cortado", "Desayuno"], ["Sopa y garbanzos", "Comida"], ["Yogur natural Danone", "Comida", 120], ["Fruta (1 pieza)", "Comida", 1], ["Jamón de pavo y queso fresco", "Merienda"], ["Zorza del Mercadona con patatas y huevos", "Cena"], ["Skyr proteico maracuyá (Milsani, Aldi)", "Cena", 150], ["Fruta (1 pieza)", "Cena", 1], ["Cerveza (lata de 33 cl)", "Cena"], ["Skyr proteico maracuyá (Milsani, Aldi)", "Extras"]], "nota": "Zorza 1 vez al mes"}, {"sem": 4, "dia": "Lunes", "tipo": "Solo pasos", "items": [["Batido de proteína con creatina", "Desayuno"], ["Tostada de guacamole con atun", "Desayuno"], ["Café solo o cortado", "Desayuno"], ["Lasaña de atún", "Comida"], ["Yogur natural Danone", "Comida", 120], ["Fruta (1 pieza)", "Comida", 1], ["Pechuga de pavo cocida ahumada (Aldi)", "Merienda"], ["Ensalada mixta con atún", "Cena"], ["Skyr proteico maracuyá (Milsani, Aldi)", "Cena", 150], ["Fruta (1 pieza)", "Cena", 1], ["Cerveza (lata de 33 cl)", "Cena"], ["Skyr proteico maracuyá (Milsani, Aldi)", "Extras"]], "nota": "Lasaña de atún: 1 por semana"}, {"sem": 4, "dia": "Martes", "tipo": "Fuerza 6:00 + pasos", "items": [["Batido de proteína con creatina", "Desayuno"], ["Avena overnight (cúrcuma, canela y leche)", "Desayuno"], ["Café solo o cortado", "Desayuno"], ["Arroz thai con pollo", "Comida"], ["Yogur natural Danone", "Comida", 120], ["Fruta (1 pieza)", "Comida", 1], ["Pechuga de pavo cocida ahumada (Aldi)", "Merienda"], ["Gulas con huevos", "Cena"], ["Skyr proteico maracuyá (Milsani, Aldi)", "Cena", 150], ["Fruta (1 pieza)", "Cena", 1], ["Cerveza (lata de 33 cl)", "Cena"], ["Skyr proteico maracuyá (Milsani, Aldi)", "Extras"]], "nota": "Arroz thai como comida"}, {"sem": 4, "dia": "Miércoles", "tipo": "Solo pasos", "items": [["Batido de proteína con creatina", "Desayuno"], ["Jamón serrano con pan", "Desayuno"], ["Café solo o cortado", "Desayuno"], ["KFC (alitas de pollo)", "Comida"], ["Yogur natural Danone", "Comida", 120], ["Fruta (1 pieza)", "Comida", 1], ["Skyr proteico maracuyá (Milsani, Aldi)", "Merienda"], ["Tortilla francesa con ensalada", "Cena"], ["Skyr proteico maracuyá (Milsani, Aldi)", "Cena", 150], ["Fruta (1 pieza)", "Cena", 1], ["Agua", "Cena"]], "nota": "COMIDA FUERA de la semana"}, {"sem": 4, "dia": "Jueves", "tipo": "Fuerza 6:00 + pasos", "items": [["Batido de proteína con creatina", "Desayuno"], ["Pintxo de tortilla con bonito y mayonesa (doble)", "Desayuno"], ["Café solo o cortado", "Desayuno"], ["Pavo al curry madrás", "Comida"], ["Yogur natural Danone", "Comida", 120], ["Fruta (1 pieza)", "Comida", 1], ["Pechuga de pavo cocida ahumada (Aldi)", "Merienda"], ["Sepia al ajillo", "Cena"], ["Skyr proteico maracuyá (Milsani, Aldi)", "Cena", 150], ["Fruta (1 pieza)", "Cena", 1], ["Cerveza 0,0 (lata de 33 cl)", "Cena"], ["Skyr proteico maracuyá (Milsani, Aldi)", "Extras"]], "nota": "Pintxo doble"}, {"sem": 4, "dia": "Viernes", "tipo": "Solo pasos", "items": [["Batido de proteína con creatina", "Desayuno"], ["Tostada de salmón y aguacate", "Desayuno"], ["Café solo o cortado", "Desayuno"], ["Garbanzos con verduras", "Comida"], ["Yogur natural Danone", "Comida", 120], ["Fruta (1 pieza)", "Comida", 1], ["Pechuga de pavo cocida ahumada (Aldi)", "Merienda"], ["Alitas de pollo al horno con ensalada", "Cena"], ["Skyr proteico maracuyá (Milsani, Aldi)", "Cena", 150], ["Fruta (1 pieza)", "Cena", 1], ["Cerveza 0,0 (lata de 33 cl)", "Cena"]], "nota": ""}, {"sem": 4, "dia": "Sábado", "tipo": "Fuerza 6:00 + pasos", "items": [["Batido de proteína con creatina", "Desayuno"], ["Huevos a la plancha", "Desayuno"], ["Café solo o cortado", "Desayuno"], ["Tallarines boloñesa", "Comida"], ["Yogur natural Danone", "Comida", 120], ["Fruta (1 pieza)", "Comida", 1], ["Jamón de pavo y queso fresco", "Merienda"], ["Pizza Kamado casera", "Cena"], ["Skyr proteico maracuyá (Milsani, Aldi)", "Cena", 150], ["Fruta (1 pieza)", "Cena", 1], ["Cerveza (lata de 33 cl)", "Cena"], ["Pan integral (60 g)", "Extras"]], "nota": "Boloñesa en fin de semana. Pizza Kamado 1 vez al mes"}, {"sem": 4, "dia": "Domingo", "tipo": "Solo pasos", "items": [["Batido de proteína con creatina", "Desayuno"], ["Avena overnight (cúrcuma, canela y leche)", "Desayuno"], ["Café solo o cortado", "Desayuno"], ["Sopa y garbanzos", "Comida"], ["Yogur natural Danone", "Comida", 120], ["Fruta (1 pieza)", "Comida", 1], ["Jamón de pavo y queso fresco", "Merienda"], ["Pulpo a feira", "Cena"], ["Skyr proteico maracuyá (Milsani, Aldi)", "Cena", 150], ["Fruta (1 pieza)", "Cena", 1], ["Cerveza (lata de 33 cl)", "Cena"], ["Aperitivo en casa (latas, patatas, queso)", "Extras"]], "nota": "Revisión: compara medias semanales en «Seguimiento»"}];
+const VIAB  = [["Txuletón", "Comida"], ["Parrillada de carne (Kamado)", "Comida"], ["Costillas BBQ (Kamado)", "Comida"], ["Hamburguesa Berty's (Emily Love's)", "Comida"], ["Patatas fritas de restaurante", "Comida"], ["Hamburguesa de restaurante", "Comida"], ["KFC (alitas de pollo)", "Comida"], ["Ramen tantanmen", "Comida"], ["Tallarines boloñesa", "Comida"], ["Lasaña de atún", "Comida"], ["Arroz thai con pollo", "Comida"], ["Pollo hindú Mercadona", "Comida"], ["Arroz hindú con pollo (casero)", "Comida"], ["Sopa y garbanzos", "Comida"], ["Ensalada con todo", "Comida"], ["Tabulé con sardinas", "Comida"], ["Filet mignon con verduras", "Comida"], ["Zarzuela de marisco", "Comida"], ["Fabada Cidacos", "Comida"], ["Lentejas Cidacos", "Comida"], ["Arroz de pescado (Hacendado)", "Comida"], ["Arroz de secreto ibérico con setas", "Comida"], ["Empanada de cochinita pibil (Aldi)", "Comida"], ["Ensalada de tomate y bonito", "Cena"], ["Pizza Kamado casera", "Cena"], ["Zorza del Mercadona con patatas y huevos", "Cena"], ["Hamburguesa casera con ensalada", "Cena"], ["Sushi (10-12 piezas)", "Cena"], ["Texmex", "Cena"], ["Noodles de sobre con pollo", "Cena"], ["Arroz furikake con pollo", "Cena"], ["Figuras de merluza al horno con verduras", "Cena"], ["Pintxo de tortilla con bonito y mayonesa (doble)", "Desayuno"], ["Jamón serrano con pan", "Desayuno"], ["Domingo de chucherías", "Extras"]];
+
+/* ---------- datos derivados ---------- */
+const BY = {}; ITEMS.forEach(i => BY[i[0]] = i);
+const FRANJAS = ["Desayuno","Hamaiketako","Comida","Merienda","Cena","Extras"];
+const DIAS = ["lunes","martes","miércoles","jueves","viernes","sábado","domingo"];
+const MESES = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+const DEFAULTS = { peso:84.35, altura:182, edad:48, factor:1.5, deficit:400,
+  protGkg:1.8, grasaGkg:0.8, ajusteLab:135, objVF:500, pesoObjetivo:78, planStart:null };
+
+/* ---------- utilidades ---------- */
+const pad = n => String(n).padStart(2,"0");
+const iso = d => d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
+const parseIso = s => { const p = s.split("-").map(Number); return new Date(p[0], p[1]-1, p[2]); };
+const addDays = (d,n) => { const x = new Date(d); x.setDate(x.getDate()+n); return x; };
+const mondayOf = d => addDays(d, -((d.getDay()+6)%7));
+const esFinde = d => d.getDay()===0 || d.getDay()===6;
+const fmt = n => Math.round(n).toLocaleString("es-ES");
+const nfDia = d => DIAS[(d.getDay()+6)%7]+" "+d.getDate()+" "+MESES[d.getMonth()];
+const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const norm = s => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+/* Acepta "1,5", "1.5", "50/33", "3*0,5". Solo dígitos, punto, coma, / y *. */
+function cantidad(txt) {
+  const t = String(txt == null ? "" : txt).replace(/,/g, ".").replace(/\s+/g, "");
+  if (!t) return null;
+  if (!/^[0-9./*]+$/.test(t)) return null;
+  if (/[/*]{2}|^[/*]|[/*]$/.test(t)) return null;
+  try {
+    const v = Function('"use strict";return (' + t + ')')();
+    if (typeof v !== "number" || !isFinite(v) || v <= 0 || v > 100000) return null;
+    return Math.round(v * 1000) / 1000;
+  } catch (e) { return null; }
+}
+const fmtCant = n => (Math.round(n*1000)/1000).toString().replace(".", ",");
+
+/* ---------- almacenamiento en el navegador ---------- */
+const Store = (function(){
+  let modo = "localStorage";
+  const mem = {};
+  try {
+    localStorage.setItem("__probe__","1"); localStorage.removeItem("__probe__");
+  } catch(e) { modo = "memoria"; }
+  return {
+    modo: () => modo,
+    get(k, def) {
+      try {
+        const v = modo === "localStorage" ? localStorage.getItem(k) : mem[k];
+        return v == null ? def : JSON.parse(v);
+      } catch(e) { return def; }
+    },
+    set(k, v) {
+      const s = JSON.stringify(v);
+      try { if (modo === "localStorage") localStorage.setItem(k, s); else mem[k] = s; return true; }
+      catch(e) { mem[k] = s; return false; }
+    }
+  };
+})();
+
+/* ---------- estado ---------- */
+const S = {
+  params: Object.assign({}, DEFAULTS, Store.get("carlos:params", {})),
+  ent:    Store.get("carlos:ent", {}),      // id -> {id,fecha,franja,alimento,cant,ts,borrado}
+  pesos:  Store.get("carlos:pesos", {}),    // fecha -> peso
+  pesosTs:Store.get("carlos:pesosTs", {}),  // fecha -> ts
+  metaTs: Store.get("carlos:metaTs", {}),   // clave -> ts
+  pend:   Store.get("carlos:pend", { ent:{}, pesos:{}, meta:{} }),
+  sync:   Store.get("carlos:sync", { url:"", token:"", ultimo:0, estado:"", cuando:0 }),
+  fecha:  iso(new Date()),
+  vista:  "registro",
+  q:      "",
+  franja: "Desayuno",
+  aviso:  "",
+  propios: Store.get("carlos:propios", []),
+  qa:     "",
+  pegado: "",
+  sug:    ""
+};
+
+/* ---------- acceso al registro por entradas ---------- */
+const uid = () => (Date.now().toString(36) + Math.random().toString(36).slice(2, 9));
+function logDe(fecha) {
+  const out = [];
+  Object.keys(S.ent).forEach(function (id) {
+    const e = S.ent[id];
+    if (e.borrado || e.fecha !== fecha) return;
+    out.push([e.alimento, e.cant, e.franja, id, e.ts]);
+  });
+  out.sort(function (a, b) {
+    const ia = FRANJAS.indexOf(a[2]), ib = FRANJAS.indexOf(b[2]);
+    return ia !== ib ? ia - ib : a[4] - b[4];
+  });
+  return out;
+}
+const fechasConRegistro = () => {
+  const f = {};
+  Object.keys(S.ent).forEach(function (id) { if (!S.ent[id].borrado) f[S.ent[id].fecha] = 1; });
+  return Object.keys(f);
+};
+function anotar(fecha, alimento, cant, franja) {
+  const id = uid();
+  S.ent[id] = { id:id, fecha:fecha, franja:franja, alimento:alimento, cant:cant, ts:Date.now(), borrado:0 };
+  S.pend.ent[id] = 1;
+  return id;
+}
+function tocar(id, cambios) {
+  const e = S.ent[id]; if (!e) return;
+  Object.keys(cambios).forEach(function (k) { e[k] = cambios[k]; });
+  e.ts = Date.now();
+  S.pend.ent[id] = 1;
+}
+function borrarEntrada(id) { tocar(id, { borrado:1 }); }
+const BASE = it => (it && it[12]) || 1;
+const UNI  = it => (it && it[13]) || "raciones";
+const factor = (nombre, cant) => cant / BASE(BY[nombre]);
+function reindex() {
+  Object.keys(BY).forEach(k => { if (BY[k][14] === "propio") delete BY[k]; });
+  ITEMS.forEach(i => BY[i[0]] = i);
+  S.propios.forEach(i => BY[i[0]] = i);
+}
+const catalogo = () => ITEMS.concat(S.propios);
+if (!S.params.planStart) S.params.planStart = iso(mondayOf(new Date()));
+if (Object.keys(S.pesos).length === 0) S.pesos[iso(new Date())] = S.params.peso;
+
+reindex();
+
+const guardar = () => {
+  Store.set("carlos:params", S.params);
+  Store.set("carlos:ent", S.ent);
+  Store.set("carlos:pesos", S.pesos);
+  Store.set("carlos:pesosTs", S.pesosTs);
+  Store.set("carlos:metaTs", S.metaTs);
+  Store.set("carlos:pend", S.pend);
+  Store.set("carlos:sync", S.sync);
+  Store.set("carlos:propios", S.propios);
+  Store.set("carlos:v", 5);
+};
+
+/* migración: de días con multiplicadores (v<3) y de días con cantidades (v3) a entradas (v4) */
+(function migrar(){
+  const v = Store.get("carlos:v", 1);
+  if (v >= 4) return;
+  const viejo = Store.get("carlos:log", {});
+  Object.keys(viejo).forEach(function(f){
+    (viejo[f] || []).forEach(function(e){
+      const it = BY[e[0]];                       // puede no existir: platos renombrados
+      const cant = (v < 3 && it) ? e[1] * (it[12] || 1) : e[1];
+      const id = uid();
+      S.ent[id] = { id:id, fecha:f, franja:e[2], alimento:e[0],
+                    cant: Math.round(cant*1000)/1000, ts: Date.now(), borrado:0 };
+      S.pend.ent[id] = 1;
+    });
+  });
+  S.propios = (S.propios||[]).map(function(i){
+    return i.length >= 15 ? i : [i[0],i[1],i[2],i[3],i[4],i[5],i[6],i[7],i[8],i[9],i[10],i[11],1,"raciones","propio"];
+  });
+  Object.keys(S.pesos).forEach(function(f){ if (!S.pesosTs[f]) S.pesosTs[f] = Date.now(); });
+  reindex(); guardar();
+})();
+
+/* Platos renombrados. Se aplica siempre: es idempotente y también arregla lo que
+   llegue por sincronización desde un dispositivo con el catálogo antiguo. */
+const RENOMBRES = {
+  "Yogur proteico":            ["Skyr proteico maracuyá (Milsani, Aldi)", 150],
+  "Yogur proteico con fruta":  ["Skyr con fruta", null],
+  "Pollo al curry con arroz basmati": ["Pollo hindú Mercadona", null],
+  "Arroz hindú con pollo":     ["Arroz hindú con pollo (casero)", null]
+};
+function aplicarRenombres() {
+  let n = 0;
+  Object.keys(S.ent).forEach(function (id) {
+    const e = S.ent[id], r = RENOMBRES[e.alimento];
+    if (!r) return;
+    e.alimento = r[0];
+    if (r[1] !== null) e.cant = r[1];
+    e.ts = Date.now(); S.pend.ent[id] = 1; n++;
+  });
+  S.propios = (S.propios || []).filter(function (i) { return !RENOMBRES[i[0]]; });
+  if (n) { reindex(); guardar(); }
+  return n;
+}
+aplicarRenombres();
+
+
+/* ---------- cálculo ---------- */
+function objetivos(p) {
+  const tmb = Math.round(10*p.peso + 6.25*p.altura - 5*p.edad + 5);
+  const get = Math.round(tmb * p.factor);
+  const medio = get - p.deficit;
+  const semanal = medio * 7;
+  const lab = Math.round(medio - p.ajusteLab);
+  const fin = Math.round((semanal - lab*5)/2);
+  return { tmb, get, medio, semanal, lab, fin,
+    prot: Math.round(p.peso*p.protGkg), grasa: Math.round(p.peso*p.grasaGkg),
+    hidratos: Math.round((medio - p.peso*p.protGkg*4 - p.peso*p.grasaGkg*9)/4) };
+}
+function totales(reg) {
+  const t = { kcal:0, prot:0, grasa:0, hidratos:0, alc:0, verdura:0, fruta:0 };
+  (reg||[]).forEach(function(e){
+    const it = BY[e[0]]; if (!it) return;
+    const r = e[1] / BASE(it);
+    t.kcal+=it[2]*r; t.prot+=it[3]*r; t.grasa+=it[4]*r; t.hidratos+=it[5]*r;
+    t.alc+=it[6]*r; t.verdura+=it[7]*r; t.fruta+=it[8]*r;
+  });
+  return t;
+}
+function planIndex(d) {
+  if (!S.params.planStart) return null;
+  const dias = Math.round((d - parseIso(S.params.planStart)) / 86400000);
+  return ((dias % 28) + 28) % 28;
+}
+function franjaDe(nombre) {
+  const c = BY[nombre] ? BY[nombre][1] : "";
+  if (c === "Post-entreno 6:30" || c === "Desayuno" || c === "Suplemento") return "Desayuno";
+  if (c === "Hamaiketako") return "Hamaiketako";
+  if (c === "Aperitivo / Merienda") return "Merienda";
+  if (c === "Comida") return "Comida";
+  if (c === "Cena" || c === "Bebida") return "Cena";
+  if (c === "Postre") return "Comida";
+  return "Extras";
+}
+
+/* ---------- componentes de render ---------- */
+function metrica(label, valor, obj, unidad, modo) {
+  const pct = obj ? Math.min(100, (valor/obj)*100) : 0;
+  const ok = modo === "min" ? valor >= obj : !(obj && valor > obj);
+  const col = ok ? "var(--verde)" : "var(--rojo)";
+  return '<div class="metric"><div class="row"><span class="lab">'+esc(label)+'</span>'
+    + '<span class="val" style="color:'+col+'">'+fmt(valor)
+    + '<span style="color:var(--ink);font-weight:500"> / '+fmt(obj)+' '+unidad+'</span></span></div>'
+    + '<div class="bar"><i style="width:'+pct+'%;background:'+col+'"></i></div></div>';
+}
+
+function hero() {
+  const o = objetivos(S.params);
+  const d = parseIso(S.fecha);
+  const lunes = mondayOf(d);
+  let kcalSem = 0;
+  let cols = "", labs = "";
+  for (let i = 0; i < 7; i++) {
+    const dd = addDays(lunes, i), k = iso(dd);
+    const kc = totales(logDe(k)).kcal;
+    const objD = esFinde(dd) ? o.fin : o.lab;
+    kcalSem += kc;
+    const h = Math.min(100, (kc/(o.fin*1.15))*100);
+    const tk = Math.min(100, (objD/(o.fin*1.15))*100);
+    cols += '<button class="col" data-act="ir" data-f="'+k+'" aria-label="'+esc(nfDia(dd))+': '+fmt(kc)+' kcal"'
+      + ' style="box-shadow:'+(k===S.fecha?"inset 0 0 0 1.5px #EDF0EC":"none")+'">'
+      + '<span class="fill" style="height:'+h+'%;background:'+(kc>objD?"var(--pimenton)":"var(--mint)")+'"></span>'
+      + '<span class="tick" style="bottom:'+tk+'%"></span></button>';
+    labs += '<span class="'+(k===S.fecha?"on":"")+'">'+DIAS[i].charAt(0).toUpperCase()+'</span>';
+  }
+  const restan = o.semanal - kcalSem;
+  return '<div class="card hero"><div class="row"><span class="eyebrow">Semana del '+lunes.getDate()+' '
+    + MESES[lunes.getMonth()]+' · presupuesto '+fmt(o.semanal)+' kcal</span>'
+    + '<span class="eyebrow">'+(Store.modo()==="memoria"?"sin guardar":"")+'</span></div>'
+    + '<div class="row" style="margin-top:8px;align-items:flex-end"><div>'
+    + '<div class="disp big mono" style="color:'+(restan<0?"var(--rojo-claro)":"var(--verde-claro)")+'">'
+    + (restan<0?"−":"")+fmt(Math.abs(restan))+'</div>'
+    + '<div style="margin-top:5px;font-size:15px;font-weight:700;color:'+(restan<0?"var(--rojo-claro)":"var(--verde-claro)")+'">'
+    + (restan<0?"kcal de más esta semana":"kcal te quedan esta semana")+'</div></div>'
+    + '<div style="text-align:right"><div class="mono" style="font-size:17px;font-weight:700;color:#FFFFFF">'+fmt(kcalSem)+'</div>'
+    + '<div class="eyebrow">consumidas</div></div></div>'
+    + '<div class="gauge">'+cols+'</div><div class="collab">'+labs+'</div>'
+    + '<p class="note" style="color:var(--hero-soft);margin:10px 0 0">La línea blanca de cada columna es el objetivo de ese día. '
+    + 'Lo que cuenta es el total de la semana, no cuadrar cada día por separado.</p></div>';
+}
+
+function vistaRegistro() {
+  const o = objetivos(S.params);
+  const d = parseIso(S.fecha);
+  const objD = esFinde(d) ? o.fin : o.lab;
+  const reg = logDe(S.fecha);
+  const t = totales(reg);
+  const dif = t.kcal - objD;
+  const idx = planIndex(d);
+  const pd = idx === null ? null : PLAN[idx];
+  let h = "";
+
+  h += '<div class="card"><div class="row" style="margin-bottom:12px">'
+    + '<button class="btn ghost tiny" data-act="dia" data-n="-1" aria-label="Día anterior">◀</button>'
+    + '<div style="text-align:center"><div class="disp" style="font-size:22px">'+esc(nfDia(d))+'</div>'
+    + '<div class="eyebrow" style="margin-top:4px">objetivo '+fmt(objD)+' kcal</div></div>'
+    + '<button class="btn ghost tiny" data-act="dia" data-n="1" aria-label="Día siguiente">▶</button></div>'
+    + '<div style="text-align:center;padding:12px 0 16px;border-top:1.5px solid var(--line);border-bottom:1.5px solid var(--line);margin-bottom:14px">'
+    + '<div class="restante" style="color:'+(dif>0?"var(--rojo)":"var(--verde)")+'">'
+    + (dif>0?"+":"")+fmt(Math.abs(dif))+' kcal</div>'
+    + '<div class="restlab" style="color:'+(dif>0?"var(--rojo)":"var(--verde)")+'">'
+    + (dif>0?"te has pasado":"te quedan por comer")+'</div></div>'
+    + metrica("Calorías (máximo)", t.kcal, objD, "kcal")
+    + metrica("Proteína (mínimo)", t.prot, o.prot, "g", "min")
+    + metrica("Grasa (mínimo)", t.grasa, o.grasa, "g", "min")
+    + metrica("Hidratos (máximo)", t.hidratos, o.hidratos, "g")
+    + metrica("Verdura y fruta (mínimo)", t.verdura+t.fruta, S.params.objVF, "g", "min");
+  h += '<p class="note" style="margin-top:4px"><b>Máximo</b> = conviene no pasarse; se pone en rojo al superarlo. '
+    + '<b>Mínimo</b> = hay que llegar; está en verde cuando lo alcanzas y en rojo mientras te falte. '
+    + 'La grasa es un mínimo, no un techo: por debajo de '+fmt(o.grasa)+' g se resiente la parte hormonal.</p>';
+  if (t.alc > 0) h += '<p class="note" style="margin-top:6px">Incluye '+fmt(t.alc)+' g de alcohol ('
+    + fmt(t.alc*7)+' kcal), que no cuentan como proteína, grasa ni hidratos.</p>';
+  h += '</div>';
+
+  if (pd) {
+    const filas = pd.items.map(function(x){
+      return { nombre:x[0], franja:x[1], cant: x.length > 2 ? x[2] : BASE(BY[x[0]]) }; });
+    const puesto = (n, f) => reg.some(e => e[0] === n && e[2] === f);
+    const faltan = filas.filter(x => !puesto(x.nombre, x.franja)).length;
+    const abierto = !!S.params.planAbierto;
+    h += '<div class="card"><div class="row"><div><span class="eyebrow">Lo que toca según el plan</span>'
+      + '<div style="font-size:15px;margin-top:5px;font-weight:500">Semana '+pd.sem+', '+esc(pd.dia.toLowerCase())
+      + ' · '+esc(pd.tipo.toLowerCase())+'</div></div>'
+      + '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">'
+      + (faltan ? '<button class="btn tiny" data-act="cargarplan">Añadir los '+faltan+' que faltan</button>'
+                : '<span class="veredicto v-cabe">día completo</span>')
+      + '<button class="btn ghost tiny" data-act="plegarplan" aria-expanded="'+(abierto?"true":"false")+'">'
+      + (abierto ? "Ocultar" : "Ver los "+filas.length)+'</button></div></div>';
+    if (!abierto) { h += '</div>'; }
+    else {
+    if (pd.nota) h += '<p class="note" style="margin:8px 0 0">'+esc(pd.nota)+'</p>';
+    h += '<div style="margin-top:6px">';
+    FRANJAS.forEach(function(fr){
+      const dela = filas.filter(x => x.franja === fr);
+      if (!dela.length) return;
+      h += '<div class="franja">'+esc(fr)+'</div>';
+      dela.forEach(function(x){
+        const it = BY[x.nombre], ya = puesto(x.nombre, x.franja);
+        if (!it) return;
+        h += '<div class="logrow"><div style="flex:1;min-width:160px">'
+          + '<div style="font-size:14.5px;'+(ya ? 'color:#5D6C65' : 'font-weight:500')+'">'+esc(x.nombre)+'</div>'
+          + '<div class="note mono" style="font-weight:600">'+fmt(it[2])+' kcal · '+fmt(it[3])+' g P · '
+          + fmtCant(BASE(it))+' '+esc(UNI(it))+'</div></div>'
+          + (ya ? '<span class="veredicto v-cabe">ya está</span>'
+                : '<button class="btn tiny" data-act="addplan" data-v="'+esc(x.nombre)+'" data-f="'+esc(fr)+'" data-c="'+x.cant+'">Añadir</button>')
+          + '</div>';
+      });
+    });
+    h += '</div></div>';
+    }
+  }
+
+  h += vistaSugerencias(reg, objD, o);
+
+  h += '<div class="card"><span class="eyebrow">Añadir a</span>'
+    + '<div style="display:flex;flex-wrap:wrap;gap:5px;margin:7px 0 11px">';
+  FRANJAS.forEach(function(f){
+    h += '<button class="btn tiny'+(S.franja===f?"":" ghost")+'" data-act="franja" data-v="'+esc(f)+'">'+esc(f)+'</button>';
+  });
+  h += '</div><div style="display:flex;gap:8px;align-items:center"><input id="buscar" value="'+esc(S.q)+'" placeholder="Busca o crea: pan bao, chorizo, caracoles…" aria-label="Buscar alimento">'
+    + '<button class="btn" data-act="crear" data-v="" style="white-space:nowrap">+ Nuevo</button></div>';
+  if (S.q.trim().length >= 2) {
+    const n = norm(S.q);
+    const res = catalogo().filter(it => norm(it[0]).indexOf(n) >= 0 || norm(it[1]).indexOf(n) >= 0).slice(0, 40);
+    h += '<div class="res">';
+    if (res.length === 0) h += '<div style="padding:12px"><p class="note" style="margin:0 0 10px">'
+      + '<b>«'+esc(S.q.trim())+'»</b> no está en la lista. Créalo y lo tendrás para siempre.</p>'
+      + '<button class="btn" data-act="crear" data-v="'+esc(S.q.trim())+'">Crear «'+esc(S.q.trim())+'»</button></div>';
+    res.forEach(function(it){
+      h += '<button data-act="add" data-v="'+esc(it[0])+'"><div class="row"><span>'+esc(it[0])+'</span>'
+        + '<span class="mono" style="font-size:14px;font-weight:600;color:var(--verde);white-space:nowrap">'
+        + it[2]+' kcal / '+fmtCant(BASE(it))+' '+esc(UNI(it))+'</span></div>'
+        + '<div class="note" style="margin-top:2px">'+esc(it[10])
+        + (it[14]==="propio" ? ' · <b>tuyo</b>'
+           : (it[11]===2 ? ' · <b>etiqueta del envase</b>' : (it[11]===1 ? " · de tu MyFitnessPal" : "")))
+        + '</div></button>';
+    });
+    h += '</div>';
+  }
+  h += '</div>';
+
+
+  h += '<div class="card"><span class="eyebrow">Registrado · '+reg.length+(reg.length===1?" entrada":" entradas")+'</span>';
+  if (reg.length === 0) h += '<p class="note" style="margin:9px 0 0">Todavía no has anotado nada. '
+    + 'Carga el día del plan, o busca los platos uno a uno.</p>';
+  FRANJAS.forEach(function(f){
+    const idxs = []; reg.forEach(function(e,i){ if (e[2] === f) idxs.push(i); });
+    if (idxs.length === 0) return;
+    const sub = totales(idxs.map(i => reg[i]));
+    h += '<div class="grupo"><div class="gcab"><span class="gnom">'+esc(f)+'</span>'
+      + '<span class="gsub">'+fmt(sub.kcal)+' kcal · '+fmt(sub.prot)+' g P</span></div><div class="gcue">';
+    idxs.forEach(function(i){
+      const e = reg[i], it = BY[e[0]];
+      if (!it) {
+        h += '<div class="logrow"><div class="info">'
+          + '<div style="font-size:15px;font-weight:600">'+esc(e[0])+' '
+          + '<span class="veredicto v-no">desconocido</span></div>'
+          + '<div class="note">No está en tu catálogo, así que no suma nada. Créalo en Alimentos con ese mismo '
+          + 'nombre y se contará solo.</div></div>'
+          + '<div class="ctrl"><span></span><span></span><span></span>'
+          + '<button class="btn ghost tiny" data-act="del" data-id="'+e[3]+'" aria-label="Quitar '+esc(e[0])+'">Quitar</button>'
+          + '</div></div>';
+        return;
+      }
+      const bs = BASE(it), un = UNI(it);
+      h += '<div class="logrow"><div class="info">'
+        + '<div style="font-size:15px;font-weight:600">'+esc(e[0])+'</div>'
+        + '<div class="note mono" style="font-weight:600;margin-top:2px">'+fmt(it[2]*e[1]/bs)+' kcal · '
+        + fmt(it[3]*e[1]/bs)+' P · '+fmt(it[4]*e[1]/bs)+' G · '+fmt(it[5]*e[1]/bs)+' H</div>'
+        + '<div class="note" style="margin-top:1px">referencia: '+fmtCant(bs)+' '+esc(un)+' = '+esc(it[10])+'</div></div>'
+        + '<div class="ctrl">'
+        + '<input id="rc_'+e[3]+'" data-rac="'+e[3]+'" value="'+fmtCant(e[1])+'" '
+        + 'aria-label="Cantidad de '+esc(e[0])+' en '+esc(un)+'">'
+        + '<span class="uni">'+esc(un)+'</span>'
+        + '<select id="fr_'+e[3]+'" data-mover="'+e[3]+'" aria-label="Mover '+esc(e[0])+' a otra franja">'
+        + FRANJAS.map(function(fx){
+            return '<option value="'+esc(fx)+'"'+(fx === e[2] ? " selected" : "")+'>'+esc(fx)+'</option>';
+          }).join("")
+        + '</select>'
+        + '<button class="btn ghost tiny" data-act="del" data-id="'+e[3]+'" aria-label="Quitar '+esc(e[0])+'">Quitar</button>'
+        + '</div></div>';
+    });
+    h += '</div></div>';
+  });
+  h += '</div>';
+  return h;
+}
+
+function seriePeso() {
+  const claves = Object.keys(S.pesos).sort();
+  if (claves.length === 0) return [];
+  const ini = parseIso(claves[0]);
+  const hoy = new Date();
+  const fin = parseIso(claves[claves.length-1]) > hoy ? parseIso(claves[claves.length-1]) : hoy;
+  const n = Math.max(0, Math.round((fin - ini)/86400000));
+  const base = S.pesos[claves[0]];
+  const ritmo = S.params.deficit*7/7700;
+  const out = [];
+  for (let i = 0; i <= n; i++) {
+    const k = iso(addDays(ini, i));
+    const v = [];
+    for (let j = Math.max(0, i-6); j <= i; j++) {
+      const p = S.pesos[iso(addDays(ini, j))]; if (p) v.push(p);
+    }
+    out.push({ k: k, peso: S.pesos[k] || null,
+      media: v.length ? +(v.reduce((a,b)=>a+b,0)/v.length).toFixed(2) : null,
+      objetivo: +(base - ritmo*(i/7)).toFixed(2) });
+  }
+  return out;
+}
+
+function grafico(serie) {
+  const W = 700, H = 200, PL = 40, PR = 8, PT = 10, PB = 22;
+  const vals = [];
+  serie.forEach(p => { if (p.peso) vals.push(p.peso); if (p.media) vals.push(p.media); vals.push(p.objetivo); });
+  vals.push(S.params.pesoObjetivo);
+  let lo = Math.min.apply(null, vals) - 0.4, hi = Math.max.apply(null, vals) + 0.4;
+  if (hi - lo < 1.5) { const m = (hi+lo)/2; lo = m-0.75; hi = m+0.75; }
+  const n = Math.max(1, serie.length-1);
+  const X = i => PL + (i/n)*(W-PL-PR);
+  const Y = v => PT + (1-(v-lo)/(hi-lo))*(H-PT-PB);
+  const linea = (campo) => serie.map((p,i) => p[campo]==null?null:X(i).toFixed(1)+","+Y(p[campo]).toFixed(1))
+    .filter(Boolean).join(" ");
+  const puntos = serie.map((p,i) => p.peso==null?"":
+    '<circle cx="'+X(i).toFixed(1)+'" cy="'+Y(p.peso).toFixed(1)+'" r="3" fill="var(--quince)"/>').join("");
+  const yObj = Y(S.params.pesoObjetivo);
+  const ticks = [lo+(hi-lo)*0.1, (lo+hi)/2, hi-(hi-lo)*0.1].map(v =>
+    '<text x="'+(PL-6)+'" y="'+(Y(v)+3.5).toFixed(1)+'" text-anchor="end" font-size="9" fill="var(--ink)" font-weight="600" font-family="IBM Plex Mono">'
+    + v.toFixed(1)+'</text><line x1="'+PL+'" x2="'+(W-PR)+'" y1="'+Y(v).toFixed(1)+'" y2="'+Y(v).toFixed(1)
+    + '" stroke="#B9C4BD" stroke-width="1"/>').join("");
+  const et = i => { const d = parseIso(serie[i].k); return d.getDate()+"/"+(d.getMonth()+1); };
+  return '<svg viewBox="0 0 '+W+' '+H+'" width="100%" height="200" role="img" '
+    + 'aria-label="Evolución del peso frente a la trayectoria prevista">'+ticks
+    + (yObj > PT && yObj < H-PB ? '<line x1="'+PL+'" x2="'+(W-PR)+'" y1="'+yObj.toFixed(1)+'" y2="'+yObj.toFixed(1)
+      + '" stroke="var(--verde)" stroke-width="2" stroke-dasharray="5 4"/>' : "")
+    + '<polyline points="'+linea("objetivo")+'" fill="none" stroke="#5D6C65" stroke-width="2" stroke-dasharray="4 4"/>'
+    + puntos
+    + '<polyline points="'+linea("media")+'" fill="none" stroke="var(--verde)" stroke-width="3.2" stroke-linejoin="round"/>'
+    + '<text x="'+PL+'" y="'+(H-6)+'" font-size="9" fill="var(--ink)" font-weight="600" font-family="IBM Plex Mono">'+et(0)+'</text>'
+    + '<text x="'+(W-PR)+'" y="'+(H-6)+'" text-anchor="end" font-size="9" fill="var(--ink)" font-weight="600" font-family="IBM Plex Mono">'
+    + et(serie.length-1)+'</text></svg>';
+}
+
+function vistaPeso() {
+  const serie = seriePeso();
+  const conM = serie.filter(p => p.media !== null);
+  const ult = conM.length ? conM[conM.length-1].media : null;
+  const prev = conM.length > 7 ? conM[conM.length-8].media : null;
+  const varSem = (ult!=null && prev!=null) ? +(ult-prev).toFixed(2) : null;
+  const ritmo = +(S.params.deficit*7/7700).toFixed(2);
+  let lectura;
+  if (varSem == null) lectura = "Necesitas al menos dos semanas de pesadas para que la variación semanal signifique algo.";
+  else if (varSem < -0.7) lectura = "Bajas más rápido de lo previsto. Sube las calorías objetivo: a este ritmo parte de lo que pierdes es músculo.";
+  else if (varSem > -0.15) lectura = "La media no baja al ritmo previsto. Antes de recortar comida, baja el factor de actividad en Ajustes: es más probable que el gasto esté sobreestimado.";
+  else lectura = "Vas al ritmo previsto. No cambies nada.";
+  const colVar = varSem==null ? "var(--ink)" : (varSem<-0.7 || varSem>-0.15) ? "var(--rojo)" : "var(--verde)";
+
+  let h = '<div class="card"><span class="eyebrow">Peso de hoy</span>'
+    + '<div style="display:flex;gap:8px;margin-top:8px">'
+    + '<input id="pesohoy" inputmode="decimal" placeholder="84,35" aria-label="Peso en kilos">'
+    + '<button class="btn" data-act="peso">Anotar</button></div>'
+    + '<p class="note" style="margin:9px 0 0">Pésate en ayunas, después del baño. El dato del día no significa nada '
+    + 'por sí solo: oscila 1-2 kg por agua y sal. Lo que mide tu progreso es la media de 7 días.</p></div>';
+
+  h += '<div class="card grid3"><div><span class="eyebrow">Media 7 días</span>'
+    + '<div class="disp mono" style="font-size:29px;margin-top:5px">'+(ult!=null?ult.toFixed(2):"—")+'</div><div class="note">kg</div></div>'
+    + '<div><span class="eyebrow">Variación semanal</span><div class="disp mono" style="font-size:29px;margin-top:5px;color:'+colVar+'">'
+    + (varSem!=null?(varSem>0?"+":"")+varSem.toFixed(2):"—")+'</div><div class="note">objetivo −'+ritmo+'</div></div>'
+    + '<div><span class="eyebrow">Falta</span><div class="disp mono" style="font-size:29px;margin-top:5px">'
+    + (ult!=null?(ult-S.params.pesoObjetivo).toFixed(1):"—")+'</div><div class="note">kg hasta '+S.params.pesoObjetivo+'</div></div></div>';
+
+  if (serie.length > 1) {
+    h += '<div class="card"><span class="eyebrow">Tendencia frente a la trayectoria prevista</span>'
+      + '<div style="margin-top:10px">'+grafico(serie)+'</div>'
+      + '<p class="note" style="margin-top:6px;font-weight:500">'
+      + '<span style="color:var(--verde);font-weight:800">━</span> media 7 días · '
+      + '<span style="color:var(--quince);font-weight:800">●</span> peso diario · '
+      + '<span style="color:#5D6C65;font-weight:800">┈</span> previsto · '
+      + '<span style="color:var(--verde);font-weight:800">┈</span> objetivo '+S.params.pesoObjetivo+' kg</p>'
+      + '<p class="note">'+esc(lectura)+'</p></div>';
+  }
+  const n = Object.keys(S.pesos).length;
+  h += '<div class="card"><span class="eyebrow">Historial · '+n+(n===1?" pesada":" pesadas")+'</span>'
+    + '<p class="note" style="margin:8px 0 0">Los datos viven en este navegador. Si borras el historial de navegación '
+    + 'o cambias de dispositivo, los pierdes: exporta una copia de vez en cuando desde Ajustes.</p></div>';
+  return h;
+}
+
+function vistaViabilidad() {
+  const o = objetivos(S.params);
+  const minInevitable = ["Tostada de guacamole con atun","Café solo o cortado",
+    "Postre: yogur natural Danone con fruta","Postre: yogur natural Danone con fruta",
+    "Cerveza (lata de 33 cl)","Tallarines konjak con verduras","Pavo al curry madrás"];
+  const k = n => BY[n] ? BY[n][2] : 0;
+  const fijo = k("Café solo o cortado") + 2*k("Postre: yogur natural Danone con fruta") + k("Cerveza (lata de 33 cl)");
+  const batido = k("Batido de proteína con creatina");
+  const minDe = (franja, entrena) => {
+    let s = fijo + (entrena ? batido : 0);
+    if (franja === "Comida") s += k("Tostada de guacamole con atun") + k("Tallarines konjak con verduras");
+    else if (franja === "Cena") s += k("Tostada de guacamole con atun") + k("Pavo al curry madrás");
+    else if (franja === "Desayuno") s += k("Pavo al curry madrás") + k("Tallarines konjak con verduras");
+    else s += k("Tostada de guacamole con atun") + k("Pavo al curry madrás") + k("Tallarines konjak con verduras");
+    return s;
+  };
+  const filas = [];
+  VIAB.forEach(function(v){
+    const plato = v[0], franja = v[1];
+    [["Laborable", o.lab],["Fin de semana", o.fin]].forEach(function(dd){
+      [[0,"Sin entreno"],[1,"Con entreno"]].forEach(function(ee){
+        const s = minDe(franja, ee[0]);
+        const tot = k(plato) + s;
+        const m = dd[1] - tot;
+        filas.push({ plato:plato, franja:franja, dia:dd[0], ent:ee[1], minResto:s, min:tot,
+          obj:dd[1], margen:m, ver: m>=100?"Cabe":(m>=0?"Justo":"No cabe") });
+      });
+    });
+  });
+  const orden = { "No cabe":0, "Justo":1, "Cabe":2 };
+  filas.sort((a,b) => orden[a.ver]-orden[b.ver] || a.margen-b.margen);
+  const cls = v => v==="Cabe"?"v-cabe":(v==="Justo"?"v-justo":"v-no");
+  let h = '<div class="card"><span class="eyebrow">Mínimo inevitable del día</span>'
+    + '<p class="note" style="margin:8px 0 0">Hay ingestas que no puedes eliminar: desayuno, café, los dos postres, '
+    + 'la cerveza y la otra comida principal. Si el plato más ese mínimo pasan del objetivo, ese plato no cabe ese día. '
+    + 'El mínimo usa la opción más barata de cada franja y la cerveza con alcohol; con una 0,0 ganas '
+    + (k("Cerveza (lata de 33 cl)")-k("Cerveza 0,0 (lata de 33 cl)"))+' kcal de margen y con agua, '
+    + k("Cerveza (lata de 33 cl)")+'.</p></div>';
+  h += '<div class="card" style="overflow-x:auto"><table><thead><tr><th>Plato</th><th>Día</th><th>Entreno</th>'
+    + '<th class="num">Mínimo del día</th><th class="num">Objetivo</th><th class="num">Margen</th><th>Veredicto</th></tr></thead><tbody>';
+  filas.forEach(function(f){
+    h += '<tr><td>'+esc(f.plato)+'</td><td>'+f.dia+'</td><td>'+f.ent+'</td>'
+      + '<td class="num">'+fmt(f.min)+'</td><td class="num">'+fmt(f.obj)+'</td>'
+      + '<td class="num" style="font-weight:700;color:'+(f.margen<0?"var(--rojo)":"var(--verde)")+'">'
+      + (f.margen>=0?"+":"−")+fmt(Math.abs(f.margen))+'</td>'
+      + '<td><span class="veredicto '+cls(f.ver)+'">'+f.ver+'</span></td></tr>';
+  });
+  h += '</tbody></table></div>'
+    + '<div class="card"><p class="note" style="margin:0">«No cabe» no significa que no puedas comerlo: significa que '
+    + 'ese día te saltarás el objetivo. Como el presupuesto es semanal, un día 150 kcal por encima se compensa con 30 '
+    + 'menos en los cinco siguientes. Lo que no funciona es acumular varios.</p></div>';
+  return h;
+}
+
+function vistaAjustes() {
+  const o = objetivos(S.params);
+  const campo = (k2, label, unidad, step) =>
+    '<div><span class="eyebrow">'+esc(label)+'</span>'
+    + '<input type="number" step="'+(step||1)+'" value="'+S.params[k2]+'" data-par="'+k2+'" '
+    + 'aria-label="'+esc(label)+' en '+esc(unidad)+'" style="margin-top:5px">'
+    + '<div class="note">'+esc(unidad)+'</div></div>';
+  let h = '<div class="card"><span class="eyebrow">Tus datos</span><div class="grid3" style="margin-top:10px">'
+    + campo("peso","Peso actual","kg",0.05) + campo("altura","Altura","cm",1)
+    + campo("edad","Edad","años",1) + campo("pesoObjetivo","Peso objetivo","kg",0.5)
+    + campo("factor","Factor de actividad","× metabolismo basal",0.05)
+    + campo("deficit","Déficit diario","kcal",25)
+    + campo("protGkg","Proteína","g por kg",0.1) + campo("grasaGkg","Grasa","g por kg",0.1)
+    + campo("ajusteLab","Ajuste laborables","kcal",5) + campo("objVF","Verdura y fruta","g al día",50)
+    + '</div><p class="note" style="margin-top:12px">El factor 1,5 corresponde a 9.500 pasos diarios más 3-4 sesiones '
+    + 'de fuerza. Si la media de 7 días no baja al ritmo previsto después de tres semanas, bájalo antes de recortar comida.</p></div>';
+
+  h += '<div class="card"><span class="eyebrow">Lo que sale de esos datos</span><div class="grid2" style="margin-top:10px">';
+  [["Metabolismo basal",o.tmb,"kcal"],["Gasto total estimado",o.get,"kcal"],
+   ["Objetivo medio diario",o.medio,"kcal"],["Presupuesto semanal",o.semanal,"kcal"],
+   ["Objetivo de lunes a viernes",o.lab,"kcal"],["Objetivo sábado y domingo",o.fin,"kcal"],
+   ["Proteína (mínimo)",o.prot,"g"],["Grasa (mínimo)",o.grasa,"g"],["Hidratos (máximo)",o.hidratos,"g"]].forEach(function(x){
+    h += '<div class="row" style="border-bottom:1px solid #E6EAE5;padding:6px 0">'
+      + '<span style="font-size:14.5px">'+x[0]+'</span>'
+      + '<span class="mono" style="font-size:14.5px;font-weight:700">'+fmt(x[1])+' '+x[2]+'</span></div>';
+  });
+  h += '</div><p class="note" style="margin-top:12px">Mifflin-St Jeor, las mismas fórmulas que el Excel. Las calorías '
+    + 'de los platos son estimaciones con un margen del 10-15%, mayor en raciones de restaurante y parrilla. '
+    + 'No sustituye a un dietista-nutricionista.</p></div>';
+
+  h += '<div class="card"><span class="eyebrow">Inicio del ciclo del plan</span>'
+    + '<input type="date" value="'+(S.params.planStart||"")+'" data-par="planStart" style="margin-top:6px" '
+    + 'aria-label="Fecha de inicio del plan">'
+    + '<p class="note" style="margin:8px 0 0">El plan son 28 días que se repiten. Esta fecha marca el lunes de la '
+    + 'semana 1, y con ella la pestaña Registro sabe qué toca cada día.</p></div>';
+
+  if (S.propios.length) {
+    h += '<div class="card"><span class="eyebrow">Mis alimentos · '+S.propios.length+'</span>'
+      + '<div style="overflow-x:auto;margin-top:8px"><table><thead><tr><th>Plato</th><th class="num">kcal</th>'
+      + '<th class="num">P</th><th class="num">G</th><th class="num">H</th><th></th></tr></thead><tbody>';
+    S.propios.forEach(function(i){
+      h += '<tr><td>'+esc(i[0])+'<div class="note">'+esc(i[10])+'</div></td>'
+        + '<td class="num">'+fmt(i[2])+'</td><td class="num">'+fmt(i[3])+'</td>'
+        + '<td class="num">'+fmt(i[4])+'</td><td class="num">'+fmt(i[5])+'</td>'
+        + '<td><button class="btn ghost tiny" data-act="borrarpropio" data-v="'+esc(i[0])+'">Borrar</button></td></tr>';
+    });
+    h += '</tbody></table></div></div>';
+  }
+
+  h += bloqueSync();
+
+  const dias = fechasConRegistro().length, pes = Object.keys(S.pesos).length;
+  const persiste = Store.modo() === "localStorage";
+  h += '<div class="card"><span class="eyebrow">Dónde viven tus datos</span>'
+    + '<p class="note" style="margin:8px 0 6px;font-weight:600;color:'+(persiste?"var(--verde)":"var(--rojo)")+'">'
+    + (persiste
+       ? "Se guardan en este navegador y NO se pierden al cerrar la página ni al reiniciar el ordenador."
+       : "ATENCIÓN: este navegador no permite guardar aquí. Todo lo que anotes se perderá al recargar.")+'</p>'
+    + '<p class="note" style="margin:0 0 10px">Guardados ahora: '+dias+(dias===1?" día":" días")+' de registro, '
+    + pes+(pes===1?" pesada":" pesadas")+' y '+S.propios.length+(S.propios.length===1?" alimento propio":" alimentos propios")
+    + '. Modo: '+Store.modo()+'. Origen: '+esc(location.origin || location.protocol)+'.</p>'
+    + '<p class="note" style="margin:0 0 10px"><b>Sí se pierden</b> si borras los datos de navegación, si usas una '
+    + 'ventana de incógnito, o si abres la app en otro navegador u otro dispositivo. Exporta un archivo de vez en cuando.</p>'
+    + '<div style="display:flex;gap:8px;flex-wrap:wrap">'
+    + '<button class="btn" data-act="exportar">Descargar copia</button>'
+    + '<button class="btn ghost" data-act="importar">Cargar copia</button>'
+    + '<button class="btn ghost" data-act="borrardia">Vaciar el día que estoy viendo</button></div>'
+    + '<input type="file" id="ficheroImport" accept="application/json" style="display:none">'
+    + (S.aviso ? '<p class="aviso" style="margin-top:10px">'+esc(S.aviso)+'</p>' : '') + '</div>';
+  return h;
+}
+
+
+
+
+
+
+
+/* ---------- panel flotante: lo que queda por comer ---------- */
+function panelRestante(t, objD, o) {
+  const filas = [
+    ["Proteína",        t.prot,               o.prot,          "g", "min"],
+    ["Grasa",           t.grasa,              o.grasa,         "g", "min"],
+    ["Hidratos",        t.hidratos,           o.hidratos,      "g", "max"],
+    ["Verdura y fruta", t.verdura + t.fruta,  S.params.objVF,  "g", "min"]
+  ];
+  const kcal = objD - t.kcal;
+  let h = '<div id="restante" aria-live="polite"><div class="cab"><div>'
+    + '<div class="rt">'+(kcal >= 0 ? "te queda por comer" : "te has pasado")+'</div>'
+    + '<div class="rk '+(kcal >= 0 ? "rok" : "rno")+'">'+fmt(Math.abs(kcal))+' <span class="ru">kcal</span></div>'
+    + '<div class="rt2">'+fmt(t.kcal)+' de '+fmt(objD)+' kcal</div></div></div><div class="rejilla">';
+  filas.forEach(function (f) {
+    const falta = f[2] - f[1];
+    let txt, cls;
+    if (f[4] === "min") {
+      if (falta > 0.5) { txt = "faltan "+fmt(falta); cls = "rno"; }
+      else { txt = falta < -0.5 ? "+"+fmt(-falta) : "justo"; cls = "rok"; }
+    } else {
+      if (falta >= 0) { txt = "quedan "+fmt(falta); cls = "rok"; }
+      else { txt = "+"+fmt(-falta); cls = "rno"; }
+    }
+    h += '<div class="rf"><span class="rn">'+f[0]+'</span>'
+      + '<span class="rv"><span class="rc">'+fmt(f[1])+' / '+fmt(f[2])+' '+f[3]+'</span>'
+      + '<span class="'+cls+'">'+txt+'</span></span></div>';
+  });
+  h += '</div></div>';
+  return h;
+}
+
+/* ---------- sincronización con Google Apps Script ---------- */
+let sincronizando = false;
+
+function pendientes() {
+  return Object.keys(S.pend.ent).length + Object.keys(S.pend.pesos).length + Object.keys(S.pend.meta).length;
+}
+
+async function sincronizar(silencioso) {
+  if (sincronizando) return;
+  if (!S.sync.url || !S.sync.token) {
+    if (!silencioso) { S.sync.estado = "Falta configurar la dirección y el token en Ajustes."; render(); }
+    return;
+  }
+  sincronizando = true;
+  S.sync.estado = "Sincronizando…";
+  if (!silencioso) render();
+sincronizar(true);
+document.addEventListener("visibilitychange", function(){ if (!document.hidden) sincronizar(true); });
+window.addEventListener("online", function(){ sincronizar(true); });
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", function(){ navigator.serviceWorker.register("sw.js").catch(function(){}); });
+}
+
+  const cuerpo = {
+    token: S.sync.token,
+    desde: S.sync.ultimo || 0,
+    entradas: Object.keys(S.pend.ent).map(id => S.ent[id]).filter(Boolean),
+    pesos: Object.keys(S.pend.pesos).map(f => ({ fecha:f, peso:S.pesos[f], ts:S.pesosTs[f] || Date.now() })),
+    meta: Object.keys(S.pend.meta).map(function (c) {
+      const valor = c === "params" ? JSON.stringify(S.params) : JSON.stringify(S.propios);
+      return { clave:c, valor:valor, ts:S.metaTs[c] || Date.now() };
+    })
+  };
+
+  try {
+    const res = await fetch(S.sync.url, {
+      method: "POST", redirect: "follow",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },   // evita el preflight de CORS
+      body: JSON.stringify(cuerpo)
+    });
+    const d = await res.json();
+    if (d.error) throw new Error(d.error);
+
+    let nuevas = 0, cambiadas = 0;
+    (d.entradas || []).forEach(function (r) {
+      const local = S.ent[r.id];
+      if (!local) { S.ent[r.id] = r; nuevas++; }
+      else if (Number(r.ts) > Number(local.ts)) { S.ent[r.id] = r; cambiadas++; }
+    });
+    (d.pesos || []).forEach(function (p) {
+      if (!S.pesosTs[p.fecha] || Number(p.ts) > Number(S.pesosTs[p.fecha])) {
+        S.pesos[p.fecha] = Number(p.peso); S.pesosTs[p.fecha] = Number(p.ts);
+      }
+    });
+    (d.meta || []).forEach(function (m) {
+      if (S.metaTs[m.clave] && Number(m.ts) <= Number(S.metaTs[m.clave])) return;
+      try {
+        const v = JSON.parse(m.valor);
+        if (m.clave === "params") S.params = Object.assign({}, DEFAULTS, v);
+        else if (m.clave === "propios") { S.propios = v || []; reindex(); }
+        S.metaTs[m.clave] = Number(m.ts);
+      } catch (e) {}
+    });
+
+    S.pend = { ent:{}, pesos:{}, meta:{} };
+    S.sync.ultimo = Number(d.ts) || Date.now();
+    S.sync.cuando = Date.now();
+    S.sync.estado = "Al día" + (nuevas || cambiadas ? " · "+(nuevas+cambiadas)+" cambios recibidos" : "");
+    guardar();
+  } catch (err) {
+    S.sync.estado = "No se ha podido sincronizar: " + (err && err.message ? err.message : err);
+    guardar();
+  }
+  sincronizando = false;
+  render();
+}
+
+let temporizador = null;
+function sincronizarPronto() {
+  if (!S.sync.url) return;
+  clearTimeout(temporizador);
+  temporizador = setTimeout(function () { sincronizar(true); }, 2500);
+}
+
+function bloqueSync() {
+  const p = pendientes();
+  const conf = S.sync.url && S.sync.token;
+  const col = !conf ? "var(--ink)" : (p ? "var(--quince)" : "var(--verde)");
+  let h = '<div class="card"><span class="eyebrow">Sincronización entre el PC y el móvil</span>';
+  h += '<p class="note" style="margin:8px 0 10px;font-weight:600;color:'+col+'">'
+    + (!conf ? "Sin configurar: los datos solo viven en este navegador."
+             : (p ? p+(p===1?" cambio pendiente de subir":" cambios pendientes de subir")
+                  : "Todo subido."))
+    + (S.sync.cuando ? " Última sincronización: "+new Date(S.sync.cuando).toLocaleString("es-ES")+"." : "")+'</p>';
+  h += '<div class="grid2"><div><span class="eyebrow">Dirección del script</span>'
+    + '<input id="sy_url" data-sync="url" value="'+esc(S.sync.url)+'" '
+    + 'placeholder="https://script.google.com/macros/s/…/exec" aria-label="Dirección del script" style="margin-top:5px"></div>'
+    + '<div><span class="eyebrow">Token</span>'
+    + '<input id="sy_token" data-sync="token" value="'+esc(S.sync.token)+'" '
+    + 'placeholder="el mismo que pusiste en Code.gs" aria-label="Token" style="margin-top:5px"></div></div>';
+  h += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">'
+    + '<button class="btn" data-act="sincronizar">Sincronizar ahora</button>'
+    + '<button class="btn ghost" data-act="resync">Volver a bajar todo</button></div>';
+  if (S.sync.estado) h += '<p class="note" style="margin-top:10px;font-weight:600">'+esc(S.sync.estado)+'</p>';
+  h += '<p class="note" style="margin-top:10px">Se sincroniza sola al abrir la app, al volver a la pestaña y unos '
+    + 'segundos después de cada cambio. Todo se guarda primero en este navegador, así que puedes registrar sin '
+    + 'cobertura y se subirá cuando vuelvas a tener red.</p></div>';
+  return h;
+}
+
+/* ---------- motor de sugerencias ---------- */
+const COMPAT = {
+  "Desayuno":            ["Desayuno","Post-entreno 6:30","Alimentos sueltos","Suplemento","Hamaiketako"],
+  "Hamaiketako":         ["Hamaiketako","Alimentos sueltos","Postre","Suplemento"],
+  "Comida":              ["Comida","Alimentos sueltos"],
+  "Merienda":            ["Aperitivo / Merienda","Alimentos sueltos","Postre","Hamaiketako"],
+  "Cena":                ["Cena","Comida","Alimentos sueltos","Postre","Bebida"],
+  "Extras":              ["Extras","Bebida","Alimentos sueltos","Postre","Suplemento"]
+};
+
+function sugerencias(franja, reg, objD, o) {
+  const t = totales(reg);
+  const restoKcal = objD - t.kcal;
+  const faltaProt = Math.max(0, o.prot - t.prot);
+  const faltaVF   = Math.max(0, S.params.objVF - (t.verdura + t.fruta));
+  const usadas = {}; reg.forEach(e => usadas[e[0]] = true);
+  const vacias = FRANJAS.filter(f => !reg.some(e => e[2] === f));
+  const ultima = vacias.length <= 1;
+  const dw = parseIso(S.fecha).getDay();          // 1..4 = lunes a jueves
+  const esTaperDia = dw >= 1 && dw <= 4;
+  const cats = COMPAT[franja] || [];
+  const k2 = it => it[2];
+  const esc2 = Math.max(200, Math.abs(restoKcal));
+
+  const cand = catalogo().filter(function(it){
+    if (usadas[it[0]]) return false;
+    if (it[2] <= 0) return false;
+    if (it[1] === "Mis alimentos") return true;
+    if (cats.indexOf(it[1]) < 0) return false;
+    if (franja === "Comida" && esTaperDia && it[9] === "No") return false;
+    if (it[9] === "Excepción") return false;                 // KFC, menú del día, hamburguesa de restaurante
+    if (it[0].indexOf("Fuera (") === 0) return false;
+    if (restoKcal < 150 && k2(it) > Math.max(140, restoKcal + 70)) return false;
+    return true;
+  }).map(function(it){
+    const k = it[2], p = it[3], vf = it[7] + it[8];
+    const sobra = Math.max(0, k - restoKcal);
+    const corto = Math.max(0, restoKcal - k);
+    let s = 0;
+    s += 100 * Math.min(1, p / Math.max(1, faltaProt));
+    s +=  30 * Math.min(1, vf / Math.max(1, faltaVF));
+    s -=  70 * (sobra / esc2);
+    s -=  (ultima ? 45 : 12) * (corto / esc2);
+    let ver = "cuadra";
+    if (sobra > 60) ver = "se pasa "+fmt(sobra);
+    else if (ultima && corto > 300) ver = "deja "+fmt(corto)+" sin usar";
+    return { it:it, kcal:k, prot:p, vf:vf, score:s, ver:ver, restaDespues: restoKcal - k };
+  });
+  cand.sort((a, b) => b.score - a.score);
+  return { lista: cand.slice(0, 6), restoKcal:restoKcal, faltaProt:faltaProt, faltaVF:faltaVF,
+           vacias:vacias, ultima:ultima };
+}
+
+function vistaSugerencias(reg, objD, o) {
+  const t = totales(reg);
+  const resto = objD - t.kcal;
+  const faltaProt = Math.max(0, o.prot - t.prot);
+  const vacias = FRANJAS.filter(f => !reg.some(e => e[2] === f));
+  let h = '<div class="card"><div class="row"><div><span class="eyebrow">Sugerencias para cuadrar el día</span>'
+    + '<div class="note" style="margin-top:5px">Te quedan <b>'+fmt(Math.max(0,resto))+' kcal</b>'
+    + (faltaProt > 0 ? ' y te faltan <b>'+fmt(faltaProt)+' g de proteína</b>' : ' y la proteína ya está cubierta')
+    + (vacias.length ? '. Franjas sin nada: '+vacias.join(", ").toLowerCase()+'.' : '.')+'</div></div></div>';
+  h += '<div style="display:flex;flex-wrap:wrap;gap:5px;margin:10px 0 4px">';
+  FRANJAS.forEach(function(f){
+    const vacia = vacias.indexOf(f) >= 0;
+    h += '<button class="btn tiny'+(S.sug === f ? "" : " ghost")+'" data-act="sug" data-v="'+esc(f)+'">'
+      + esc(f)+(vacia ? "" : " ✓")+'</button>';
+  });
+  h += '<button class="btn ghost tiny" data-act="sug" data-v="">Cerrar</button></div>';
+
+  if (!S.sug) {
+    h += '<p class="note" style="margin:6px 0 0">Elige la franja que quieres decidir. El ✓ marca las que ya tienes '
+      + 'con algo.</p></div>';
+    return h;
+  }
+  const r = sugerencias(S.sug, reg, objD, o);
+  if (resto <= 0) {
+    h += '<p class="aviso" style="margin:8px 0 0">Hoy ya te has pasado '+fmt(-resto)+' kcal del objetivo del día, '
+      + 'así que no te voy a proponer nada más. Mira el número de la semana: si sigue en verde, no hay problema; '
+      + 'si está en rojo, recorta 50-100 kcal en los días que queden.</p></div>';
+    return h;
+  }
+  if (resto < 250 && r.ultima) {
+    h += '<p class="aviso" style="margin:8px 0">Con '+fmt(Math.max(0,resto))+' kcal no cabe una '
+      + S.sug.toLowerCase()+' de verdad. Dos salidas: saltártela (ayuno) y aceptar que hoy te quedas corto de '
+      + 'proteína, o pasarte 200-300 kcal y compensarlo en los días que quedan de semana. Con el presupuesto '
+      + 'semanal, lo segundo suele ser mejor idea.</p>';
+  }
+  if (!r.lista.length) {
+    h += '<p class="note" style="margin:8px 0 0">No tengo nada que encaje en esa franja. Añádelo a mano o créalo '
+      + 'en Alimentos.</p></div>';
+    return h;
+  }
+  const clase = v => v === "cuadra" ? "v-cabe" : (v.indexOf("se pasa") === 0 ? "v-no" : "v-justo");
+  r.lista.forEach(function(c){
+    const it = c.it;
+    h += '<div class="logrow"><div style="flex:1;min-width:170px">'
+      + '<div style="font-size:15px;font-weight:600">'+esc(it[0])+' <span class="veredicto '+clase(c.ver)+'">'
+      + esc(c.ver)+'</span></div>'
+      + '<div class="note mono" style="font-weight:600">'+fmt(c.kcal)+' kcal · '+fmt(c.prot)+' g P · '
+      + fmt(c.vf)+' g verdura y fruta</div>'
+      + '<div class="note">te dejaría en '+fmt(t.kcal + c.kcal)+' / '+fmt(objD)+' kcal y '
+      + fmt(t.prot + c.prot)+' / '+fmt(o.prot)+' g de proteína</div></div>'
+      + '<button class="btn tiny" data-act="addsug" data-v="'+esc(it[0])+'" data-f="'+esc(S.sug)+'">Añadir</button>'
+      + '</div>';
+  });
+  h += '<p class="note" style="margin-top:10px">Ordenadas por lo que aportan de la proteína que te falta, luego por '
+    + 'verdura, penalizando lo que se pasa de calorías. En la comida de lunes a jueves solo aparecen platos aptos '
+    + 'para taper.</p></div>';
+  return h;
+}
+
+/* ---------- pestaña Alimentos: crear, editar y borrar ---------- */
+const CATS_SEL = ["Alimentos sueltos","Mis alimentos","Desayuno","Hamaiketako","Comida","Postre",
+  "Aperitivo / Merienda","Cena","Bebida","Extras","Suplemento","Post-entreno 6:30"];
+const UNIS_SEL = ["raciones","g","ml","cl","unidades","piezas","rebanadas","tazas","latas","huevos","alitas","porciones"];
+const CAMPOS_ED = [["kcal","Calorías","kcal",2],["prot","Proteína","g",3],["grasa","Grasa","g",4],
+  ["hidratos","Hidratos","g",5],["alc","Alcohol","g",6],["verdura","Verdura","g",7],["fruta","Fruta","g",8]];
+
+function abrirEd(nombre) {
+  const it = BY[nombre];
+  S.ed = it ? { nombre:it[0], nombreOrig:it[0], cat:it[1], kcal:it[2], prot:it[3], grasa:it[4],
+                hidratos:it[5], alc:it[6], verdura:it[7], fruta:it[8], racion:it[10],
+                base:it[12], baseOrig:it[12], unidad:it[13], unidadOrig:it[13],
+                propio:it[14] === "propio" }
+              : { nombre:"", nombreOrig:"", cat:"Alimentos sueltos", kcal:"", prot:"", grasa:"",
+                  hidratos:"", alc:"", verdura:"", fruta:"", racion:"", base:1, baseOrig:1,
+                  unidad:"raciones", unidadOrig:"raciones", propio:true };
+}
+
+function guardarEd() {
+  const e = S.ed, nom = String(e.nombre || "").trim();
+  const num = v => { const x = parseFloat(String(v == null ? "" : v).replace(",", ".")); return isNaN(x) ? 0 : x; };
+  if (!nom) return "Ponle un nombre.";
+  if (nom !== e.nombreOrig && BY[nom]) return "Ya existe otro alimento con ese nombre.";
+  const bs = cantidad(e.base) || 1;
+  const it = [nom, e.cat || "Mis alimentos", num(e.kcal), num(e.prot), num(e.grasa), num(e.hidratos),
+              num(e.alc), num(e.verdura), num(e.fruta), "N.A.",
+              String(e.racion || "").trim() || (fmtCant(bs) + " " + (e.unidad || "raciones")),
+              0, bs, e.unidad || "raciones", "propio"];
+  S.propios = S.propios.filter(x => x[0] !== e.nombreOrig && x[0] !== nom).concat([it]);
+  S.metaTs.propios = Date.now(); S.pend.meta.propios = 1;
+  if (e.nombreOrig && nom !== e.nombreOrig) {
+    Object.keys(S.ent).forEach(function(id){
+      if (S.ent[id].alimento === e.nombreOrig) tocar(id, { alimento: nom });
+    });
+  }
+  reindex(); guardar();
+  return null;
+}
+
+function vistaAlimentos() {
+  let h = "";
+  if (S.ed) {
+    const e = S.ed, esNuevo = !e.nombreOrig;
+    const original = e.nombreOrig ? ITEMS.filter(x => x[0] === e.nombreOrig)[0] : null;
+    h += '<div class="card"><span class="eyebrow">'+(esNuevo ? "Alimento nuevo" : "Editando")+'</span>'
+      + '<div class="grid2" style="margin-top:10px">'
+      + '<div><span class="eyebrow">Nombre</span><input id="ed_nombre" data-ed="nombre" value="'+esc(e.nombre)+'" '
+      + 'placeholder="Manzana" aria-label="Nombre" style="margin-top:5px"></div>'
+      + '<div><span class="eyebrow">Descripción de la ración</span><input id="ed_racion" data-ed="racion" '
+      + 'value="'+esc(e.racion||"")+'" placeholder="1 pieza de unos 180 g" aria-label="Descripción" style="margin-top:5px"></div>'
+      + '</div>';
+    h += '<div class="grid3" style="margin-top:10px">'
+      + '<div><span class="eyebrow">Cantidad de referencia</span><input id="ed_base" data-ed="base" '
+      + 'value="'+esc(String(e.base))+'" inputmode="decimal" aria-label="Cantidad de referencia" style="margin-top:5px">'
+      + '<div class="note">los datos de abajo son para esta cantidad</div></div>'
+      + '<div><span class="eyebrow">Unidad</span><select id="ed_unidad" data-ed="unidad" style="margin-top:5px" aria-label="Unidad">';
+    UNIS_SEL.forEach(u => { h += '<option value="'+u+'"'+((e.unidad||"raciones")===u?" selected":"")+'>'+u+'</option>'; });
+    h += '</select></div>'
+      + '<div><span class="eyebrow">Categoría</span><select id="ed_cat" data-ed="cat" style="margin-top:5px" aria-label="Categoría">';
+    CATS_SEL.forEach(c => { h += '<option value="'+esc(c)+'"'+((e.cat||"")===c?" selected":"")+'>'+esc(c)+'</option>'; });
+    h += '</select><div class="note">solo decide la franja sugerida</div></div></div>';
+    h += '<div class="grid3" style="margin-top:10px">';
+    CAMPOS_ED.forEach(function(c){
+      h += '<div><span class="eyebrow">'+esc(c[1])+'</span>'
+        + '<input id="ed_'+c[0]+'" data-ed="'+c[0]+'" value="'+esc(String(e[c[0]] == null ? "" : e[c[0]]))+'" '
+        + 'type="number" inputmode="decimal" step="0.1" aria-label="'+esc(c[1])+'" style="margin-top:5px">'
+        + '<div class="note">'+esc(c[2])+'</div></div>';
+    });
+    h += '</div>';
+    const bNueva = cantidad(e.base), bVieja = e.baseOrig;
+    if (bNueva && bVieja && Math.abs(bNueva - bVieja) > 0.0001) {
+      const f = bNueva / bVieja;
+      h += '<div class="aviso" style="margin-top:12px">Has cambiado la cantidad de referencia de '
+        + fmtCant(bVieja)+' a '+fmtCant(bNueva)+' '+esc(e.unidad||"")+', pero los datos de abajo siguen siendo los de '
+        + fmtCant(bVieja)+'. Si quieres que se ajusten solos (×'+fmtCant(Math.round(f*1000)/1000)+'):<br>'
+        + '<button class="btn tiny" data-act="edescalar" style="margin-top:8px">Reescalar a '
+        + fmtCant(bNueva)+' '+esc(e.unidad||"")+' → '+fmt((parseFloat(e.kcal)||0)*f)+' kcal</button></div>';
+    }
+    const mk = 4*(parseFloat(e.prot)||0) + 9*(parseFloat(e.grasa)||0) + 4*(parseFloat(e.hidratos)||0) + 7*(parseFloat(e.alc)||0);
+    const kc = parseFloat(e.kcal);
+    if (!isNaN(kc) && mk > 0 && Math.abs(mk - kc) > 60)
+      h += '<p class="aviso" style="margin-top:10px">Los macros suman '+fmt(mk)+' kcal y en calorías pone '+fmt(kc)
+        + '. Se guarda igual, pero uno de los dos está mal.</p>';
+    if (original) h += '<p class="note" style="margin-top:10px">Valores originales del catálogo: '+fmt(original[2])
+      + ' kcal, '+fmt(original[3])+' g de proteína, '+fmt(original[4])+' g de grasa, '+fmt(original[5])
+      + ' g de hidratos, por '+fmtCant(original[12])+' '+esc(original[13])+'.</p>';
+    h += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">'
+      + '<button class="btn" data-act="edok">Guardar</button>'
+      + '<button class="btn ghost" data-act="edno">Cancelar</button>';
+    if (!esNuevo && S.propios.some(x => x[0] === e.nombreOrig)) {
+      h += original
+        ? '<button class="btn ghost" data-act="edrestaurar">Volver a los valores del catálogo</button>'
+        : '<button class="btn ghost" data-act="edborrar">Borrar este alimento</button>';
+    }
+    h += '</div>';
+    if (S.aviso) h += '<p class="aviso" style="margin-top:10px">'+esc(S.aviso)+'</p>';
+    h += '</div>';
+    return h;
+  }
+
+  h += '<div class="card"><div class="row"><span class="eyebrow">Alimentos y platos</span>'
+    + '<button class="btn tiny" data-act="ednuevo">Crear uno nuevo</button></div>'
+    + '<p class="note" style="margin:9px 0 10px">Aquí puedes corregir cualquier cosa: calorías, macros, unidad, '
+    + 'nombre. Si editas un plato del catálogo, tu versión manda y siempre puedes volver a la original. '
+    + 'Al cambiar un nombre se actualiza también en los días que ya lo tenías registrado.</p>'
+    + '<input id="qalim" value="'+esc(S.qa||"")+'" placeholder="Busca para editar: manzana, cerveza, lentejas…" '
+    + 'aria-label="Buscar alimento para editar">';
+  const editados = S.propios.filter(x => ITEMS.some(y => y[0] === x[0]));
+  const mios = S.propios.filter(x => !ITEMS.some(y => y[0] === x[0]));
+  const q = (S.qa || "").trim();
+  let lista;
+  if (q.length >= 2) {
+    const n = norm(q);
+    lista = catalogo().filter(it => norm(it[0]).indexOf(n) >= 0).slice(0, 60);
+  } else {
+    lista = mios.concat(editados);
+  }
+  h += '</div>';
+  h += '<div class="card"><span class="eyebrow">'
+    + (q.length >= 2 ? 'Resultados · '+lista.length
+       : 'Tuyos y modificados · '+lista.length+(lista.length ? '' : ' (busca arriba para editar los del catálogo)'))+'</span>';
+  if (!lista.length) h += '<p class="note" style="margin:9px 0 0">Nada que mostrar. Escribe en el buscador de arriba '
+    + 'para editar cualquiera de los '+ITEMS.length+' platos del catálogo, o crea uno nuevo.</p>';
+  else {
+    h += '<div style="overflow-x:auto;margin-top:8px"><table><thead><tr><th>Alimento</th><th class="num">kcal</th>'
+      + '<th class="num">P</th><th class="num">G</th><th class="num">H</th><th>Por</th><th></th></tr></thead><tbody>';
+    lista.forEach(function(i){
+      const propio = i[14] === "propio";
+      const esEditado = propio && ITEMS.some(y => y[0] === i[0]);
+      const etiqueta = esEditado ? '<span class="veredicto v-justo">modificado</span>'
+        : (propio ? '<span class="veredicto v-cabe">tuyo</span>' : '');
+      h += '<tr><td><div style="font-weight:600">'+esc(i[0])+' '+etiqueta+'</div>'
+        + '<div class="note">'+esc(i[10])+'</div></td>'
+        + '<td class="num">'+fmt(i[2])+'</td><td class="num">'+fmt(i[3])+'</td>'
+        + '<td class="num">'+fmt(i[4])+'</td><td class="num">'+fmt(i[5])+'</td>'
+        + '<td class="num">'+fmtCant(i[12])+' '+esc(i[13])+'</td>'
+        + '<td><button class="btn ghost tiny" data-act="ededit" data-v="'+esc(i[0])+'">Editar</button></td></tr>';
+    });
+    h += '</tbody></table></div>';
+  }
+  h += '</div>';
+
+  h += '<div class="card"><span class="eyebrow">Añadir desde la etiqueta de un producto</span>'
+    + '<p class="note" style="margin:8px 0 8px">La app no puede leer fotos por sí sola: es un archivo HTML sin '
+    + 'servidor ni conexión a ningún servicio. El camino que sí funciona: haz la foto de la tabla nutricional, '
+    + 'mándamela en el chat y te devuelvo una línea de datos. Pégala aquí y el alimento queda creado.</p>'
+    + '<p class="note" style="margin:0 0 8px">Formato (puedes pegar varios a la vez):<br>'
+    + '<code style="font-family:\'IBM Plex Mono\',monospace;font-size:12.5px;background:#DCE7E0;padding:2px 5px">'
+    + '[{"nombre":"Yogur Aldi maracuyá","base":150,"unidad":"g","kcal":98,"prot":15,"grasa":1.5,"hidratos":7}]'
+    + '</code></p>'
+    + '<textarea id="pegado" rows="4" aria-label="Pegar datos de alimentos" '
+    + 'style="width:100%;font-family:\'IBM Plex Mono\',monospace;font-size:13px;padding:9px;'
+    + 'border:1px solid var(--line);border-radius:2px">'+esc(S.pegado||"")+'</textarea>'
+    + '<div style="margin-top:10px"><button class="btn" data-act="pegar"'+((S.pegado||"").trim()?"":" disabled")
+    + '>Crear desde estos datos</button></div>';
+  if (S.aviso) h += '<p class="aviso" style="margin-top:10px">'+esc(S.aviso)+'</p>';
+  h += '</div>';
+  return h;
+}
+
+/* ---------- bloqueo en Edge ---------- */
+function esEdge() {
+  const ua = navigator.userAgent || "";
+  if (/\bEdg(?:e|A|iOS)?\//.test(ua)) return true;
+  const uad = navigator.userAgentData;
+  if (uad && uad.brands) return uad.brands.some(b => /edge/i.test(b.brand));
+  return false;
+}
+let edgeAceptado = false;
+
+function pantallaEdge() {
+  const url = location.href;
+  document.getElementById("app").innerHTML =
+      '<div class="bloqueo"><div class="caja">'
+    + '<h1>Esta app no funciona en Edge</h1>'
+    + '<p>No es un capricho técnico: cada navegador guarda sus propios datos y no los comparte con ningún otro. '
+    + 'Si registras aquí lo que comes, no aparecerá en Chrome, y acabarás con dos historiales incompletos. '
+    + 'Por eso está bloqueada.</p>'
+    + '<button class="grande" data-edge="bat">Descargar el atajo para abrirla en Chrome</button>'
+    + '<button class="sec" data-edge="copiar">Copiar la dirección</button>'
+    + '<p id="edgeMsg" style="min-height:22px;margin:6px 0 14px"></p>'
+    + '<p style="font-size:14px;color:#AFC0B8">Una página web no puede lanzar otro navegador por sí sola: '
+    + 'ningún navegador lo permite, por seguridad. El atajo es un archivo <code>.bat</code> que contiene '
+    + '<code>start chrome "' + esc(url) + '"</code>. Lo descargas, doble clic y Chrome abre la app. '
+    + 'Windows puede avisarte de que es un archivo descargado; es normal, lo has generado tú. '
+    + 'Si prefieres no descargar nada, copia la dirección y pégala en Chrome.</p>'
+    + '<button class="peque" data-edge="seguir">Continuar en Edge de todas formas</button>'
+    + '<p style="font-size:13px;color:#AFC0B8;margin-top:4px">Úsalo solo si ya habías guardado datos en Edge '
+    + 'y necesitas exportarlos. Los datos de Edge y los de Chrome son distintos.</p>'
+    + '</div></div>';
+}
+
+document.getElementById("app").addEventListener("click", function(ev){
+  const b = ev.target.closest("[data-edge]"); if (!b) return;
+  const msg = document.getElementById("edgeMsg");
+  const url = location.href;
+  if (b.dataset.edge === "seguir") { edgeAceptado = true; render(); return; }
+  if (b.dataset.edge === "copiar") {
+    const escribir = navigator.clipboard && navigator.clipboard.writeText
+      ? navigator.clipboard.writeText(url) : Promise.reject();
+    escribir.then(function(){ msg.innerHTML = '<span class="ok">Dirección copiada. Pégala en Chrome.</span>'; })
+      .catch(function(){ msg.innerHTML = 'No he podido copiarla. La dirección es: <code>'+esc(url)+'</code>'; });
+    return;
+  }
+  if (b.dataset.edge === "bat") {
+    const bat = '@echo off\r\nrem Abre el registro de comidas en Chrome\r\nstart chrome "' + url + '"\r\n';
+    try {
+      const blob = new Blob([bat], { type:"application/octet-stream" });
+      const u = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = u; a.download = "abrir-registro-en-chrome.bat";
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function(){ URL.revokeObjectURL(u); }, 2000);
+      msg.innerHTML = '<span class="ok">Atajo descargado. Doble clic y se abre en Chrome.</span>';
+    } catch(e) {
+      msg.innerHTML = 'No he podido generar el archivo. Copia la dirección y pégala en Chrome.';
+    }
+  }
+});
+
+/* ---------- render y eventos ---------- */
+const TABS = [["registro","Registro"],["alimentos","Alimentos"],["peso","Peso"],["viabilidad","¿Cabe?"],["ajustes","Ajustes"]];
+
+function render() {
+  if (esEdge() && !edgeAceptado) { pantallaEdge(); return; }
+  const activo = document.activeElement;
+  const foco = activo && activo.id ? activo.id : null;
+  const caret = foco && activo.setSelectionRange ? activo.selectionStart : null;
+  let h = hero() + '<div class="tabs">';
+  TABS.forEach(function(t){
+    h += '<button class="tab'+(S.vista===t[0]?" on":"")+'" data-act="vista" data-v="'+t[0]+'">'+t[1]+'</button>';
+  });
+  h += '</div>';
+  if (S.vista === "registro") {
+    const oo = objetivos(S.params);
+    const dd = parseIso(S.fecha);
+    h += vistaRegistro() + panelRestante(totales(logDe(S.fecha)), esFinde(dd) ? oo.fin : oo.lab, oo);
+  }
+  else if (S.vista === "alimentos") h += vistaAlimentos();
+  else if (S.vista === "peso") h += vistaPeso();
+  else if (S.vista === "viabilidad") h += vistaViabilidad();
+  else h += vistaAjustes();
+  document.getElementById("app").innerHTML = h;
+  if (foco) {
+    const el = document.getElementById(foco);
+    if (el) { el.focus(); if (caret != null && el.setSelectionRange) { try { el.setSelectionRange(caret, caret); } catch(e){} } }
+  }
+}
+
+document.getElementById("app").addEventListener("click", function(ev){
+  const b = ev.target.closest("[data-act]"); if (!b) return;
+  const a = b.dataset.act;
+  const reg = logDe(S.fecha);
+  if (a === "vista") { S.vista = b.dataset.v; S.aviso = ""; }
+  else if (a === "ir") { S.fecha = b.dataset.f; S.vista = "registro"; }
+  else if (a === "dia") { S.fecha = iso(addDays(parseIso(S.fecha), +b.dataset.n)); }
+  else if (a === "franja") { S.franja = b.dataset.v; }
+  else if (a === "sincronizar") { guardar(); sincronizar(false); return; }
+  else if (a === "resync") { S.sync.ultimo = 0; S.sync.estado = ""; guardar(); sincronizar(false); return; }
+  else if (a === "pegar") {
+    let n = 0, malos = 0;
+    try {
+      let d = JSON.parse(S.pegado);
+      if (!Array.isArray(d)) d = [d];
+      const num = v => { const x = parseFloat(String(v == null ? "" : v).replace(",", ".")); return isNaN(x) ? 0 : x; };
+      d.forEach(function(o){
+        const nom = String(o.nombre || "").trim();
+        if (!nom || BY[nom]) { malos++; return; }
+        const bs = num(o.base) || 1;
+        const un = String(o.unidad || "raciones");
+        S.propios = S.propios.concat([[nom, String(o.categoria || "Alimentos sueltos"),
+          num(o.kcal), num(o.prot), num(o.grasa), num(o.hidratos), num(o.alc), num(o.verdura), num(o.fruta),
+          "N.A.", String(o.racion || (fmtCant(bs)+" "+un)), 0, bs, un, "propio"]]);
+        n++;
+      });
+      reindex(); guardar();
+      S.pegado = "";
+      S.aviso = n ? ("Creados "+n+(n===1?" alimento":" alimentos")+(malos?" ("+malos+" descartados: sin nombre o ya existían)":"")+".")
+                  : "No se ha creado nada: revisa que los nombres no existan ya.";
+    } catch (err) {
+      S.aviso = "Eso no es un JSON válido. Copia y pega tal cual lo que te dé el chat, incluidos los corchetes.";
+    }
+  }
+  else if (a === "ednuevo") { S.vista = "alimentos"; abrirEd(null); S.aviso = ""; }
+  else if (a === "ededit") { S.vista = "alimentos"; abrirEd(b.dataset.v); S.aviso = ""; }
+  else if (a === "edno") { S.ed = null; S.aviso = ""; }
+  else if (a === "edescalar") {
+    const e = S.ed, bN = cantidad(e.base), bV = e.baseOrig;
+    if (bN && bV) {
+      const f = bN / bV, r2 = v => Math.round(((parseFloat(String(v==null?"":v).replace(",","."))||0) * f) * 10) / 10;
+      ["kcal","prot","grasa","hidratos","alc","verdura","fruta"].forEach(function(k){ e[k] = r2(e[k]); });
+      e.baseOrig = bN;
+      S.aviso = "Datos reescalados a "+fmtCant(bN)+" "+(e.unidad||"")+".";
+    }
+  }
+  else if (a === "edok") {
+    const e = guardarEd();
+    if (e) S.aviso = e; else { S.aviso = "Guardado «"+String(S.ed.nombre).trim()+"»."; S.ed = null; }
+  }
+  else if (a === "edborrar") {
+    const nom = S.ed.nombreOrig;
+    S.propios = S.propios.filter(x => x[0] !== nom);
+    reindex(); guardar(); S.ed = null;
+    S.aviso = "Borrado «"+nom+"». Los días donde estaba registrado dejan de sumarlo.";
+  }
+  else if (a === "edrestaurar") {
+    const nom = S.ed.nombreOrig;
+    S.propios = S.propios.filter(x => x[0] !== nom);
+    reindex(); guardar(); S.ed = null;
+    S.aviso = "«"+nom+"» vuelve a los valores del catálogo.";
+  }
+  else if (a === "crear") {
+    S.vista = "alimentos"; abrirEd(null);
+    S.ed.nombre = b.dataset.v || S.q.trim();
+    S.q = ""; S.aviso = "";
+  }
+  else if (a === "borrarpropio") {
+    const nom = b.dataset.v;
+    S.propios = S.propios.filter(i => i[0] !== nom);
+    reindex(); guardar();
+    S.aviso = "Borrado «"+nom+"» de tus alimentos. Los días donde ya estaba registrado dejarán de sumarlo.";
+  }
+  else if (a === "add") {
+    const it = BY[b.dataset.v];
+    anotar(S.fecha, b.dataset.v, BASE(it), S.franja); S.q = ""; guardar();
+  }
+  else if (a === "del") { borrarEntrada(b.dataset.id); guardar(); }
+  else if (a === "plegarplan") { S.params.planAbierto = !S.params.planAbierto; guardar(); }
+  else if (a === "sug") { S.sug = b.dataset.v; }
+  else if (a === "addsug") {
+    anotar(S.fecha, b.dataset.v, BASE(BY[b.dataset.v]), b.dataset.f); guardar();
+  }
+  else if (a === "addplan") {
+    const c = parseFloat(b.dataset.c);
+    anotar(S.fecha, b.dataset.v, isNaN(c) ? BASE(BY[b.dataset.v]) : c, b.dataset.f); guardar();
+  }
+  else if (a === "cargarplan") {
+    const pd = PLAN[planIndex(parseIso(S.fecha))];
+    const nuevas = [];
+    pd.items.forEach(function(x){
+      if (!reg.some(e => e[0] === x[0] && e[2] === x[1]))
+        nuevas.push([x[0], x.length > 2 ? x[2] : BASE(BY[x[0]]), x[1]]);
+    });
+    nuevas.forEach(function(n){ anotar(S.fecha, n[0], n[1], n[2]); });
+    guardar();
+  }
+  else if (a === "peso") {
+    const el = document.getElementById("pesohoy");
+    const v = parseFloat((el.value || "").replace(",", "."));
+    if (!isNaN(v) && v > 30 && v < 250) {
+      const f = iso(new Date());
+      S.pesos[f] = v; S.pesosTs[f] = Date.now(); S.pend.pesos[f] = 1; guardar();
+    }
+  }
+  else if (a === "borrardia") {
+    reg.forEach(function(e){ borrarEntrada(e[3]); });
+    guardar(); S.aviso = "Vaciado el día "+nfDia(parseIso(S.fecha))+".";
+  }
+  else if (a === "exportar") {
+    const datos = { version:4, exportado:new Date().toISOString(), params:S.params,
+                    ent:S.ent, pesos:S.pesos, pesosTs:S.pesosTs, propios:S.propios };
+    const url = URL.createObjectURL(new Blob([JSON.stringify(datos, null, 1)], { type:"application/json" }));
+    const link = document.createElement("a");
+    link.href = url; link.download = "registro-comidas-"+iso(new Date())+".json";
+    document.body.appendChild(link); link.click(); link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+    S.aviso = "Copia descargada.";
+  }
+  else if (a === "importar") { document.getElementById("ficheroImport").click(); return; }
+  render();
+  sincronizarPronto();
+});
+
+document.getElementById("app").addEventListener("input", function(ev){
+  const el = ev.target;
+  if (el.id === "buscar") { S.q = el.value; render(); return; }
+  if (el.id === "qalim") { S.qa = el.value; render(); return; }
+  if (el.id === "pegado") { S.pegado = el.value; render(); return; }
+  if (el.dataset.sync) { S.sync[el.dataset.sync] = el.value.trim(); guardar(); render(); return; }
+  if (el.dataset.mover) { moverFranja(el); return; }
+  if (el.dataset.ed && S.ed) { S.ed[el.dataset.ed] = el.value; render(); return; }
+  if (el.dataset.rac != null) {
+    const v = cantidad(el.value);
+    if (v != null) {
+      tocar(el.dataset.rac, { cant: v }); guardar(); render();
+    }
+    return;
+  }
+  if (el.dataset.par) {
+    const k = el.dataset.par;
+    S.params[k] = k === "planStart" ? el.value : (parseFloat(el.value) || 0);
+    S.metaTs.params = Date.now(); S.pend.meta.params = 1; guardar(); render();
+  }
+});
+
+document.getElementById("app").addEventListener("keydown", function(ev){
+  if (ev.key === "Enter" && ev.target.id === "pesohoy") {
+    const v = parseFloat((ev.target.value || "").replace(",", "."));
+    if (!isNaN(v) && v > 30 && v < 250) {
+      const f = iso(new Date());
+      S.pesos[f] = v; S.pesosTs[f] = Date.now(); S.pend.pesos[f] = 1; guardar(); render();
+    }
+  }
+});
+
+function moverFranja(el) {
+  const id = el.dataset.mover;
+  if (!id || !S.ent[id] || S.ent[id].franja === el.value) return false;
+  tocar(id, { franja: el.value });
+  guardar(); render(); sincronizarPronto();
+  return true;
+}
+
+document.getElementById("app").addEventListener("change", function(ev){
+  if (ev.target.dataset && ev.target.dataset.mover) { moverFranja(ev.target); return; }
+  if (ev.target.id !== "ficheroImport") return;
+  const f = ev.target.files[0]; if (!f) return;
+  const lector = new FileReader();
+  lector.onload = function(){
+    try {
+      const d = JSON.parse(lector.result);
+      if (!d || typeof d !== "object" || (!d.ent && !d.log)) throw new Error("formato");
+      S.params = Object.assign({}, DEFAULTS, d.params || {});
+      S.pesos = d.pesos || {}; S.pesosTs = d.pesosTs || {}; S.propios = d.propios || [];
+      if (d.ent) S.ent = d.ent;
+      else {   // copia antigua por días
+        S.ent = {};
+        Object.keys(d.log || {}).forEach(function(f){
+          (d.log[f] || []).forEach(function(e){
+            const id = uid();
+            S.ent[id] = { id:id, fecha:f, franja:e[2], alimento:e[0], cant:e[1], ts:Date.now(), borrado:0 };
+          });
+        });
+      }
+      Object.keys(S.ent).forEach(function(id){ S.pend.ent[id] = 1; });
+      Object.keys(S.pesos).forEach(function(f){ S.pend.pesos[f] = 1; if (!S.pesosTs[f]) S.pesosTs[f] = Date.now(); });
+      S.pend.meta.propios = 1; S.pend.meta.params = 1;
+      reindex(); guardar();
+      S.aviso = "Copia cargada: "+fechasConRegistro().length+" días de registro y "+S.propios.length+" alimentos propios.";
+    } catch(e) { S.aviso = "Ese archivo no es una copia válida. Debe ser el JSON que genera «Descargar copia»."; }
+    render();
+  };
+  lector.readAsText(f);
+});
+
+render();
+sincronizar(true);
+document.addEventListener("visibilitychange", function(){ if (!document.hidden) sincronizar(true); });
+window.addEventListener("online", function(){ sincronizar(true); });
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", function(){ navigator.serviceWorker.register("sw.js").catch(function(){}); });
+}
+
+</script>
+</body>
+</html>
