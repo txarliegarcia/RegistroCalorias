@@ -64,8 +64,7 @@ button{font-family:inherit;cursor:pointer}
 .tab{background:none;border:none;padding:10px 14px;font-size:14.5px;color:var(--soft);
   border-bottom:3px solid transparent;margin-bottom:-1px;font-weight:500}
 .tab.on{color:var(--ink);font-weight:700;border-bottom-color:var(--pine)}
-.verapp{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.04em;
-  color:var(--ink);opacity:.5;align-self:center;margin-left:auto;padding:0 2px 0 8px;white-space:nowrap}
+
 input,select{font-family:inherit;font-size:15px;padding:8px 9px;border:1px solid var(--line);
   border-radius:2px;background:#fff;color:var(--ink);width:100%}
 input:focus-visible{outline:2px solid var(--pine);outline-offset:-1px}
@@ -198,7 +197,7 @@ const SEMILLA_PLAN  = [{"sem": 1, "dia": "Lunes", "tipo": "Fuerza 6:00 + pasos",
 
 const VIAB  = [["Txuletón", "Comida"], ["Parrillada de carne (Kamado)", "Comida"], ["Costillas BBQ (Kamado)", "Comida"], ["Hamburguesa Berty's (Emily Love's)", "Comida"], ["Patatas fritas de restaurante", "Comida"], ["Hamburguesa de restaurante", "Comida"], ["KFC (alitas de pollo)", "Comida"], ["Ramen tantanmen", "Comida"], ["Tallarines boloñesa", "Comida"], ["Lasaña de atún", "Comida"], ["Arroz thai con pollo", "Comida"], ["Pollo hindú Mercadona", "Comida"], ["Arroz hindú con pollo (casero)", "Comida"], ["Sopa y garbanzos", "Comida"], ["Ensalada con todo", "Comida"], ["Tabulé con sardinas", "Comida"], ["Filet mignon con verduras", "Comida"], ["Zarzuela de marisco", "Comida"], ["Fabada Cidacos", "Comida"], ["Lentejas Cidacos", "Comida"], ["Arroz de pescado (Hacendado)", "Comida"], ["Arroz de secreto ibérico con setas", "Comida"], ["Empanada de cochinita pibil (Aldi)", "Comida"], ["Ensalada de tomate y bonito", "Cena"], ["Pizza Kamado casera", "Cena"], ["Zorza del Mercadona con patatas y huevos", "Cena"], ["Hamburguesa casera con ensalada", "Cena"], ["Sushi (10-12 piezas)", "Cena"], ["Texmex", "Cena"], ["Noodles de sobre con pollo", "Cena"], ["Arroz furikake con pollo", "Cena"], ["Figuras de merluza al horno con verduras", "Cena"], ["Pintxo de tortilla con bonito y mayonesa (doble)", "Desayuno"], ["Jamón serrano con pan", "Desayuno"], ["Domingo de chucherías", "Extras"]];
 
-const VERSION = "2026.08.27-6";
+const VERSION = "2026.08.28-1";
 const FRANJAS = ["Desayuno","Hamaiketako","Comida","Merienda","Cena","Extras"];
 const DIAS = ["lunes","martes","miércoles","jueves","viernes","sábado","domingo"];
 const MESES = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
@@ -535,18 +534,22 @@ function vistaRegistro() {
     FRANJAS.forEach(function(fr){
       const dela = filas.filter(x => x.franja === fr);
       if (!dela.length) return;
-      h += '<div class="franja">'+esc(fr)+'</div>';
+      const subK = dela.reduce(function(a,x){ const t=BY[x.nombre]; return a + (t ? t[2]*x.cant/BASE(t) : 0); }, 0);
+      const subP = dela.reduce(function(a,x){ const t=BY[x.nombre]; return a + (t ? t[3]*x.cant/BASE(t) : 0); }, 0);
+      h += '<div class="grupo"><div class="gcab"><span class="gnom">'+esc(fr)+'</span>'
+        + '<span class="gsub">'+fmt(subK)+' kcal · '+fmt(subP)+' g P</span></div><div class="gcue">';
       dela.forEach(function(x){
         const it = BY[x.nombre], ya = puesto(x.nombre, x.franja);
         if (!it) return;
-        h += '<div class="logrow"><div style="flex:1;min-width:160px">'
-          + '<div style="font-size:14.5px;'+(ya ? 'color:#5D6C65' : 'font-weight:500')+'">'+esc(x.nombre)+'</div>'
-          + '<div class="note mono" style="font-weight:600">'+fmt(it[2])+' kcal · '+fmt(it[3])+' g P · '
-          + fmtCant(BASE(it))+' '+esc(UNI(it))+'</div></div>'
+        h += '<div class="logrow"><div class="info">'
+          + '<div style="font-size:15px;'+(ya ? 'color:#5D6C65' : 'font-weight:600')+'">'+esc(x.nombre)+'</div>'
+          + '<div class="note mono" style="font-weight:600">'+fmt(it[2]*x.cant/BASE(it))+' kcal · '
+          + fmt(it[3]*x.cant/BASE(it))+' g P · '+fmtCant(x.cant)+' '+esc(UNI(it))+'</div></div>'
           + (ya ? '<span class="veredicto v-cabe">ya está</span>'
                 : '<button class="btn tiny" data-act="addplan" data-v="'+esc(x.nombre)+'" data-f="'+esc(fr)+'" data-c="'+x.cant+'">Añadir</button>')
           + '</div>';
       });
+      h += '</div></div>';
     });
     h += '</div></div>';
     }
@@ -823,16 +826,26 @@ function vistaAjustes() {
 
   const dias = fechasConRegistro().length, pes = Object.keys(S.pesos).length;
   const persiste = Store.modo() === "localStorage";
+  const conectada = !!(S.sync.url && S.sync.token);
   h += '<div class="card"><span class="eyebrow">Dónde viven tus datos</span>'
-    + '<p class="note" style="margin:8px 0 6px;font-weight:600;color:'+(persiste?"var(--verde)":"var(--rojo)")+'">'
-    + (persiste
-       ? "Se guardan en este navegador y NO se pierden al cerrar la página ni al reiniciar el ordenador."
-       : "ATENCIÓN: este navegador no permite guardar aquí. Todo lo que anotes se perderá al recargar.")+'</p>'
-    + '<p class="note" style="margin:0 0 10px">Guardados ahora: '+dias+(dias===1?" día":" días")+' de registro, '
-    + pes+(pes===1?" pesada":" pesadas")+'. Los '+ITEMS.length+' alimentos viven en la hoja de Google. '
-    + 'Modo: '+Store.modo()+'.</p>'
-    + '<p class="note" style="margin:0 0 10px"><b>Sí se pierden</b> si borras los datos de navegación, si usas una '
-    + 'ventana de incógnito, o si abres la app en otro navegador u otro dispositivo. Exporta un archivo de vez en cuando.</p>'
+    + '<p class="note" style="margin:8px 0 6px;font-weight:600;color:'+(conectada?"var(--verde)":"var(--rojo)")+'">'
+    + (conectada
+       ? "La fuente es tu hoja de Google. Este navegador solo guarda una copia para abrir rápido."
+       : "SIN CONECTAR: ahora mismo tus datos solo están en este navegador. Configura la sincronización.")+'</p>'
+    + '<p class="note" style="margin:0 0 10px">En la hoja: '+dias+(dias===1?" día":" días")+' de registro, '
+    + pes+(pes===1?" pesada":" pesadas")+', '+ITEMS.length+' alimentos y '+PLAN.length+' días de plan. '
+    + 'Copia local: '+Store.modo()+(persiste?"":", que este navegador NO conserva")+'.</p>';
+  if (conectada) {
+    h += '<p class="note" style="margin:0 0 10px">Si borras los datos de navegación o cambias de dispositivo, '
+      + '<b>no pierdes nada</b>: se recupera todo de la hoja. Lo único que tendrías que volver a escribir es '
+      + '<b>la dirección del script y el token</b>, porque esos dos sí viven solo aquí.</p>'
+      + '<p class="note" style="margin:0 0 10px">Lo que no está sincronizado y se quedaría atrás: los cambios que '
+      + 'aún figuren como pendientes de subir. Ahora mismo hay '+pendientes()+'.</p>';
+  } else {
+    h += '<p class="note" style="margin:0 0 10px"><b>Sí se pierden</b> si borras los datos de navegación, si usas '
+      + 'una ventana de incógnito, o si abres la app en otro navegador. Exporta un archivo de vez en cuando.</p>';
+  }
+  h += ''
     + '<div style="display:flex;gap:8px;flex-wrap:wrap">'
     + '<button class="btn" data-act="exportar">Descargar copia</button>'
     + '<button class="btn ghost" data-act="importar">Cargar copia</button>'
@@ -1450,7 +1463,6 @@ function pintar() {
   TABS.forEach(function(t){
     h += '<button class="tab'+(S.vista===t[0]?" on":"")+'" data-act="vista" data-v="'+t[0]+'">'+t[1]+'</button>';
   });
-  h += '<span class="verapp" title="Versión de la app">v'+VERSION+'</span>';
   h += '</div>';
   if (S.vista === "registro") {
     const oo = objetivos(S.params);
