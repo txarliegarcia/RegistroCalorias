@@ -197,7 +197,7 @@ const SEMILLA_PLAN  = [{"sem": 1, "dia": "Lunes", "tipo": "Fuerza 6:00 + pasos",
 
 const VIAB  = [["Txuletón", "Comida"], ["Parrillada de carne (Kamado)", "Comida"], ["Costillas BBQ (Kamado)", "Comida"], ["Hamburguesa Berty's (Emily Love's)", "Comida"], ["Patatas fritas de restaurante", "Comida"], ["Hamburguesa de restaurante", "Comida"], ["KFC (alitas de pollo)", "Comida"], ["Ramen tantanmen", "Comida"], ["Tallarines boloñesa", "Comida"], ["Lasaña de atún", "Comida"], ["Arroz thai con pollo", "Comida"], ["Pollo hindú Mercadona", "Comida"], ["Arroz hindú con pollo (casero)", "Comida"], ["Sopa y garbanzos", "Comida"], ["Ensalada con todo", "Comida"], ["Tabulé con sardinas", "Comida"], ["Filet mignon con verduras", "Comida"], ["Zarzuela de marisco", "Comida"], ["Fabada Cidacos", "Comida"], ["Lentejas Cidacos", "Comida"], ["Arroz de pescado (Hacendado)", "Comida"], ["Arroz de secreto ibérico con setas", "Comida"], ["Empanada de cochinita pibil (Aldi)", "Comida"], ["Ensalada de tomate y bonito", "Cena"], ["Pizza Kamado casera", "Cena"], ["Zorza del Mercadona con patatas y huevos", "Cena"], ["Hamburguesa casera con ensalada", "Cena"], ["Sushi (10-12 piezas)", "Cena"], ["Texmex", "Cena"], ["Noodles de sobre con pollo", "Cena"], ["Arroz furikake con pollo", "Cena"], ["Figuras de merluza al horno con verduras", "Cena"], ["Pintxo de tortilla con bonito y mayonesa (doble)", "Desayuno"], ["Jamón serrano con pan", "Desayuno"], ["Domingo de chucherías", "Extras"]];
 
-const VERSION = "2026.08.28-1";
+const VERSION = "2026.08.29-1";
 const FRANJAS = ["Desayuno","Hamaiketako","Comida","Merienda","Cena","Extras"];
 const DIAS = ["lunes","martes","miércoles","jueves","viernes","sábado","domingo"];
 const MESES = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
@@ -971,9 +971,9 @@ if ("serviceWorker" in navigator) {
     desde: S.sync.ultimo || 0,
     entradas: Object.keys(S.pend.ent).map(id => S.ent[id]).filter(Boolean),
     pesos: Object.keys(S.pend.pesos).map(f => ({ fecha:f, peso:S.pesos[f], ts:S.pesosTs[f] || Date.now() })),
-    meta: Object.keys(S.pend.meta).map(function (c) {
-      return { clave:c, valor:JSON.stringify(S.params), ts:S.metaTs[c] || Date.now() };
-    }),
+    // los parámetros van en cada sincronización: es una fila y evita que la hoja se quede sin ellos
+    meta: [{ clave:"params", valor:JSON.stringify(S.params),
+             ts: S.pend.meta.params ? (S.metaTs.params || Date.now()) : (S.metaTs.params || 1) }],
     platos: Object.keys(S.pend.platos).map(function (n) {
       const it = BY[n]; if (!it) return null;
       return [it[0], it[1], it[2], it[3], it[4], it[5], it[6], (it[7]||0)+(it[8]||0),
