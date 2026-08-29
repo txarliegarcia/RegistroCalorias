@@ -196,7 +196,7 @@ const SEMILLA_PLAN  = [{"sem": 1, "dia": "Lunes", "tipo": "Fuerza 6:00 + pasos",
 
 const VIAB  = [["Txuletón", "Comida"], ["Parrillada de carne (Kamado)", "Comida"], ["Costillas BBQ (Kamado)", "Comida"], ["Hamburguesa Berty's (Emily Love's)", "Comida"], ["Patatas fritas de restaurante", "Comida"], ["Hamburguesa de restaurante", "Comida"], ["KFC (alitas de pollo)", "Comida"], ["Ramen tantanmen", "Comida"], ["Tallarines boloñesa", "Comida"], ["Lasaña de atún", "Comida"], ["Arroz thai con pollo", "Comida"], ["Pollo hindú Mercadona", "Comida"], ["Arroz hindú con pollo (casero)", "Comida"], ["Sopa y garbanzos", "Comida"], ["Ensalada con todo", "Comida"], ["Tabulé con sardinas", "Comida"], ["Filet mignon con verduras", "Comida"], ["Zarzuela de marisco", "Comida"], ["Fabada Cidacos", "Comida"], ["Lentejas Cidacos", "Comida"], ["Arroz de pescado (Hacendado)", "Comida"], ["Arroz de secreto ibérico con setas", "Comida"], ["Empanada de cochinita pibil (Aldi)", "Comida"], ["Ensalada de tomate y bonito", "Cena"], ["Pizza Kamado casera", "Cena"], ["Zorza del Mercadona con patatas y huevos", "Cena"], ["Hamburguesa casera con ensalada", "Cena"], ["Sushi (10-12 piezas)", "Cena"], ["Texmex", "Cena"], ["Noodles de sobre con pollo", "Cena"], ["Arroz furikake con pollo", "Cena"], ["Figuras de merluza al horno con verduras", "Cena"], ["Pintxo de tortilla con bonito y mayonesa (doble)", "Desayuno"], ["Jamón serrano con pan", "Desayuno"], ["Domingo de chucherías", "Extras"]];
 
-const VERSION = "2026.08.27-4";
+const VERSION = "2026.08.27-5";
 const FRANJAS = ["Desayuno","Hamaiketako","Comida","Merienda","Cena","Extras"];
 const DIAS = ["lunes","martes","miércoles","jueves","viernes","sábado","domingo"];
 const MESES = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
@@ -277,6 +277,18 @@ const S = {
   pedirCat: false,
   sug:    ""
 };
+
+/* El estado guardado puede venir de una versión anterior de la app, con menos campos.
+   Se completa lo que falte para que nada reviente al leerlo. */
+(function normalizarEstado(){
+  const p = S.pend || {};
+  S.pend = { ent: p.ent || {}, pesos: p.pesos || {}, meta: p.meta || {},
+             platos: p.platos || {}, borrarPlatos: p.borrarPlatos || {} };
+  S.sync = Object.assign({ url:"", token:"", ultimo:0, estado:"", cuando:0 }, S.sync || {});
+  S.ent = S.ent || {}; S.pesos = S.pesos || {}; S.pesosTs = S.pesosTs || {}; S.metaTs = S.metaTs || {};
+  if (!Array.isArray(ITEMS) || !ITEMS.length) { ITEMS = SEMILLA_ITEMS.map(i => i.slice()); catDeLaHoja = false; }
+  if (!Array.isArray(PLAN)  || !PLAN.length)  { PLAN  = SEMILLA_PLAN; }
+})();
 
 /* ---------- acceso al registro por entradas ---------- */
 const uid = () => (Date.now().toString(36) + Math.random().toString(36).slice(2, 9));
@@ -1414,6 +1426,20 @@ const TABS = [["registro","Registro"],["alimentos","Alimentos"],["peso","Peso"],
 /* «¿Cabe?» sigue existiendo (vistaViabilidad) pero no se muestra como pestaña. */
 
 function render() {
+  try { pintar(); }
+  catch (err) {
+    document.getElementById("app").innerHTML =
+      '<div class="card"><span class="eyebrow">Algo ha fallado al dibujar esta pestaña</span>'
+      + '<p class="note" style="margin:8px 0 10px">' + esc(String(err && err.message ? err.message : err))
+      + '</p><p class="note">Versión ' + VERSION + '. Tus datos no se han tocado. '
+      + 'Prueba otra pestaña, o recarga la página.</p>'
+      + '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">'
+      + '<button class="btn" data-act="vista" data-v="registro">Ir a Registro</button>'
+      + '<button class="btn ghost" data-act="vista" data-v="ajustes">Ir a Ajustes</button></div></div>';
+  }
+}
+
+function pintar() {
   if (esEdge() && !edgeAceptado) { pantallaEdge(); return; }
   const activo = document.activeElement;
   const foco = activo && activo.id ? activo.id : null;

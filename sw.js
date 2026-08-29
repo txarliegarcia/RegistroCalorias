@@ -1,5 +1,5 @@
 /* Service worker: la app funciona sin cobertura. Los datos se sincronizan aparte. */
-const CACHE = "comidas-2026.08.27-4";
+const CACHE = "comidas-2026.08.27-5";
 const ARCHIVOS = ["./", "./index.html", "./manifest.webmanifest",
   "./favicon.ico", "./favicon-32.png", "./favicon-16.png", "./apple-touch-icon.png",
   "./icono-192.png", "./icono-512.png"];
