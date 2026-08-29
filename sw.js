@@ -1,5 +1,5 @@
 /* Service worker: la app funciona sin cobertura. Los datos se sincronizan aparte. */
-const CACHE = "comidas-2026.08.27-5";
+const CACHE = "comidas-2026.08.27-6";
 const ARCHIVOS = ["./", "./index.html", "./manifest.webmanifest",
   "./favicon.ico", "./favicon-32.png", "./favicon-16.png", "./apple-touch-icon.png",
   "./icono-192.png", "./icono-512.png"];
@@ -20,8 +20,10 @@ self.addEventListener("fetch", function (e) {
   const url = new URL(e.request.url);
   // las llamadas al backend nunca se cachean
   if (e.request.method !== "GET" || url.hostname.indexOf("script.google.com") >= 0) return;
+  const esHTML = e.request.mode === "navigate"
+    || (e.request.headers.get("accept") || "").indexOf("text/html") >= 0;
   e.respondWith(
-    fetch(e.request).then(function (res) {
+    fetch(esHTML ? new Request(e.request, { cache: "reload" }) : e.request).then(function (res) {
       const copia = res.clone();
       caches.open(CACHE).then(function (c) { c.put(e.request, copia); });
       return res;
