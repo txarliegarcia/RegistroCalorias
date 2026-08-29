@@ -121,6 +121,8 @@ input:focus-visible{outline:2px solid var(--pine);outline-offset:-1px}
 .v-justo{background:#F6E2B8;color:#6B3F06}
 .v-no{background:#F7CFC9;color:#8A1C11}
 table{width:100%;border-collapse:collapse;font-size:14px}
+.ordth{background:none;border:none;padding:0;font:inherit;font-weight:700;color:var(--ink);cursor:pointer;text-align:inherit}
+.ordth:hover{text-decoration:underline}
 th{text-align:left;font-family:'IBM Plex Mono',monospace;font-size:11.5px;letter-spacing:.08em;
   text-transform:uppercase;color:var(--ink);font-weight:600;padding:8px 8px 8px 0;
   border-bottom:2px solid var(--ink)}
@@ -197,7 +199,7 @@ const SEMILLA_PLAN  = [{"sem": 1, "dia": "Lunes", "tipo": "Fuerza 6:00 + pasos",
 
 const VIAB  = [["Txuletón", "Comida"], ["Parrillada de carne (Kamado)", "Comida"], ["Costillas BBQ (Kamado)", "Comida"], ["Hamburguesa Berty's (Emily Love's)", "Comida"], ["Patatas fritas de restaurante", "Comida"], ["Hamburguesa de restaurante", "Comida"], ["KFC (alitas de pollo)", "Comida"], ["Ramen tantanmen", "Comida"], ["Tallarines boloñesa", "Comida"], ["Lasaña de atún", "Comida"], ["Arroz thai con pollo", "Comida"], ["Pollo hindú Mercadona", "Comida"], ["Arroz hindú con pollo (casero)", "Comida"], ["Sopa y garbanzos", "Comida"], ["Ensalada con todo", "Comida"], ["Tabulé con sardinas", "Comida"], ["Filet mignon con verduras", "Comida"], ["Zarzuela de marisco", "Comida"], ["Fabada Cidacos", "Comida"], ["Lentejas Cidacos", "Comida"], ["Arroz de pescado (Hacendado)", "Comida"], ["Arroz de secreto ibérico con setas", "Comida"], ["Empanada de cochinita pibil (Aldi)", "Comida"], ["Ensalada de tomate y bonito", "Cena"], ["Pizza Kamado casera", "Cena"], ["Zorza del Mercadona con patatas y huevos", "Cena"], ["Hamburguesa casera con ensalada", "Cena"], ["Sushi (10-12 piezas)", "Cena"], ["Texmex", "Cena"], ["Noodles de sobre con pollo", "Cena"], ["Arroz furikake con pollo", "Cena"], ["Figuras de merluza al horno con verduras", "Cena"], ["Pintxo de tortilla con bonito y mayonesa (doble)", "Desayuno"], ["Jamón serrano con pan", "Desayuno"], ["Domingo de chucherías", "Extras"]];
 
-const VERSION = "2026.08.29-1";
+const VERSION = "2026.08.29-4";
 const FRANJAS = ["Desayuno","Hamaiketako","Comida","Merienda","Cena","Extras"];
 const DIAS = ["lunes","martes","miércoles","jueves","viernes","sábado","domingo"];
 const MESES = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
@@ -276,6 +278,7 @@ const S = {
   qa:     "",
   pegado: "",
   pedirCat: false,
+  ordSem: null,
   sug:    ""
 };
 
@@ -555,6 +558,8 @@ function vistaRegistro() {
     }
   }
 
+  h += vistaSemana();
+
   h += vistaSugerencias(reg, objD, o);
 
   h += '<div class="card"><span class="eyebrow">Añadir a</span>'
@@ -700,6 +705,27 @@ function vistaPeso() {
   else lectura = "Vas al ritmo previsto. No cambies nada.";
   const colVar = varSem==null ? "var(--ink)" : (varSem<-0.7 || varSem>-0.15) ? "var(--rojo)" : "var(--verde)";
 
+  /* Llegada estimada usando el ritmo MEDIDO, no el teórico. Regresión sobre la media de 7 días. */
+  const llegada = (function(){
+    const reales = Object.keys(S.pesos).length;      // pesadas de verdad, no días rellenados
+    if (reales < 14) return { falta: 14 - reales, reales: reales };
+    const pts = conM.slice(-28);
+    const t0 = parseIso(pts[0].k).getTime();
+    let sx=0, sy=0, sxy=0, sxx=0;
+    pts.forEach(function(p){
+      const x = (parseIso(p.k).getTime() - t0) / 86400000, y = p.media;
+      sx+=x; sy+=y; sxy+=x*y; sxx+=x*x;
+    });
+    const n = pts.length;
+    const pend = (n*sxy - sx*sy) / (n*sxx - sx*sx);      // kg por día
+    const ultima = pts[pts.length-1];
+    const restan = ultima.media - S.params.pesoObjetivo;
+    if (pend >= -0.0005) return { estancado:true, kgSem: pend*7 };
+    const dias = Math.round(restan / -pend);
+    const f = parseIso(ultima.k); f.setDate(f.getDate() + dias);
+    return { fecha:f, dias:dias, kgSem: pend*7, semanas: Math.round(dias/7*10)/10 };
+  })();
+
   let h = '<div class="card"><span class="eyebrow">Peso de hoy</span>'
     + '<div style="display:flex;gap:8px;margin-top:8px">'
     + '<input id="pesohoy" inputmode="decimal" placeholder="84,35" aria-label="Peso en kilos">'
@@ -713,6 +739,26 @@ function vistaPeso() {
     + (varSem!=null?(varSem>0?"+":"")+varSem.toFixed(2):"—")+'</div><div class="note">objetivo −'+ritmo+'</div></div>'
     + '<div><span class="eyebrow">Falta</span><div class="disp mono" style="font-size:29px;margin-top:5px">'
     + (ult!=null?(ult-S.params.pesoObjetivo).toFixed(1):"—")+'</div><div class="note">kg hasta '+S.params.pesoObjetivo+'</div></div></div>';
+
+  h += '<div class="card"><span class="eyebrow">Cuándo llegas a '+S.params.pesoObjetivo+' kg</span>';
+  if (llegada.falta != null) {
+    h += '<p class="note" style="margin:9px 0 0">Con '+llegada.reales
+      + (llegada.reales===1?' pesada':' pesadas')+' todavía no puedo estimarlo: harían falta '+llegada.falta
+      + ' más. Con menos de dos semanas, el ruido del agua y la sal pesa más que la tendencia.</p>';
+  } else if (llegada.estancado) {
+    h += '<div class="disp mono" style="font-size:26px;margin-top:6px;color:var(--rojo)">sin fecha</div>'
+      + '<p class="note" style="margin:7px 0 0">Tu media de 7 días no baja ('
+      + (llegada.kgSem>0?"+":"")+llegada.kgSem.toFixed(2)+' kg por semana). Revisa el registro antes de tocar el '
+      + 'déficit: lo más frecuente es que falten cosas por anotar.</p>';
+  } else {
+    h += '<div class="disp" style="font-size:26px;margin-top:6px;color:var(--verde)">'
+      + nfDia(llegada.fecha)+' de '+llegada.fecha.getFullYear()+'</div>'
+      + '<p class="note mono" style="margin:6px 0 0;font-weight:600">quedan '+llegada.semanas
+      + ' semanas · ritmo real '+llegada.kgSem.toFixed(2)+' kg por semana</p>'
+      + '<p class="note" style="margin:8px 0 0">Calculado con la tendencia de tus pesadas, no con la teoría. '
+      + 'Si metes días de más o te saltas el plan, esta fecha se mueve sola.</p>';
+  }
+  h += '</div>';
 
   if (serie.length > 1) {
     h += '<div class="card"><span class="eyebrow">Tendencia frente a la trayectoria prevista</span>'
@@ -1099,6 +1145,83 @@ function bloqueSync() {
   h += '<p class="note" style="margin-top:10px">Se sincroniza sola al abrir la app, al volver a la pestaña y unos '
     + 'segundos después de cada cambio. Todo se guarda primero en este navegador, así que puedes registrar sin '
     + 'cobertura y se subirá cuando vuelvas a tener red.</p></div>';
+  return h;
+}
+
+/* ---------- la semana: qué toca y qué comprar ---------- */
+function lunesDe(d) {
+  const f = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const dw = (f.getDay() + 6) % 7;          // 0 = lunes
+  f.setDate(f.getDate() - dw);
+  return f;
+}
+
+function vistaSemana() {
+  const abierta = !!S.params.semanaAbierta;
+  const lun = lunesDe(parseIso(S.fecha));
+  const dom = addDays(lun, 6);
+  let h = '<div class="card"><div class="row"><div><span class="eyebrow">La semana</span>'
+    + '<div style="font-size:15px;margin-top:5px;font-weight:500">Del '+nfDia(lun)+' al '+nfDia(dom)+'</div></div>'
+    + '<button class="btn ghost tiny" data-act="plegarsemana" aria-expanded="'+(abierta?"true":"false")+'">'
+    + (abierta ? "Ocultar" : "Ver")+'</button></div>';
+  if (!abierta) { h += '</div>'; return h; }
+
+  /* ---- los siete días, que es lo que se usa para cocinar ---- */
+  const compra = {};
+  for (let i = 0; i < 7; i++) {
+    const d = addDays(lun, i);
+    const idx = planIndex(d);
+    const pd = idx == null ? null : PLAN[idx];
+    const hoy = iso(d) === iso(new Date());
+    h += '<div class="grupo" style="margin-top:'+(i?10:12)+'px'+(hoy?';border-width:2.5px':'')+'">'
+      + '<div class="gcab"><span class="gnom">'+nfDia(d)+(hoy?' · hoy':'')+'</span>'
+      + '<span class="gsub">'+esc(iso(d).split("-").reverse().join("-"))+'</span></div><div class="gcue">';
+    if (!pd) h += '<p class="note" style="padding:8px 0">Sin plan para ese día.</p>';
+    else {
+      const porFranja = {};
+      pd.items.forEach(function (x) {
+        (porFranja[x[1]] = porFranja[x[1]] || []).push(x[0]);
+        const it = BY[x[0]];
+        const cant = x.length > 2 ? x[2] : (it ? BASE(it) : 1);
+        if (!compra[x[0]]) compra[x[0]] = { veces: 0, total: 0, uni: it ? UNI(it) : "", dias: [] };
+        compra[x[0]].veces++; compra[x[0]].total += cant;
+        compra[x[0]].dias.push(DIAS[(d.getDay()+6)%7].slice(0,3));
+      });
+      FRANJAS.forEach(function (fr) {
+        const l = porFranja[fr]; if (!l) return;
+        h += '<div style="display:flex;gap:10px;padding:7px 0;border-bottom:1px solid var(--line)">'
+          + '<span class="note" style="font-weight:700;flex:0 0 86px">'+esc(fr)+'</span>'
+          + '<span style="font-size:14.5px;flex:1">'+l.map(esc).join(" · ")+'</span></div>';
+      });
+    }
+    h += '</div></div>';
+  }
+
+  /* ---- la compra, ordenable ---- */
+  const ord = S.ordSem || { col: "veces", dir: -1 };
+  const filas = Object.keys(compra).map(function (n) {
+    return { plato: n, veces: compra[n].veces, total: compra[n].total,
+             uni: compra[n].uni, dias: compra[n].dias.join(" ") };
+  });
+  filas.sort(function (a, b) {
+    const x = a[ord.col], y = b[ord.col];
+    if (typeof x === "string") return ord.dir * x.localeCompare(y, "es");
+    return ord.dir * (x - y);
+  });
+  const flecha = c => ord.col === c ? (ord.dir < 0 ? " ↓" : " ↑") : "";
+  h += '<div style="margin-top:16px"><span class="eyebrow">Qué necesitas esta semana</span>'
+    + '<p class="note" style="margin:6px 0 8px">Pulsa en una cabecera para ordenar.</p>'
+    + '<div style="overflow-x:auto"><table><thead><tr>'
+    + '<th><button class="ordth" data-act="ordsem" data-v="plato">Alimento'+flecha("plato")+'</button></th>'
+    + '<th class="num"><button class="ordth" data-act="ordsem" data-v="veces">Veces'+flecha("veces")+'</button></th>'
+    + '<th class="num"><button class="ordth" data-act="ordsem" data-v="total">Total'+flecha("total")+'</button></th>'
+    + '<th>Días</th></tr></thead><tbody>';
+  filas.forEach(function (f) {
+    h += '<tr><td>'+esc(f.plato)+'</td><td class="num">'+f.veces+'</td>'
+      + '<td class="num">'+fmtCant(Math.round(f.total*100)/100)+' '+esc(f.uni)+'</td>'
+      + '<td class="note">'+esc(f.dias)+'</td></tr>';
+  });
+  h += '</tbody></table></div></div></div>';
   return h;
 }
 
@@ -1559,6 +1682,12 @@ document.getElementById("app").addEventListener("click", function(ev){
   }
   else if (a === "del") { borrarEntrada(b.dataset.id); guardar(); }
   else if (a === "plegarplan") { S.params.planAbierto = !S.params.planAbierto; guardar(); }
+  else if (a === "plegarsemana") { S.params.semanaAbierta = !S.params.semanaAbierta; guardar(); }
+  else if (a === "ordsem") {
+    const c = b.dataset.v;
+    S.ordSem = (S.ordSem && S.ordSem.col === c) ? { col:c, dir:-S.ordSem.dir }
+                                                : { col:c, dir: c === "plato" ? 1 : -1 };
+  }
   else if (a === "sug") { S.sug = b.dataset.v; }
   else if (a === "addsug") {
     anotar(S.fecha, b.dataset.v, BASE(BY[b.dataset.v]), b.dataset.f); guardar();
