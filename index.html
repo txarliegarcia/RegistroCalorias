@@ -127,6 +127,7 @@ table{width:100%;border-collapse:collapse;font-size:14px}
 .platoh{display:flex;align-items:center;gap:9px;padding:8px 10px;border-bottom:1px solid var(--line)}
 .platob{background:none;border:none;padding:0;font:inherit;font-size:15px;font-weight:700;color:var(--ink);
   cursor:pointer;flex:1;text-align:left}
+.btnv{background:var(--verde);border:none;color:#fff;border-radius:3px;font:inherit;font-size:11.5px;font-weight:700;padding:4px 9px;cursor:pointer;white-space:nowrap}
 .quitax{background:none;border:none;font-size:17px;line-height:1;color:var(--rojo);cursor:pointer;
   padding:3px 6px;border-radius:3px;flex:0 0 auto}
 .quitax:hover{background:#F7CFC9}
@@ -212,7 +213,7 @@ const SEMILLA_RECETAS = [["Pollo thai con curry verde", "Zanahoria", 100.0, 1.07
 
 const VIAB  = [["Txuletón", "Comida"], ["Parrillada de carne (Kamado)", "Comida"], ["Costillas BBQ (Kamado)", "Comida"], ["Hamburguesa Berty's (Emily Love's)", "Comida"], ["Hamburguesa de restaurante", "Comida"], ["KFC (alitas de pollo)", "Comida"], ["Ramen tantanmen", "Comida"], ["Lasaña de atún", "Comida"], ["Pollo thai con curry verde", "Comida"], ["Lentejas caseras", "Comida"], ["Alubias caseras", "Comida"], ["Ensaladilla rusa", "Comida"], ["Vainas con patata", "Comida"], ["Ensalada con todo", "Comida"], ["Sopa y garbanzos", "Comida"], ["Fabada Cidacos", "Comida"], ["Pollo hindú Mercadona", "Comida"], ["Pizza Kamado casera", "Cena"], ["Zorza del Mercadona con patatas y huevos", "Cena"], ["Sushi (10-12 piezas)", "Cena"], ["Ensalada de tomate y bonito", "Cena"], ["Pintxo de tortilla con bonito y mayonesa (doble)", "Desayuno"], ["Domingo de chucherías", "Extras"]];
 
-const VERSION = "2026.08.30-4";
+const VERSION = "2026.08.30-7";
 const FRANJAS = ["Desayuno","Hamaiketako","Comida","Merienda","Cena","Extras"];
 const DIAS = ["lunes","martes","miércoles","jueves","viernes","sábado","domingo"];
 const MESES = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
@@ -296,7 +297,9 @@ const S = {
   ordSem: null,
   grupos: Store.get("carlos:grupos", {}),
   cerrados: {},
-  repetir: null,
+  copiarA: null,
+  guardarVar: null,
+  fechaCopia: "",
   guardarPlato: null,
   nomPlato: "",
   recetasPend: Store.get("carlos:recpend", []),
@@ -605,28 +608,13 @@ function vistaRegistro() {
   h += vistaSugerencias(reg, objD, o);
 
   h += '<div class="card"><div class="row"><span class="eyebrow">Añadir a</span>'
-    + '<button class="btn'+(S.repetir?"":" ghost")+' tiny" data-act="repetir" data-v="'
-    + (S.repetir ? "" : esc(S.franja))+'">'+(S.repetir ? "Cerrar" : "Repetir otro día")+'</button></div>'
+    + '</div>'
     + '<div style="display:flex;flex-wrap:wrap;gap:5px;margin:7px 0 11px">';
   FRANJAS.forEach(function(f){
     h += '<button class="btn tiny'+(S.franja===f?"":" ghost")+'" data-act="franja" data-v="'+esc(f)+'">'+esc(f)+'</button>';
   });
   h += '</div><div style="display:flex;gap:8px;align-items:center"><input id="buscar" value="'+esc(S.q)+'" placeholder="Busca o crea: pan bao, chorizo, caracoles…" aria-label="Buscar alimento">'
     + '<button class="btn" data-act="crear" data-v="" style="white-space:nowrap">+ Nuevo</button></div>';
-  if (S.repetir) {
-    const dias = diasConFranja(S.repetir, 10);
-    h += '<div style="margin-top:12px"><span class="eyebrow">Copiar '+esc(S.repetir).toLowerCase()+' de otro día</span>';
-    if (!dias.length) h += '<p class="note" style="margin:9px 0 0">Ningún día anterior tiene nada en esa franja.</p>';
-    else dias.forEach(function (d) {
-      h += '<div class="logrow"><div class="info">'
-        + '<div style="font-size:15px;font-weight:600">'+nfDia(parseIso(d.fecha))+'</div>'
-        + '<div class="note">'+esc(d.nombres.slice(0,4).join(" · "))+(d.nombres.length>4?" …":"")+'</div>'
-        + '<div class="note mono" style="font-weight:600">'+fmt(d.kcal)+' kcal · '+d.n
-        + (d.n===1?' línea':' líneas')+'</div></div>'
-        + '<button class="btn tiny" data-act="copiardia" data-v="'+d.fecha+'" data-f="'+esc(S.repetir)+'">Copiar</button></div>';
-    });
-    h += '</div>';
-  }
   if (S.q.trim().length >= 2) {
     const n = norm(S.q);
     const res = catalogo().filter(it => norm(it[0]).indexOf(n) >= 0 || norm(it[1]).indexOf(n) >= 0).slice(0, 40);
@@ -657,9 +645,24 @@ function vistaRegistro() {
     const sub = totales(idxs.map(i => reg[i]));
     h += '<div class="grupo"><div class="gcab"><span class="gnom">'+esc(f)+'</span>'
       + '<span class="gsub">'+fmt(sub.kcal)+' kcal · '+fmt(sub.prot)+' g P</span>'
+      + '<button class="btnf" data-act="copiara" data-v="'+esc(f)+'" '
+      + 'title="Copiar todo lo de esta franja a otro día">Copiar a otra fecha</button>'
       + '<button class="btnf" data-act="guardarplato" data-v="'+esc(f)+'" '
-      + 'title="Guardar esta franja como un plato reutilizable">Guardar como plato</button>'
+      + 'title="Guardar esta franja entera como un plato reutilizable">Guardar como plato</button>'
       + '</div><div class="gcue">';
+    if (S.copiarA === f) {
+      h += '<div style="padding:10px 0;border-bottom:1px solid var(--line)">'
+        + '<span class="eyebrow">Copiar '+esc(f).toLowerCase()+' a otra fecha</span>'
+        + '<p class="note" style="margin:6px 0 8px">Se copian las '+idxs.length
+        + (idxs.length===1?' línea':' líneas')+' a la misma franja del día que elijas.</p>'
+        + '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">'
+        + '<input id="fechaCopia" type="date" value="'+esc(S.fechaCopia || iso(addDays(parseIso(S.fecha),1)))+'" '
+        + 'aria-label="Fecha de destino" style="flex:1;min-width:150px">'
+        + '<button class="btn" data-act="hacercopia" data-v="'+esc(f)+'">Copiar</button>'
+        + '<button class="btn ghost" data-act="copiara" data-v="">Cancelar</button></div>';
+      if (S.aviso) h += '<p class="aviso" style="margin-top:9px">'+esc(S.aviso)+'</p>';
+      h += '</div>';
+    }
     if (S.guardarPlato === f) {
       h += '<div style="padding:10px 0;border-bottom:1px solid var(--line)">'
         + '<span class="eyebrow">Guardar esta franja como un plato</span>'
@@ -688,8 +691,22 @@ function vistaRegistro() {
           + '<button class="platob" data-act="plegargrupo" data-v="'+gr+'" aria-expanded="'+(abierto?"true":"false")+'">'
           + (abierto ? "▾ " : "▸ ")+esc(nom)+'</button>'
           + '<span class="note mono" style="font-weight:700;white-space:nowrap">'+fmt(tg.kcal)+' kcal · '+fmt(tg.prot)+' P</span>'
+          + (grupoModificado(herm, nom)
+             ? '<button class="btnv" data-act="guardarvar" data-v="'+gr+'" '
+               + 'title="Has cambiado la receta: guárdalo como plato nuevo">Guardar variante</button>' : '')
           + '<button class="quitax" data-act="delgrupo" data-v="'+gr+'" title="Quitar el plato entero" '
           + 'aria-label="Quitar '+esc(nom)+' entero">✕</button></div>';
+        if (S.guardarVar === gr) {
+          h += '<div style="padding:9px 10px;border-bottom:1px solid var(--line);background:#fff">'
+            + '<p class="note" style="margin:0 0 8px">Has cambiado «'+esc(nom)+'». Guárdalo con otro nombre y '
+            + 'lo tendrás para repetirlo: '+fmt(tg.kcal)+' kcal y '+fmt(tg.prot)+' g de proteína.</p>'
+            + '<input id="nomplato" value="'+esc(S.nomPlato||"")+'" aria-label="Nombre de la variante">'
+            + '<div style="display:flex;gap:8px;margin-top:9px">'
+            + '<button class="btn" data-act="crearvar" data-v="'+gr+'">Guardar</button>'
+            + '<button class="btn ghost" data-act="guardarvar" data-v="">Cancelar</button></div>';
+          if (S.aviso) h += '<p class="aviso" style="margin-top:9px">'+esc(S.aviso)+'</p>';
+          h += '</div>';
+        }
         if (abierto) herm.forEach(function(x){
           const ix = BY[x[0]]; if (!ix) return;
           const f = x[6] || 1;
@@ -1168,12 +1185,26 @@ if ("serviceWorker" in navigator) {
     if (d.error) throw new Error(d.error);
 
     let nuevas = 0, cambiadas = 0;
+    /* Google Sheets puede devolver "Sat Aug 29 2026 00:00:00 GMT+0200". Se lee el texto
+       tal cual, sin convertirlo a fecha, para que la zona horaria no mueva el día. */
+    const MESIN = { Jan:"01", Feb:"02", Mar:"03", Apr:"04", May:"05", Jun:"06",
+                    Jul:"07", Aug:"08", Sep:"09", Oct:"10", Nov:"11", Dec:"12" };
+    const isoFecha = function (v) {
+      const t = String(v || "").trim();
+      if (/^\d{4}-\d{2}-\d{2}/.test(t)) return t.slice(0, 10);
+      const m = t.match(/^\w{3}\s+(\w{3})\s+(\d{1,2})\s+(\d{4})/);
+      if (m && MESIN[m[1]]) return m[3] + "-" + MESIN[m[1]] + "-" + ("0" + m[2]).slice(-2);
+      const f = new Date(t);
+      return isNaN(f) ? t : iso(f);
+    };
     (d.entradas || []).forEach(function (r) {
+      r.fecha = isoFecha(r.fecha);
       const local = S.ent[r.id];
       if (!local) { S.ent[r.id] = r; nuevas++; }
       else if (Number(r.ts) > Number(local.ts)) { S.ent[r.id] = r; cambiadas++; }
     });
     (d.pesos || []).forEach(function (p) {
+      p.fecha = isoFecha(p.fecha);
       if (!S.pesosTs[p.fecha] || Number(p.ts) > Number(S.pesosTs[p.fecha])) {
         S.pesos[p.fecha] = Number(p.peso); S.pesosTs[p.fecha] = Number(p.ts);
       }
@@ -1266,6 +1297,41 @@ function bloqueSync() {
   return h;
 }
 
+/* ---------- copiar a otra fecha y guardar variantes ---------- */
+function grupoModificado(lineas, plato) {
+  const r = recetaDe(plato);
+  if (!r.length) return false;
+  if (lineas.length !== r.length) return true;
+  return r.some(function (x) {
+    const l = lineas.filter(y => y[0] === x[1])[0];
+    return !l || Math.abs(l[1] - x[2]) > 0.5;
+  });
+}
+function nombreVariante(plato) {
+  let n = plato + " (variante)";
+  let k = 2;
+  while (BY[n]) { n = plato + " (variante " + k + ")"; k++; }
+  return n;
+}
+function copiarFranjaA(fr, destino) {
+  const reg = logDe(S.fecha).filter(e => e[2] === fr);
+  const mapa = {};
+  reg.forEach(function (e) {
+    let g = "";
+    if (e[5]) {
+      if (!mapa[e[5]]) {
+        mapa[e[5]] = "g" + uid();
+        S.grupos = S.grupos || {};
+        S.grupos[mapa[e[5]]] = S.grupos[e[5]] || "Plato";
+      }
+      g = mapa[e[5]];
+    }
+    anotar(destino, e[0], e[1], fr, g, e[6] || 1);
+  });
+  guardar();
+  return reg.length;
+}
+
 /* ---------- repetir un día y guardar una franja como plato ---------- */
 function diasConFranja(fr, limite) {
   const por = {};
@@ -1301,21 +1367,22 @@ function copiarFranja(fr, desde) {
   guardar();
 }
 
-/* Convierte lo que hay ahora en una franja en un plato nuevo del catálogo, con su receta. */
-function franjaComoPlato(fr, nombre) {
+/* Convierte un grupo (un plato con su receta tocada) en un plato nuevo. */
+function grupoComoPlato(gr, nombre) {
   const nom = String(nombre || "").trim();
   if (!nom) return "Ponle un nombre.";
   if (BY[nom]) return "Ya existe un alimento con ese nombre.";
-  const reg = logDe(S.fecha).filter(e => e[2] === fr);
-  if (!reg.length) return "No hay nada en esa franja.";
+  const reg = logDe(S.fecha).filter(e => e[5] === gr);
+  if (!reg.length) return "Ese plato ya no está.";
+  return crearPlatoDesde(nom, reg, "Variante guardada el "+nfDia(parseIso(S.fecha)));
+}
+
+function crearPlatoDesde(nom, reg, descripcion) {
   const t = totales(reg);
-  const it = [nom, "Mis platos", Math.round(t.kcal), Math.round(t.prot*10)/10, Math.round(t.grasa*10)/10,
-              Math.round(t.hidratos*10)/10, Math.round(t.alc*10)/10,
-              Math.round(t.verdura + t.fruta), 0, "N.A.",
-              "Guardado desde el registro del "+nfDia(parseIso(S.fecha)), 3, 1, "raciones", "propio"];
-  ITEMS = ITEMS.concat([it]);
+  ITEMS = ITEMS.concat([[nom, "Mis platos", Math.round(t.kcal), Math.round(t.prot*10)/10,
+    Math.round(t.grasa*10)/10, Math.round(t.hidratos*10)/10, Math.round(t.alc*10)/10,
+    Math.round(t.verdura + t.fruta), 0, "N.A.", descripcion, 3, 1, "raciones", "propio"]]);
   S.pend.platos[nom] = 1;
-  // la receta: cada línea con su cantidad y su factor
   const junta = {};
   reg.forEach(function (e) {
     const k = e[0] + "|" + (e[6] || 1);
@@ -1327,6 +1394,16 @@ function franjaComoPlato(fr, nombre) {
   RECETAS = RECETAS.filter(r => r[0] !== nom).concat(S.recetasPend.filter(r => r[0] === nom));
   reindex(); guardar();
   return null;
+}
+
+/* Convierte lo que hay ahora en una franja en un plato nuevo del catálogo, con su receta. */
+function franjaComoPlato(fr, nombre) {
+  const nom = String(nombre || "").trim();
+  if (!nom) return "Ponle un nombre.";
+  if (BY[nom]) return "Ya existe un alimento con ese nombre.";
+  const reg = logDe(S.fecha).filter(e => e[2] === fr);
+  if (!reg.length) return "No hay nada en esa franja.";
+  return crearPlatoDesde(nom, reg, "Guardado desde el registro del "+nfDia(parseIso(S.fecha)));
 }
 
 /* ---------- la semana: qué toca y qué comprar ---------- */
@@ -1878,9 +1955,23 @@ document.getElementById("app").addEventListener("click", function(ev){
     S.ordSem = (S.ordSem && S.ordSem.col === c) ? { col:c, dir:-S.ordSem.dir }
                                                 : { col:c, dir: c === "plato" ? 1 : -1 };
   }
-  else if (a === "repetir") { S.repetir = b.dataset.v || null; S.guardarPlato = null; S.aviso = ""; }
-  else if (a === "copiardia") { copiarFranja(b.dataset.f, b.dataset.v); S.repetir = null; }
-  else if (a === "guardarplato") { S.guardarPlato = b.dataset.v || null; S.repetir = null; S.nomPlato = ""; S.aviso = ""; }
+  else if (a === "copiara") { S.copiarA = b.dataset.v || null; S.guardarPlato = null; S.guardarVar = null; S.aviso = ""; }
+  else if (a === "hacercopia") {
+    const dest = S.fechaCopia || iso(addDays(parseIso(S.fecha), 1));
+    const n = copiarFranjaA(b.dataset.v, dest);
+    S.copiarA = null;
+    S.aviso = "Copiadas "+n+(n===1?" línea al ":" líneas al ")+nfDia(parseIso(dest))+".";
+  }
+  else if (a === "guardarvar") {
+    S.guardarVar = b.dataset.v || null; S.copiarA = null; S.guardarPlato = null; S.aviso = "";
+    if (S.guardarVar) S.nomPlato = nombreVariante((S.grupos && S.grupos[S.guardarVar]) || "Plato");
+  }
+  else if (a === "crearvar") {
+    const err = grupoComoPlato(b.dataset.v, S.nomPlato);
+    if (err) S.aviso = err;
+    else { S.aviso = "Guardado «"+String(S.nomPlato).trim()+"»."; S.guardarVar = null; S.nomPlato = ""; }
+  }
+  else if (a === "guardarplato") { S.guardarPlato = b.dataset.v || null; S.copiarA = null; S.guardarVar = null; S.nomPlato = ""; S.aviso = ""; }
   else if (a === "crearplato") {
     const err = franjaComoPlato(S.guardarPlato, S.nomPlato);
     if (err) S.aviso = err;
@@ -1936,6 +2027,7 @@ document.getElementById("app").addEventListener("input", function(ev){
   if (el.id === "buscar") { S.q = el.value; render(); return; }
   if (el.id === "qalim") { S.qa = el.value; render(); return; }
   if (el.id === "nomplato") { S.nomPlato = el.value; return; }
+  if (el.id === "fechaCopia") { S.fechaCopia = el.value; return; }
   if (el.id === "pegado") { S.pegado = el.value; render(); return; }
   if (el.dataset.sync) { S.sync[el.dataset.sync] = el.value.trim(); guardar(); render(); return; }
   if (el.dataset.mover) { moverFranja(el); return; }
