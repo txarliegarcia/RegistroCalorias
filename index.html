@@ -255,7 +255,7 @@ const SEMILLA_RECETAS = [["Pollo thai con curry verde", "Zanahoria", 100.0, 1.07
 
 const VIAB  = [["Txuletón", "Comida"], ["Parrillada de carne (Kamado)", "Comida"], ["Costillas BBQ (Kamado)", "Comida"], ["Hamburguesa Berty's (Emily Love's)", "Comida"], ["Hamburguesa de restaurante", "Comida"], ["KFC (alitas de pollo)", "Comida"], ["Ramen tantanmen", "Comida"], ["Lasaña de atún", "Comida"], ["Pollo thai con curry verde", "Comida"], ["Lentejas caseras", "Comida"], ["Alubias caseras", "Comida"], ["Ensaladilla rusa", "Comida"], ["Vainas con patata", "Comida"], ["Ensalada con todo", "Comida"], ["Sopa y garbanzos", "Comida"], ["Fabada Cidacos", "Comida"], ["Pollo hindú Mercadona", "Comida"], ["Pizza Kamado casera", "Cena"], ["Zorza del Mercadona con patatas y huevos", "Cena"], ["Sushi (10-12 piezas)", "Cena"], ["Ensalada de tomate y bonito", "Cena"], ["Pintxo de tortilla con bonito y mayonesa (doble)", "Desayuno"], ["Domingo de chucherías", "Extras"]];
 
-const VERSION = "2026.08.31-1";
+const VERSION = "2026.08.31-2";
 const FRANJAS = ["Desayuno","Hamaiketako","Comida","Merienda","Cena","Extras"];
 const DIAS = ["lunes","martes","miércoles","jueves","viernes","sábado","domingo"];
 const MESES = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
@@ -1410,7 +1410,11 @@ async function anotar(fecha, alimento, cant, franja, grupo, factor) {
 }
 
 async function anotarVarios(items) {
-  if (!items.length) return null;
+  if (!items.length) {
+    if (!S.aviso) S.aviso = "No había nada que añadir.";
+    render();
+    return null;
+  }
   return pedir({ accion: "anotar", items: items.map(function (x) {
     return { id: uid(), fecha: x.fecha, franja: x.franja, alimento: x.alimento,
              cant: x.cant, grupo: x.grupo || "", factor: x.factor || 1 };
@@ -1421,13 +1425,29 @@ async function anotarVarios(items) {
 function itemsDePlato(fecha, plato, cant, franja) {
   const r = recetaDe(plato);
   if (!r.length) return [{ fecha:fecha, franja:franja, alimento:plato, cant:cant }];
+
+  const faltan = r.filter(x => !BY[x[1]]).map(x => x[1]);
+  const hay = r.filter(x => BY[x[1]]);
+
+  // si la receta se ha quedado sin ingredientes, se registra el plato entero y se avisa
+  if (!hay.length) {
+    S.aviso = "«"+plato+"» tiene receta, pero ninguno de sus ingredientes está ya en el catálogo ("
+      + faltan.slice(0,4).join(", ") + (faltan.length>4 ? " y "+(faltan.length-4)+" más" : "")
+      + "). Lo he registrado entero, sin desglosar.";
+    return [{ fecha:fecha, franja:franja, alimento:plato, cant:cant }];
+  }
+  if (faltan.length) {
+    S.aviso = "Ojo: a «"+plato+"» le faltan ingredientes en el catálogo ("+faltan.join(", ")
+      + "), así que suma menos de lo que debería. Créalos en Alimentos y volverá a cuadrar.";
+  }
+
   const it = BY[plato];
   const prop = it ? cant / BASE(it) : 1;
   const g = "g" + uid();
   S.grupos = S.grupos || {};
   S.grupos[g] = plato;
   Store.set("carlos:grupos", S.grupos);
-  return r.filter(x => BY[x[1]]).map(function (x) {
+  return hay.map(function (x) {
     return { fecha:fecha, franja:franja, alimento:x[1],
              cant: Math.round(x[2] * prop * 10) / 10, grupo:g, factor:x[3] };
   });
