@@ -131,6 +131,27 @@ table{width:100%;border-collapse:collapse;font-size:14px}
 .quitax{background:none;border:none;font-size:17px;line-height:1;color:var(--rojo);cursor:pointer;
   padding:3px 6px;border-radius:3px;flex:0 0 auto}
 .quitax:hover{background:#F7CFC9}
+.ctrl2{display:grid;grid-template-columns:64px 74px 122px 34px;gap:6px;align-items:center;flex:0 0 auto;margin-left:auto}
+.ctrl2.sinfr{grid-template-columns:64px 74px 34px}
+.ctrl2>*{min-width:0}
+.ctrl2 input{width:100%;text-align:center;font-weight:700;font-size:16px;padding:8px 3px}
+.ctrl2 select{width:100%}
+.ctrl2 .uni{font-size:13px;font-weight:600;line-height:1.15;overflow-wrap:break-word}
+.platoc>.ingr:only-child{border-bottom:none}
+@media (max-width:640px){
+  .ctrl2{margin-left:0;width:100%;gap:6px 8px;
+    grid-template-columns:62px minmax(0,1fr) 34px;
+    grid-template-areas:"cant uni quitar" "franja franja franja"}
+  .ctrl2 input{grid-area:cant}
+  .ctrl2 .uni{grid-area:uni}
+  .ctrl2 select{grid-area:franja;width:100%}
+  .ctrl2 .quitax{grid-area:quitar}
+  .ctrl2.sinfr{grid-template-columns:62px minmax(0,1fr) 34px;grid-template-areas:"cant uni quitar"}
+  .ingr .info{flex:1 1 100%}
+}
+.selg{background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:3px;
+  font:inherit;font-size:12px;font-weight:600;padding:3px 5px;max-width:118px}
+.selg option{color:var(--ink)}
 .ingr{display:flex;align-items:center;gap:9px;padding:7px 10px;border-bottom:1px solid var(--line);flex-wrap:wrap}
 .ingr:last-child{border-bottom:none}
 .ingr .info{flex:1 1 150px;min-width:0}
@@ -213,7 +234,7 @@ const SEMILLA_RECETAS = [["Pollo thai con curry verde", "Zanahoria", 100.0, 1.07
 
 const VIAB  = [["Txuletón", "Comida"], ["Parrillada de carne (Kamado)", "Comida"], ["Costillas BBQ (Kamado)", "Comida"], ["Hamburguesa Berty's (Emily Love's)", "Comida"], ["Hamburguesa de restaurante", "Comida"], ["KFC (alitas de pollo)", "Comida"], ["Ramen tantanmen", "Comida"], ["Lasaña de atún", "Comida"], ["Pollo thai con curry verde", "Comida"], ["Lentejas caseras", "Comida"], ["Alubias caseras", "Comida"], ["Ensaladilla rusa", "Comida"], ["Vainas con patata", "Comida"], ["Ensalada con todo", "Comida"], ["Sopa y garbanzos", "Comida"], ["Fabada Cidacos", "Comida"], ["Pollo hindú Mercadona", "Comida"], ["Pizza Kamado casera", "Cena"], ["Zorza del Mercadona con patatas y huevos", "Cena"], ["Sushi (10-12 piezas)", "Cena"], ["Ensalada de tomate y bonito", "Cena"], ["Pintxo de tortilla con bonito y mayonesa (doble)", "Desayuno"], ["Domingo de chucherías", "Extras"]];
 
-const VERSION = "2026.08.30-8";
+const VERSION = "2026.08.30-9";
 const FRANJAS = ["Desayuno","Hamaiketako","Comida","Merienda","Cena","Extras"];
 const DIAS = ["lunes","martes","miércoles","jueves","viernes","sábado","domingo"];
 const MESES = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
@@ -691,6 +712,11 @@ function vistaRegistro() {
           + '<button class="platob" data-act="plegargrupo" data-v="'+gr+'" aria-expanded="'+(abierto?"true":"false")+'">'
           + (abierto ? "▾ " : "▸ ")+esc(nom)+'</button>'
           + '<span class="note mono" style="font-weight:700;white-space:nowrap">'+fmt(tg.kcal)+' kcal · '+fmt(tg.prot)+' P</span>'
+          + '<select class="selg" data-movergrupo="'+gr+'" aria-label="Mover '+esc(nom)+' a otra franja">'
+          + FRANJAS.map(function (fx) {
+              return '<option value="'+esc(fx)+'"'+(fx === f ? " selected" : "")+'>'+esc(fx)+'</option>';
+            }).join("")
+          + '</select>'
           + (grupoModificado(herm, nom)
              ? '<button class="btnv" data-act="guardarvar" data-v="'+gr+'" '
                + 'title="Has cambiado la receta: guárdalo como plato nuevo">Guardar variante</button>' : '')
@@ -714,10 +740,10 @@ function vistaRegistro() {
             + '<div style="font-size:14.5px">'+esc(x[0])+'</div>'
             + '<div class="note mono" style="font-weight:600">'+fmt(ix[2]*x[1]/BASE(ix)*f)+' kcal · '
             + fmt(ix[3]*x[1]/BASE(ix)*f)+' P</div></div>'
-            + '<div style="display:flex;align-items:center;gap:6px;flex:0 0 auto">'
+            + '<div class="ctrl2 sinfr">'
             + '<input id="rc_'+x[3]+'" data-rac="'+x[3]+'" value="'+fmtCant(x[1])+'" '
-            + 'aria-label="Cantidad de '+esc(x[0])+'" style="width:62px;text-align:center;font-weight:600">'
-            + '<span class="uni" style="min-width:32px">'+esc(UNI(ix))+'</span>'
+            + 'aria-label="Cantidad de '+esc(x[0])+'">'
+            + '<span class="uni">'+esc(UNI(ix))+'</span>'
             + '<button class="quitax" data-act="del" data-id="'+x[3]+'" title="Quitar este ingrediente" '
             + 'aria-label="Quitar '+esc(x[0])+'">✕</button></div></div>';
         });
@@ -735,200 +761,46 @@ function vistaRegistro() {
           + '</div></div>';
         return;
       }
-      const bs = BASE(it), un = UNI(it);
-      h += '<div class="logrow"><div class="info">'
-        + '<div style="font-size:15px;font-weight:600">'+esc(e[0])+'</div>'
-        + '<div class="note mono" style="font-weight:600;margin-top:2px">'+fmt(it[2]*e[1]/bs)+' kcal · '
-        + fmt(it[3]*e[1]/bs)+' P · '+fmt(it[4]*e[1]/bs)+' G · '+fmt(it[5]*e[1]/bs)+' H</div>'
-        + '<div class="note" style="margin-top:1px">referencia: '+fmtCant(bs)+' '+esc(un)+' = '+esc(it[10])+'</div></div>'
-        + '<div class="ctrl">'
-        + '<input id="rc_'+e[3]+'" data-rac="'+e[3]+'" value="'+fmtCant(e[1])+'" '
-        + 'aria-label="Cantidad de '+esc(e[0])+' en '+esc(un)+'">'
-        + '<span class="uni">'+esc(un)+'</span>'
-        + '<select id="fr_'+e[3]+'" data-mover="'+e[3]+'" aria-label="Mover '+esc(e[0])+' a otra franja">'
-        + FRANJAS.map(function(fx){
-            return '<option value="'+esc(fx)+'"'+(fx === e[2] ? " selected" : "")+'>'+esc(fx)+'</option>';
-          }).join("")
-        + '</select>'
-        + '<button class="btn ghost tiny" data-act="del" data-id="'+e[3]+'" aria-label="Quitar '+esc(e[0])+'">Quitar</button>'
+      const bs = BASE(it), un = UNI(it), fac = e[6] || 1;
+      h += '<div class="platoc"><div class="ingr">'
+        + '<div class="info"><div style="font-size:15px;font-weight:600">'+esc(e[0])+'</div>'
+        + '<div class="note mono" style="font-weight:600">'+fmt(it[2]*e[1]/bs*fac)+' kcal · '
+        + fmt(it[3]*e[1]/bs*fac)+' P · '+fmt(it[4]*e[1]/bs*fac)+' G · '+fmt(it[5]*e[1]/bs*fac)+' H</div></div>'
+        + ctrlLinea(e[3], e[1], un, e[2], esc(e[0]))
         + '</div></div>';
     });
     h += '</div></div>';
   });
+
+  if (S.aviso) h += '<p class="aviso" style="margin-top:10px">'+esc(S.aviso)+'</p>';
   h += '</div>';
-  return h;
-}
-
-function seriePeso() {
-  const claves = Object.keys(S.pesos).sort();
-  if (claves.length === 0) return [];
-  const ini = parseIso(claves[0]);
-  const hoy = new Date();
-  const fin = parseIso(claves[claves.length-1]) > hoy ? parseIso(claves[claves.length-1]) : hoy;
-  const n = Math.max(0, Math.round((fin - ini)/86400000));
-  const base = S.pesos[claves[0]];
-  const ritmo = S.params.deficit*7/7700;
-  const out = [];
-  for (let i = 0; i <= n; i++) {
-    const k = iso(addDays(ini, i));
-    const v = [];
-    for (let j = Math.max(0, i-6); j <= i; j++) {
-      const p = S.pesos[iso(addDays(ini, j))]; if (p) v.push(p);
-    }
-    out.push({ k: k, peso: S.pesos[k] || null,
-      media: v.length ? +(v.reduce((a,b)=>a+b,0)/v.length).toFixed(2) : null,
-      objetivo: +(base - ritmo*(i/7)).toFixed(2) });
-  }
-  return out;
-}
-
-function grafico(serie) {
-  const W = 700, H = 200, PL = 40, PR = 8, PT = 10, PB = 22;
-  const vals = [];
-  serie.forEach(p => { if (p.peso) vals.push(p.peso); if (p.media) vals.push(p.media); vals.push(p.objetivo); });
-  vals.push(S.params.pesoObjetivo);
-  let lo = Math.min.apply(null, vals) - 0.4, hi = Math.max.apply(null, vals) + 0.4;
-  if (hi - lo < 1.5) { const m = (hi+lo)/2; lo = m-0.75; hi = m+0.75; }
-  const n = Math.max(1, serie.length-1);
-  const X = i => PL + (i/n)*(W-PL-PR);
-  const Y = v => PT + (1-(v-lo)/(hi-lo))*(H-PT-PB);
-  const linea = (campo) => serie.map((p,i) => p[campo]==null?null:X(i).toFixed(1)+","+Y(p[campo]).toFixed(1))
-    .filter(Boolean).join(" ");
-  const puntos = serie.map((p,i) => p.peso==null?"":
-    '<circle cx="'+X(i).toFixed(1)+'" cy="'+Y(p.peso).toFixed(1)+'" r="3" fill="var(--quince)"/>').join("");
-  const yObj = Y(S.params.pesoObjetivo);
-  const ticks = [lo+(hi-lo)*0.1, (lo+hi)/2, hi-(hi-lo)*0.1].map(v =>
-    '<text x="'+(PL-6)+'" y="'+(Y(v)+3.5).toFixed(1)+'" text-anchor="end" font-size="9" fill="var(--ink)" font-weight="600" font-family="IBM Plex Mono">'
-    + v.toFixed(1)+'</text><line x1="'+PL+'" x2="'+(W-PR)+'" y1="'+Y(v).toFixed(1)+'" y2="'+Y(v).toFixed(1)
-    + '" stroke="#B9C4BD" stroke-width="1"/>').join("");
-  const et = i => { const d = parseIso(serie[i].k); return d.getDate()+"/"+(d.getMonth()+1); };
-  return '<svg viewBox="0 0 '+W+' '+H+'" width="100%" height="200" role="img" '
-    + 'aria-label="Evolución del peso frente a la trayectoria prevista">'+ticks
-    + (yObj > PT && yObj < H-PB ? '<line x1="'+PL+'" x2="'+(W-PR)+'" y1="'+yObj.toFixed(1)+'" y2="'+yObj.toFixed(1)
-      + '" stroke="var(--verde)" stroke-width="2" stroke-dasharray="5 4"/>' : "")
-    + '<polyline points="'+linea("objetivo")+'" fill="none" stroke="#5D6C65" stroke-width="2" stroke-dasharray="4 4"/>'
-    + puntos
-    + '<polyline points="'+linea("media")+'" fill="none" stroke="var(--verde)" stroke-width="3.2" stroke-linejoin="round"/>'
-    + '<text x="'+PL+'" y="'+(H-6)+'" font-size="9" fill="var(--ink)" font-weight="600" font-family="IBM Plex Mono">'+et(0)+'</text>'
-    + '<text x="'+(W-PR)+'" y="'+(H-6)+'" text-anchor="end" font-size="9" fill="var(--ink)" font-weight="600" font-family="IBM Plex Mono">'
-    + et(serie.length-1)+'</text></svg>';
-}
-
-function vistaPeso() {
-  const serie = seriePeso();
-  const conM = serie.filter(p => p.media !== null);
-  const ult = conM.length ? conM[conM.length-1].media : null;
-  const prev = conM.length > 7 ? conM[conM.length-8].media : null;
-  const varSem = (ult!=null && prev!=null) ? +(ult-prev).toFixed(2) : null;
-  const ritmo = +(S.params.deficit*7/7700).toFixed(2);
-  let lectura;
-  if (varSem == null) lectura = "Necesitas al menos dos semanas de pesadas para que la variación semanal signifique algo.";
-  else if (varSem < -0.7) lectura = "Bajas más rápido de lo previsto. Sube las calorías objetivo: a este ritmo parte de lo que pierdes es músculo.";
-  else if (varSem > -0.15) lectura = "La media no baja al ritmo previsto. Antes de recortar comida, baja el factor de actividad en Ajustes: es más probable que el gasto esté sobreestimado.";
-  else lectura = "Vas al ritmo previsto. No cambies nada.";
-  const colVar = varSem==null ? "var(--ink)" : (varSem<-0.7 || varSem>-0.15) ? "var(--rojo)" : "var(--verde)";
-
-  /* Llegada estimada usando el ritmo MEDIDO, no el teórico. Regresión sobre la media de 7 días. */
-  const llegada = (function(){
-    const reales = Object.keys(S.pesos).length;      // pesadas de verdad, no días rellenados
-    if (reales < 14) return { falta: 14 - reales, reales: reales };
-    const pts = conM.slice(-28);
-    const t0 = parseIso(pts[0].k).getTime();
-    let sx=0, sy=0, sxy=0, sxx=0;
-    pts.forEach(function(p){
-      const x = (parseIso(p.k).getTime() - t0) / 86400000, y = p.media;
-      sx+=x; sy+=y; sxy+=x*y; sxx+=x*x;
-    });
-    const n = pts.length;
-    const pend = (n*sxy - sx*sy) / (n*sxx - sx*sx);      // kg por día
-    const ultima = pts[pts.length-1];
-    const restan = ultima.media - S.params.pesoObjetivo;
-    if (pend >= -0.0005) return { estancado:true, kgSem: pend*7 };
-    const dias = Math.round(restan / -pend);
-    const f = parseIso(ultima.k); f.setDate(f.getDate() + dias);
-    return { fecha:f, dias:dias, kgSem: pend*7, semanas: Math.round(dias/7*10)/10 };
-  })();
-
-  let h = '<div class="card"><span class="eyebrow">Peso de hoy</span>'
-    + '<div style="display:flex;gap:8px;margin-top:8px">'
-    + '<input id="pesohoy" inputmode="decimal" placeholder="84,35" aria-label="Peso en kilos">'
-    + '<button class="btn" data-act="peso">Anotar</button></div>'
-    + '<p class="note" style="margin:9px 0 0">Pésate en ayunas, después del baño. El dato del día no significa nada '
-    + 'por sí solo: oscila 1-2 kg por agua y sal. Lo que mide tu progreso es la media de 7 días.</p></div>';
-
-  h += '<div class="card grid3"><div><span class="eyebrow">Media 7 días</span>'
-    + '<div class="disp mono" style="font-size:29px;margin-top:5px">'+(ult!=null?ult.toFixed(2):"—")+'</div><div class="note">kg</div></div>'
-    + '<div><span class="eyebrow">Variación semanal</span><div class="disp mono" style="font-size:29px;margin-top:5px;color:'+colVar+'">'
-    + (varSem!=null?(varSem>0?"+":"")+varSem.toFixed(2):"—")+'</div><div class="note">objetivo −'+ritmo+'</div></div>'
-    + '<div><span class="eyebrow">Falta</span><div class="disp mono" style="font-size:29px;margin-top:5px">'
-    + (ult!=null?(ult-S.params.pesoObjetivo).toFixed(1):"—")+'</div><div class="note">kg hasta '+S.params.pesoObjetivo+'</div></div></div>';
-
-  h += '<div class="card"><span class="eyebrow">Cuándo llegas a '+S.params.pesoObjetivo+' kg</span>';
-  if (llegada.falta != null) {
-    h += '<p class="note" style="margin:9px 0 0">Con '+llegada.reales
-      + (llegada.reales===1?' pesada':' pesadas')+' todavía no puedo estimarlo: harían falta '+llegada.falta
-      + ' más. Con menos de dos semanas, el ruido del agua y la sal pesa más que la tendencia.</p>';
-  } else if (llegada.estancado) {
-    h += '<div class="disp mono" style="font-size:26px;margin-top:6px;color:var(--rojo)">sin fecha</div>'
-      + '<p class="note" style="margin:7px 0 0">Tu media de 7 días no baja ('
-      + (llegada.kgSem>0?"+":"")+llegada.kgSem.toFixed(2)+' kg por semana). Revisa el registro antes de tocar el '
-      + 'déficit: lo más frecuente es que falten cosas por anotar.</p>';
-  } else {
-    h += '<div class="disp" style="font-size:26px;margin-top:6px;color:var(--verde)">'
-      + nfDia(llegada.fecha)+' de '+llegada.fecha.getFullYear()+'</div>'
-      + '<p class="note mono" style="margin:6px 0 0;font-weight:600">quedan '+llegada.semanas
-      + ' semanas · ritmo real '+llegada.kgSem.toFixed(2)+' kg por semana</p>'
-      + '<p class="note" style="margin:8px 0 0">Calculado con la tendencia de tus pesadas, no con la teoría. '
-      + 'Si metes días de más o te saltas el plan, esta fecha se mueve sola.</p>';
-  }
-  h += '</div>';
-
-  if (serie.length > 1) {
-    h += '<div class="card"><span class="eyebrow">Tendencia frente a la trayectoria prevista</span>'
-      + '<div style="margin-top:10px">'+grafico(serie)+'</div>'
-      + '<p class="note" style="margin-top:6px;font-weight:500">'
-      + '<span style="color:var(--verde);font-weight:800">━</span> media 7 días · '
-      + '<span style="color:var(--quince);font-weight:800">●</span> peso diario · '
-      + '<span style="color:#5D6C65;font-weight:800">┈</span> previsto · '
-      + '<span style="color:var(--verde);font-weight:800">┈</span> objetivo '+S.params.pesoObjetivo+' kg</p>'
-      + '<p class="note">'+esc(lectura)+'</p></div>';
-  }
-  const n = Object.keys(S.pesos).length;
-  h += '<div class="card"><span class="eyebrow">Historial · '+n+(n===1?" pesada":" pesadas")+'</span>'
-    + '<p class="note" style="margin:8px 0 0">Los datos viven en este navegador. Si borras el historial de navegación '
-    + 'o cambias de dispositivo, los pierdes: exporta una copia de vez en cuando desde Ajustes.</p></div>';
   return h;
 }
 
 function vistaViabilidad() {
   const o = objetivos(S.params);
-  const minInevitable = ["Tostada de guacamole con atun","Café solo o cortado",
-    "Postre: yogur natural Danone con fruta","Postre: yogur natural Danone con fruta",
-    "Cerveza (lata de 33 cl)","Tallarines konjak con verduras","Pavo al curry madrás"];
-  const k = n => BY[n] ? BY[n][2] : 0;
-  const fijo = k("Café solo o cortado") + 2*k("Postre: yogur natural Danone con fruta") + k("Cerveza (lata de 33 cl)");
-  const batido = k("Batido de proteína con creatina");
-  const minDe = (franja, entrena) => {
-    let s = fijo + (entrena ? batido : 0);
-    if (franja === "Comida") s += k("Tostada de guacamole con atun") + k("Tallarines konjak con verduras");
-    else if (franja === "Cena") s += k("Tostada de guacamole con atun") + k("Pavo al curry madrás");
-    else if (franja === "Desayuno") s += k("Pavo al curry madrás") + k("Tallarines konjak con verduras");
-    else s += k("Tostada de guacamole con atun") + k("Pavo al curry madrás") + k("Tallarines konjak con verduras");
-    return s;
+  const k = n => (BY[n] ? BY[n][2] : 0);
+  const franjas = { "Comida":"comida", "Cena":"cena", "Desayuno":"desayuno", "Extras":"extras" };
+  const min = {
+    Desayuno: 180, Comida: 251, Cena: 310,
+    postre1: k("Postre: yogur natural Danone con fruta"),
+    postre2: k("Postre: skyr con fruta") || k("Postre: kéfir natural Mercadona con fruta"),
+    cafe: k("Café solo o cortado"), cerveza: k("Cerveza (lata de 33 cl)"),
+    batido: k("Batido de proteína con creatina")
   };
-  const filas = [];
-  VIAB.forEach(function(v){
-    const plato = v[0], franja = v[1];
-    [["Laborable", o.lab],["Fin de semana", o.fin]].forEach(function(dd){
-      [[0,"Sin entreno"],[1,"Con entreno"]].forEach(function(ee){
-        const s = minDe(franja, ee[0]);
-        const tot = k(plato) + s;
-        const m = dd[1] - tot;
-        filas.push({ plato:plato, franja:franja, dia:dd[0], ent:ee[1], minResto:s, min:tot,
-          obj:dd[1], margen:m, ver: m>=100?"Cabe":(m>=0?"Justo":"No cabe") });
-      });
-    });
-  });
+  const filas = VIAB.map(function(v){
+    const nombre = v[0], franja = v[1];
+    const it = BY[nombre];
+    if (!it) return null;
+    let suelo = min.cafe + min.postre1 + min.postre2 + min.cerveza + min.batido;
+    if (franja === "Comida") suelo += min.Desayuno + min.Cena;
+    else if (franja === "Cena") suelo += min.Desayuno + min.Comida;
+    else suelo += min.Comida + min.Cena;
+    const obj = esFinde(parseIso(S.fecha)) ? o.fin : o.lab;
+    const margen = obj - suelo - it[2];
+    return { plato: nombre, franja: franja, kcal: it[2], suelo: suelo, margen: margen,
+             ver: margen >= 100 ? "Cabe" : (margen >= 0 ? "Justo" : "No cabe") };
+  }).filter(Boolean);
   const orden = { "No cabe":0, "Justo":1, "Cabe":2 };
   filas.sort((a,b) => orden[a.ver]-orden[b.ver] || a.margen-b.margen);
   const cls = v => v==="Cabe"?"v-cabe":(v==="Justo"?"v-justo":"v-no");
@@ -1295,6 +1167,163 @@ function bloqueSync() {
     + 'segundos después de cada cambio. Todo se guarda primero en este navegador, así que puedes registrar sin '
     + 'cobertura y se subirá cuando vuelvas a tener red.</p></div>';
   return h;
+}
+
+function seriePeso() {
+  const claves = Object.keys(S.pesos).sort();
+  if (claves.length === 0) return [];
+  const ini = parseIso(claves[0]);
+  const hoy = new Date();
+  const fin = parseIso(claves[claves.length-1]) > hoy ? parseIso(claves[claves.length-1]) : hoy;
+  const n = Math.max(0, Math.round((fin - ini)/86400000));
+  const base = S.pesos[claves[0]];
+  const ritmo = S.params.deficit*7/7700;
+  const out = [];
+  for (let i = 0; i <= n; i++) {
+    const k = iso(addDays(ini, i));
+    const v = [];
+    for (let j = Math.max(0, i-6); j <= i; j++) {
+      const p = S.pesos[iso(addDays(ini, j))]; if (p) v.push(p);
+    }
+    out.push({ k: k, peso: S.pesos[k] || null,
+      media: v.length ? +(v.reduce((a,b)=>a+b,0)/v.length).toFixed(2) : null,
+      objetivo: +(base - ritmo*(i/7)).toFixed(2) });
+  }
+  return out;
+}
+
+function grafico(serie) {
+  const W = 700, H = 200, PL = 40, PR = 8, PT = 10, PB = 22;
+  const vals = [];
+  serie.forEach(p => { if (p.peso) vals.push(p.peso); if (p.media) vals.push(p.media); vals.push(p.objetivo); });
+  vals.push(S.params.pesoObjetivo);
+  let lo = Math.min.apply(null, vals) - 0.4, hi = Math.max.apply(null, vals) + 0.4;
+  if (hi - lo < 1.5) { const m = (hi+lo)/2; lo = m-0.75; hi = m+0.75; }
+  const n = Math.max(1, serie.length-1);
+  const X = i => PL + (i/n)*(W-PL-PR);
+  const Y = v => PT + (1-(v-lo)/(hi-lo))*(H-PT-PB);
+  const linea = (campo) => serie.map((p,i) => p[campo]==null?null:X(i).toFixed(1)+","+Y(p[campo]).toFixed(1))
+    .filter(Boolean).join(" ");
+  const puntos = serie.map((p,i) => p.peso==null?"":
+    '<circle cx="'+X(i).toFixed(1)+'" cy="'+Y(p.peso).toFixed(1)+'" r="3" fill="var(--quince)"/>').join("");
+  const yObj = Y(S.params.pesoObjetivo);
+  const ticks = [lo+(hi-lo)*0.1, (lo+hi)/2, hi-(hi-lo)*0.1].map(v =>
+    '<text x="'+(PL-6)+'" y="'+(Y(v)+3.5).toFixed(1)+'" text-anchor="end" font-size="9" fill="var(--ink)" font-weight="600" font-family="IBM Plex Mono">'
+    + v.toFixed(1)+'</text><line x1="'+PL+'" x2="'+(W-PR)+'" y1="'+Y(v).toFixed(1)+'" y2="'+Y(v).toFixed(1)
+    + '" stroke="#B9C4BD" stroke-width="1"/>').join("");
+  const et = i => { const d = parseIso(serie[i].k); return d.getDate()+"/"+(d.getMonth()+1); };
+  return '<svg viewBox="0 0 '+W+' '+H+'" width="100%" height="200" role="img" '
+    + 'aria-label="Evolución del peso frente a la trayectoria prevista">'+ticks
+    + (yObj > PT && yObj < H-PB ? '<line x1="'+PL+'" x2="'+(W-PR)+'" y1="'+yObj.toFixed(1)+'" y2="'+yObj.toFixed(1)
+      + '" stroke="var(--verde)" stroke-width="2" stroke-dasharray="5 4"/>' : "")
+    + '<polyline points="'+linea("objetivo")+'" fill="none" stroke="#5D6C65" stroke-width="2" stroke-dasharray="4 4"/>'
+    + puntos
+    + '<polyline points="'+linea("media")+'" fill="none" stroke="var(--verde)" stroke-width="3.2" stroke-linejoin="round"/>'
+    + '<text x="'+PL+'" y="'+(H-6)+'" font-size="9" fill="var(--ink)" font-weight="600" font-family="IBM Plex Mono">'+et(0)+'</text>'
+    + '<text x="'+(W-PR)+'" y="'+(H-6)+'" text-anchor="end" font-size="9" fill="var(--ink)" font-weight="600" font-family="IBM Plex Mono">'
+    + et(serie.length-1)+'</text></svg>';
+}
+
+function vistaPeso() {
+  const serie = seriePeso();
+  const conM = serie.filter(p => p.media !== null);
+  const ult = conM.length ? conM[conM.length-1].media : null;
+  const prev = conM.length > 7 ? conM[conM.length-8].media : null;
+  const varSem = (ult!=null && prev!=null) ? +(ult-prev).toFixed(2) : null;
+  const ritmo = +(S.params.deficit*7/7700).toFixed(2);
+  let lectura;
+  if (varSem == null) lectura = "Necesitas al menos dos semanas de pesadas para que la variación semanal signifique algo.";
+  else if (varSem < -0.7) lectura = "Bajas más rápido de lo previsto. Sube las calorías objetivo: a este ritmo parte de lo que pierdes es músculo.";
+  else if (varSem > -0.15) lectura = "La media no baja al ritmo previsto. Antes de recortar comida, baja el factor de actividad en Ajustes: es más probable que el gasto esté sobreestimado.";
+  else lectura = "Vas al ritmo previsto. No cambies nada.";
+  const colVar = varSem==null ? "var(--ink)" : (varSem<-0.7 || varSem>-0.15) ? "var(--rojo)" : "var(--verde)";
+
+  /* Llegada estimada usando el ritmo MEDIDO, no el teórico. Regresión sobre la media de 7 días. */
+  const llegada = (function(){
+    const reales = Object.keys(S.pesos).length;      // pesadas de verdad, no días rellenados
+    if (reales < 14) return { falta: 14 - reales, reales: reales };
+    const pts = conM.slice(-28);
+    const t0 = parseIso(pts[0].k).getTime();
+    let sx=0, sy=0, sxy=0, sxx=0;
+    pts.forEach(function(p){
+      const x = (parseIso(p.k).getTime() - t0) / 86400000, y = p.media;
+      sx+=x; sy+=y; sxy+=x*y; sxx+=x*x;
+    });
+    const n = pts.length;
+    const pend = (n*sxy - sx*sy) / (n*sxx - sx*sx);      // kg por día
+    const ultima = pts[pts.length-1];
+    const restan = ultima.media - S.params.pesoObjetivo;
+    if (pend >= -0.0005) return { estancado:true, kgSem: pend*7 };
+    const dias = Math.round(restan / -pend);
+    const f = parseIso(ultima.k); f.setDate(f.getDate() + dias);
+    return { fecha:f, dias:dias, kgSem: pend*7, semanas: Math.round(dias/7*10)/10 };
+  })();
+
+  let h = '<div class="card"><span class="eyebrow">Peso de hoy</span>'
+    + '<div style="display:flex;gap:8px;margin-top:8px">'
+    + '<input id="pesohoy" inputmode="decimal" placeholder="84,35" aria-label="Peso en kilos">'
+    + '<button class="btn" data-act="peso">Anotar</button></div>'
+    + '<p class="note" style="margin:9px 0 0">Pésate en ayunas, después del baño. El dato del día no significa nada '
+    + 'por sí solo: oscila 1-2 kg por agua y sal. Lo que mide tu progreso es la media de 7 días.</p></div>';
+
+  h += '<div class="card grid3"><div><span class="eyebrow">Media 7 días</span>'
+    + '<div class="disp mono" style="font-size:29px;margin-top:5px">'+(ult!=null?ult.toFixed(2):"—")+'</div><div class="note">kg</div></div>'
+    + '<div><span class="eyebrow">Variación semanal</span><div class="disp mono" style="font-size:29px;margin-top:5px;color:'+colVar+'">'
+    + (varSem!=null?(varSem>0?"+":"")+varSem.toFixed(2):"—")+'</div><div class="note">objetivo −'+ritmo+'</div></div>'
+    + '<div><span class="eyebrow">Falta</span><div class="disp mono" style="font-size:29px;margin-top:5px">'
+    + (ult!=null?(ult-S.params.pesoObjetivo).toFixed(1):"—")+'</div><div class="note">kg hasta '+S.params.pesoObjetivo+'</div></div></div>';
+
+  h += '<div class="card"><span class="eyebrow">Cuándo llegas a '+S.params.pesoObjetivo+' kg</span>';
+  if (llegada.falta != null) {
+    h += '<p class="note" style="margin:9px 0 0">Con '+llegada.reales
+      + (llegada.reales===1?' pesada':' pesadas')+' todavía no puedo estimarlo: harían falta '+llegada.falta
+      + ' más. Con menos de dos semanas, el ruido del agua y la sal pesa más que la tendencia.</p>';
+  } else if (llegada.estancado) {
+    h += '<div class="disp mono" style="font-size:26px;margin-top:6px;color:var(--rojo)">sin fecha</div>'
+      + '<p class="note" style="margin:7px 0 0">Tu media de 7 días no baja ('
+      + (llegada.kgSem>0?"+":"")+llegada.kgSem.toFixed(2)+' kg por semana). Revisa el registro antes de tocar el '
+      + 'déficit: lo más frecuente es que falten cosas por anotar.</p>';
+  } else {
+    h += '<div class="disp" style="font-size:26px;margin-top:6px;color:var(--verde)">'
+      + nfDia(llegada.fecha)+' de '+llegada.fecha.getFullYear()+'</div>'
+      + '<p class="note mono" style="margin:6px 0 0;font-weight:600">quedan '+llegada.semanas
+      + ' semanas · ritmo real '+llegada.kgSem.toFixed(2)+' kg por semana</p>'
+      + '<p class="note" style="margin:8px 0 0">Calculado con la tendencia de tus pesadas, no con la teoría. '
+      + 'Si metes días de más o te saltas el plan, esta fecha se mueve sola.</p>';
+  }
+  h += '</div>';
+
+  if (serie.length > 1) {
+    h += '<div class="card"><span class="eyebrow">Tendencia frente a la trayectoria prevista</span>'
+      + '<div style="margin-top:10px">'+grafico(serie)+'</div>'
+      + '<p class="note" style="margin-top:6px;font-weight:500">'
+      + '<span style="color:var(--verde);font-weight:800">━</span> media 7 días · '
+      + '<span style="color:var(--quince);font-weight:800">●</span> peso diario · '
+      + '<span style="color:#5D6C65;font-weight:800">┈</span> previsto · '
+      + '<span style="color:var(--verde);font-weight:800">┈</span> objetivo '+S.params.pesoObjetivo+' kg</p>'
+      + '<p class="note">'+esc(lectura)+'</p></div>';
+  }
+  const n = Object.keys(S.pesos).length;
+  h += '<div class="card"><span class="eyebrow">Historial · '+n+(n===1?" pesada":" pesadas")+'</span>'
+    + '<p class="note" style="margin:8px 0 0">Los datos viven en este navegador. Si borras el historial de navegación '
+    + 'o cambias de dispositivo, los pierdes: exporta una copia de vez en cuando desde Ajustes.</p></div>';
+  return h;
+}
+
+
+/* Controles de una línea: cantidad, unidad, franja y la equis de quitar. */
+function ctrlLinea(id, cant, uni, franja, etiqueta) {
+  return '<div class="ctrl2">'
+    + '<input id="rc_'+id+'" data-rac="'+id+'" value="'+fmtCant(cant)+'" '
+    + 'aria-label="Cantidad de '+etiqueta+'">'
+    + '<span class="uni">'+esc(uni)+'</span>'
+    + '<select id="fr_'+id+'" data-mover="'+id+'" aria-label="Mover '+etiqueta+' a otra franja">'
+    + FRANJAS.map(function (fx) {
+        return '<option value="'+esc(fx)+'"'+(fx === franja ? " selected" : "")+'>'+esc(fx)+'</option>';
+      }).join("")
+    + '</select>'
+    + '<button class="quitax" data-act="del" data-id="'+id+'" title="Quitar" '
+    + 'aria-label="Quitar '+etiqueta+'">✕</button></div>';
 }
 
 /* ---------- copiar a otra fecha y guardar variantes ---------- */
@@ -2109,6 +2138,18 @@ document.getElementById("app").addEventListener("input", function(ev){
   if (el.id === "pegado") { S.pegado = el.value; render(); return; }
   if (el.dataset.sync) { S.sync[el.dataset.sync] = el.value.trim(); guardar(); render(); return; }
   if (el.dataset.mover) { moverFranja(el); return; }
+  if (el.dataset.movergrupo) {
+    const g = el.dataset.movergrupo;
+    let n = 0;
+    Object.keys(S.ent).forEach(function (id) {
+      const e = S.ent[id];
+      if (!e.borrado && e.grupo === g && e.fecha === S.fecha && e.franja !== el.value) {
+        tocar(id, { franja: el.value }); n++;
+      }
+    });
+    if (n) { guardar(); render(); sincronizarPronto(); }
+    return;
+  }
   if (el.dataset.ed && S.ed) { S.ed[el.dataset.ed] = el.value; render(); return; }
   if (el.dataset.rac != null) {
     const v = cantidad(el.value);
@@ -2144,6 +2185,18 @@ function moverFranja(el) {
 
 document.getElementById("app").addEventListener("change", function(ev){
   if (ev.target.dataset && ev.target.dataset.mover) { moverFranja(ev.target); return; }
+  if (ev.target.dataset && ev.target.dataset.movergrupo) {
+    const g = ev.target.dataset.movergrupo;
+    let n = 0;
+    Object.keys(S.ent).forEach(function (id) {
+      const e = S.ent[id];
+      if (!e.borrado && e.grupo === g && e.fecha === S.fecha && e.franja !== ev.target.value) {
+        tocar(id, { franja: ev.target.value }); n++;
+      }
+    });
+    if (n) { guardar(); render(); sincronizarPronto(); }
+    return;
+  }
   if (ev.target.id !== "ficheroImport") return;
   const f = ev.target.files[0]; if (!f) return;
   const lector = new FileReader();
