@@ -244,7 +244,7 @@ const SEMILLA_RECETAS = [["Pollo thai con curry verde", "Zanahoria", 100.0, 1.07
 
 const VIAB  = [["Txuletón", "Comida"], ["Parrillada de carne (Kamado)", "Comida"], ["Costillas BBQ (Kamado)", "Comida"], ["Hamburguesa Berty's (Emily Love's)", "Comida"], ["Hamburguesa de restaurante", "Comida"], ["KFC (alitas de pollo)", "Comida"], ["Ramen tantanmen", "Comida"], ["Lasaña de atún", "Comida"], ["Pollo thai con curry verde", "Comida"], ["Lentejas caseras", "Comida"], ["Alubias caseras", "Comida"], ["Ensaladilla rusa", "Comida"], ["Vainas con patata", "Comida"], ["Ensalada con todo", "Comida"], ["Sopa y garbanzos", "Comida"], ["Fabada Cidacos", "Comida"], ["Pollo hindú Mercadona", "Comida"], ["Pizza Kamado casera", "Cena"], ["Zorza del Mercadona con patatas y huevos", "Cena"], ["Sushi (10-12 piezas)", "Cena"], ["Ensalada de tomate y bonito", "Cena"], ["Pintxo de tortilla con bonito y mayonesa (doble)", "Desayuno"], ["Domingo de chucherías", "Extras"]];
 
-const VERSION = "2026.08.30-13";
+const VERSION = "2026.08.31-2";
 const FRANJAS = ["Desayuno","Hamaiketako","Comida","Merienda","Cena","Extras"];
 const DIAS = ["lunes","martes","miércoles","jueves","viernes","sábado","domingo"];
 const MESES = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
@@ -777,8 +777,9 @@ function vistaRegistro() {
         h += '<div class="logrow"><div class="info">'
           + '<div style="font-size:15px;font-weight:600">'+esc(e[0])+' '
           + '<span class="veredicto v-no">desconocido</span></div>'
-          + '<div class="note">No está en tu catálogo, así que no suma nada. Créalo en Alimentos con ese mismo '
-          + 'nombre y se contará solo.</div></div>'
+          + '<div class="note">No está en tu catálogo, así que no suma nada. Puede que lo crearas en otro '
+          + 'dispositivo y no haya llegado aún: prueba a sincronizar allí. Si no, créalo en Alimentos con este '
+          + 'mismo nombre y se contará solo.</div></div>'
           + '<div class="ctrl"><span></span><span></span><span></span>'
           + '<button class="btn ghost tiny" data-act="del" data-id="'+e[3]+'" aria-label="Quitar '+esc(e[0])+'">Quitar</button>'
           + '</div></div>';
@@ -1030,6 +1031,7 @@ if ("serviceWorker" in navigator) {
 }
 
   const pedirCat = !catDeLaHoja || S.pedirCat;
+  const pendientesHuerfanos = [];
   const cuerpo = {
     token: S.sync.token,
     desde: S.sync.ultimo || 0,
@@ -1039,7 +1041,8 @@ if ("serviceWorker" in navigator) {
     meta: [{ clave:"params", valor:JSON.stringify(S.params),
              ts: S.pend.meta.params ? (S.metaTs.params || Date.now()) : (S.metaTs.params || 1) }],
     platos: Object.keys(S.pend.platos).map(function (n) {
-      const it = BY[n]; if (!it) return null;
+      const it = BY[n] || ITEMS.filter(x => x[0] === n)[0];
+      if (!it) { pendientesHuerfanos.push(n); return null; }
       return [it[0], it[1], it[2], it[3], it[4], it[5], it[6], (it[7]||0)+(it[8]||0),
               it[9], it[10], ["Estimación","MyFitnessPal","Etiqueta","Tuyo"][it[11]] || "Estimación",
               it[12], it[13]];
@@ -1114,11 +1117,14 @@ if ("serviceWorker" in navigator) {
     });
 
     if (d.catalogo && d.catalogo.length) {
+      // lo que todavía no ha llegado a la hoja se conserva: si no, se perdería para siempre
+      const sinSubir = ITEMS.filter(x => S.pend.platos[x[0]]);
       ITEMS = d.catalogo.map(function (f) {
         const ori = { "Estimación":0, "MyFitnessPal":1, "Etiqueta":2, "Tuyo":3 }[String(f[10])] || 0;
         return [f[0], f[1], f[2], f[3], f[4], f[5], f[6], f[7], 0, f[8], f[9], ori, f[11], f[12],
                 ori === 3 ? "propio" : ""];
       });
+      sinSubir.forEach(function (x) { if (!ITEMS.some(y => y[0] === x[0])) ITEMS = ITEMS.concat([x]); });
       reindex(); catDeLaHoja = true; S.pedirCat = false;
       // completar: los alimentos de la semilla que la hoja no tenga se suben como altas
       let añadidos = 0;
@@ -1142,6 +1148,8 @@ if ("serviceWorker" in navigator) {
       if (dias.length) PLAN = dias;
     }
     S.pend = { ent:{}, pesos:{}, meta:{}, platos:{}, borrarPlatos:{} };
+    // si algo quedó sin poder enviarse, sigue pendiente en vez de desaparecer
+    pendientesHuerfanos.forEach(function (n) { S.pend.platos[n] = 1; });
     S.recetasPend = [];
     S.sync.ultimo = Number(d.ts) || Date.now();
     S.sync.cuando = Date.now();
@@ -1624,13 +1632,54 @@ function vistaSugerencias(reg, objD, o) {
     h += '<button class="btn tiny'+(S.sug === f ? "" : " ghost")+'" data-act="sug" data-v="'+esc(f)+'">'
       + esc(f)+(vacia ? "" : " ✓")+'</button>';
   });
-  h += '<button class="btn ghost tiny" data-act="sug" data-v="">Cerrar</button></div>';
+  h += '<button class="btn'+(S.sug === "__prot__" ? "" : " ghost")+' tiny" data-act="sug" data-v="__prot__">'
+    + 'Solo proteína</button>'
+    + '<button class="btn ghost tiny" data-act="sug" data-v="">Cerrar</button></div>';
 
   if (!S.sug) {
     h += '<p class="note" style="margin:6px 0 0">Elige la franja que quieres decidir. El ✓ marca las que ya tienes '
       + 'con algo.</p></div>';
     return h;
   }
+  if (S.sug === "__prot__") {
+    const falta = Math.max(0, o.prot - t.prot);
+    if (falta <= 0) {
+      h += '<p class="note" style="margin:9px 0 0;font-weight:600;color:var(--verde)">La proteína del día ya está '
+        + 'cubierta: '+fmt(t.prot)+' de '+fmt(o.prot)+' g.</p></div>';
+      return h;
+    }
+    const cabe = Math.max(0, resto);
+    const cand = catalogo().filter(function (it) {
+      if (it[2] < 30 || it[3] <= 0) return false;
+      if (it[9] === "Excepción" || it[0].indexOf("Fuera (") === 0) return false;
+      return it[2] <= cabe + 80;
+    }).map(function (it) {
+      return { it:it, dens: it[3] / it[2] * 100,
+               veces: Math.max(1, Math.min(4, Math.round(falta / it[3] * 2) / 2)) };
+    });
+    cand.sort((a, b) => b.dens - a.dens);
+    h += '<p class="note" style="margin:8px 0 10px">Te faltan <b>'+fmt(falta)+' g de proteína</b> y te caben '
+      + '<b>'+fmt(cabe)+' kcal</b>. Esto es lo que más proteína te da por caloría, de lo que cabe hoy.</p>';
+    if (!cand.length) h += '<p class="note">Con las calorías que quedan no entra nada con proteína suficiente.</p>';
+    cand.slice(0, 8).forEach(function (c) {
+      const it = c.it;
+      const n = Math.max(1, Math.ceil(falta / it[3] * 10) / 10);
+      const cant = Math.round(BASE(it) * Math.min(n, 3) * 10) / 10;
+      const kc = it[2] * cant / BASE(it), pr = it[3] * cant / BASE(it);
+      h += '<div class="platoc"><div class="ingr"><div class="info">'
+        + '<div style="font-size:15px;font-weight:600">'+esc(it[0])+'</div>'
+        + '<div class="note mono" style="font-weight:600">'+fmt(it[3])+' g P por '+fmt(it[2])+' kcal · '
+        + '<b>'+c.dens.toFixed(1)+' g por 100 kcal</b></div>'
+        + '<div class="note">'+fmtCant(cant)+' '+esc(UNI(it))+' te darían '+fmt(pr)+' g de proteína en '
+        + fmt(kc)+' kcal'+(kc > cabe ? ' (te pasarías '+fmt(kc-cabe)+')' : '')+'</div></div>'
+        + '<button class="btn tiny" data-act="addprot" data-v="'+esc(it[0])+'" data-c="'+cant+'">Añadir</button>'
+        + '</div></div>';
+    });
+    h += '<p class="note" style="margin-top:10px">Se añade a <b>'+esc(S.franja).toLowerCase()+'</b>. '
+      + 'Cambia la franja arriba si quieres otra.</p></div>';
+    return h;
+  }
+
   const r = sugerencias(S.sug, reg, objD, o);
   if (resto <= 0) {
     h += '<p class="aviso" style="margin:8px 0 0">Hoy ya te has pasado '+fmt(-resto)+' kcal del objetivo del día, '
@@ -2210,6 +2259,11 @@ document.getElementById("app").addEventListener("click", function(ev){
     else { S.aviso = "Guardado «"+String(S.nomPlato).trim()+"». Ya lo tienes en el buscador."; S.guardarPlato = null; S.nomPlato = ""; }
   }
   else if (a === "sug") { S.sug = b.dataset.v; }
+  else if (a === "addprot") {
+    const c = parseFloat(b.dataset.c);
+    anotarPlato(S.fecha, b.dataset.v, isNaN(c) ? BASE(BY[b.dataset.v]) : c, S.franja);
+    guardar();
+  }
   else if (a === "addsug") {
     anotarPlato(S.fecha, b.dataset.v, BASE(BY[b.dataset.v]), b.dataset.f); guardar();
   }
