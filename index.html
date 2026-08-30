@@ -213,7 +213,7 @@ const SEMILLA_RECETAS = [["Pollo thai con curry verde", "Zanahoria", 100.0, 1.07
 
 const VIAB  = [["Txuletón", "Comida"], ["Parrillada de carne (Kamado)", "Comida"], ["Costillas BBQ (Kamado)", "Comida"], ["Hamburguesa Berty's (Emily Love's)", "Comida"], ["Hamburguesa de restaurante", "Comida"], ["KFC (alitas de pollo)", "Comida"], ["Ramen tantanmen", "Comida"], ["Lasaña de atún", "Comida"], ["Pollo thai con curry verde", "Comida"], ["Lentejas caseras", "Comida"], ["Alubias caseras", "Comida"], ["Ensaladilla rusa", "Comida"], ["Vainas con patata", "Comida"], ["Ensalada con todo", "Comida"], ["Sopa y garbanzos", "Comida"], ["Fabada Cidacos", "Comida"], ["Pollo hindú Mercadona", "Comida"], ["Pizza Kamado casera", "Cena"], ["Zorza del Mercadona con patatas y huevos", "Cena"], ["Sushi (10-12 piezas)", "Cena"], ["Ensalada de tomate y bonito", "Cena"], ["Pintxo de tortilla con bonito y mayonesa (doble)", "Desayuno"], ["Domingo de chucherías", "Extras"]];
 
-const VERSION = "2026.08.30-7";
+const VERSION = "2026.08.30-8";
 const FRANJAS = ["Desayuno","Hamaiketako","Comida","Merienda","Cena","Extras"];
 const DIAS = ["lunes","martes","miércoles","jueves","viernes","sábado","domingo"];
 const MESES = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
@@ -1743,7 +1743,9 @@ function vistaAlimentos() {
     + '<p class="note" style="margin:8px 0 8px">La app no puede leer fotos por sí sola: es un archivo HTML sin '
     + 'servidor ni conexión a ningún servicio. El camino que sí funciona: haz la foto de la tabla nutricional, '
     + 'mándamela en el chat y te devuelvo una línea de datos. Pégala aquí y el alimento queda creado.</p>'
-    + '<p class="note" style="margin:0 0 8px">Formato (puedes pegar varios a la vez):<br>'
+    + '<p class="note" style="margin:0 0 8px">Un alimento suelto lleva sus datos. Un plato lleva además '
+    + '<b>receta</b>, y entonces sus calorías se reparten entre los ingredientes; si le pones <b>kcal</b>, '
+    + 'se escala para que cuadren con ese dato. Con <b>raciones</b> divides una olla entre varios.<br>'
     + '<code style="font-family:\'IBM Plex Mono\',monospace;font-size:12.5px;background:#DCE7E0;padding:2px 5px">'
     + '[{"nombre":"Yogur Aldi maracuyá","base":150,"unidad":"g","kcal":98,"prot":15,"grasa":1.5,"hidratos":7}]'
     + '</code></p>'
@@ -1877,6 +1879,82 @@ document.getElementById("app").addEventListener("click", function(ev){
       if (p.userChoice) p.userChoice.then(function(){ render(); });
     }
     return;
+  }
+  else if (a === "sincronizar") { guardar(); sincronizar(false); return; }
+  else if (a === "resync") { S.sync.ultimo = 0; S.sync.estado = ""; guardar(); sincronizar(false); return; }
+  else if (a === "recargarcat") { S.pedirCat = true; guardar(); sincronizar(false); return; }
+  else if (a === "pegar") {
+    const num = v => { const x = parseFloat(String(v == null ? "" : v).replace(",", ".")); return isNaN(x) ? 0 : x; };
+    try {
+      let d = JSON.parse(S.pegado);
+      if (!Array.isArray(d)) d = [d];
+
+      // 1) primero los que no tienen receta: son ingredientes o platos sueltos
+      let nIng = 0, nPlat = 0, nRec = 0, saltados = [], sinIngr = [];
+      const alta = function (o) {
+        const nom = String(o.nombre || "").trim();
+        if (!nom) return null;
+        if (BY[nom] && !o.reemplazar) { saltados.push(nom); return null; }
+        const bs = num(o.base) || 1;
+        const un = String(o.unidad || "raciones");
+        const it = [nom, String(o.categoria || "Ingredientes"), num(o.kcal), num(o.prot), num(o.grasa),
+                    num(o.hidratos), num(o.alc), num(o.verdura) + num(o.fruta) + num(o.vf), 0, "N.A.",
+                    String(o.racion || (fmtCant(bs) + " " + un)), 3, bs, un, "propio"];
+        ITEMS = ITEMS.filter(x => x[0] !== nom).concat([it]);
+        S.pend.platos[nom] = 1;
+        reindex();
+        return it;
+      };
+      d.filter(o => !o.receta).forEach(function (o) { if (alta(o)) nIng++; });
+
+      // 2) luego los platos con receta, para que sus ingredientes ya existan
+      d.filter(o => o.receta && o.receta.length).forEach(function (o) {
+        const nom = String(o.nombre || "").trim();
+        if (!nom) return;
+        if (BY[nom] && !o.reemplazar) { saltados.push(nom); return; }
+        // sumar los ingredientes
+        let sk = 0, sp = 0, sg = 0, sc = 0, sa = 0, svf = 0, faltan = [];
+        o.receta.forEach(function (r) {
+          const ing = BY[String(r[0])];
+          if (!ing) { faltan.push(String(r[0])); return; }
+          const f = num(r[1]) / BASE(ing);
+          sk += ing[2]*f; sp += ing[3]*f; sg += ing[4]*f; sc += ing[5]*f; sa += ing[6]*f;
+          svf += (ing[7] + ing[8]) * f;
+        });
+        if (faltan.length) { sinIngr = sinIngr.concat(faltan.map(x => nom + " → " + x)); return; }
+        // si das las kcal del plato, se escala para que cuadren; si no, manda la suma
+        const kObj = num(o.kcal);
+        const factor = (kObj > 0 && sk > 0) ? Math.round(kObj / sk * 10000) / 10000 : 1;
+        const raciones = num(o.raciones) || 1;
+        const it = [nom, String(o.categoria || "Comida"),
+                    Math.round(sk*factor/raciones), Math.round(sp*factor/raciones*10)/10,
+                    Math.round(sg*factor/raciones*10)/10, Math.round(sc*factor/raciones*10)/10,
+                    Math.round(sa*factor/raciones*10)/10, Math.round(svf/raciones), 0,
+                    String(o.taper || "Sí"),
+                    String(o.racion || (raciones > 1 ? "1 ración de "+raciones : "1 ración")),
+                    3, 1, "raciones", "propio"];
+        ITEMS = ITEMS.filter(x => x[0] !== nom).concat([it]);
+        S.pend.platos[nom] = 1;
+        S.recetasPend = (S.recetasPend || []).filter(r => r[0] !== nom)
+          .concat(o.receta.map(r => [nom, String(r[0]), Math.round(num(r[1])/raciones*10)/10, factor]));
+        RECETAS = RECETAS.filter(r => r[0] !== nom).concat(S.recetasPend.filter(r => r[0] === nom));
+        nPlat++; nRec += o.receta.length;
+        reindex();
+      });
+
+      guardar();
+      S.pegado = "";
+      const partes = [];
+      if (nIng) partes.push(nIng + (nIng === 1 ? " alimento" : " alimentos"));
+      if (nPlat) partes.push(nPlat + (nPlat === 1 ? " plato con receta" : " platos con receta") + " ("+nRec+" ingredientes)");
+      S.aviso = partes.length ? "Creado: " + partes.join(" y ") + "."
+                              : "No se ha creado nada nuevo.";
+      if (saltados.length) S.aviso += " Ya existían y no se han tocado: " + saltados.slice(0,6).join(", ")
+        + (saltados.length > 6 ? " y "+(saltados.length-6)+" más" : "") + ".";
+      if (sinIngr.length) S.aviso += " NO se han creado por faltar ingredientes: " + sinIngr.slice(0,5).join("; ") + ".";
+    } catch (err) {
+      S.aviso = "Eso no es un JSON válido. Cópialo entero, con los corchetes.";
+    }
   }
   else if (a === "sincronizar") { guardar(); sincronizar(false); return; }
   else if (a === "resync") { S.sync.ultimo = 0; S.sync.estado = ""; guardar(); sincronizar(false); return; }
