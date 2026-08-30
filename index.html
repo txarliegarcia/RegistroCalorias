@@ -212,7 +212,7 @@ const SEMILLA_RECETAS = [["Pollo thai con curry verde", "Zanahoria", 100.0, 1.07
 
 const VIAB  = [["Txuletón", "Comida"], ["Parrillada de carne (Kamado)", "Comida"], ["Costillas BBQ (Kamado)", "Comida"], ["Hamburguesa Berty's (Emily Love's)", "Comida"], ["Hamburguesa de restaurante", "Comida"], ["KFC (alitas de pollo)", "Comida"], ["Ramen tantanmen", "Comida"], ["Lasaña de atún", "Comida"], ["Pollo thai con curry verde", "Comida"], ["Lentejas caseras", "Comida"], ["Alubias caseras", "Comida"], ["Ensaladilla rusa", "Comida"], ["Vainas con patata", "Comida"], ["Ensalada con todo", "Comida"], ["Sopa y garbanzos", "Comida"], ["Fabada Cidacos", "Comida"], ["Pollo hindú Mercadona", "Comida"], ["Pizza Kamado casera", "Cena"], ["Zorza del Mercadona con patatas y huevos", "Cena"], ["Sushi (10-12 piezas)", "Cena"], ["Ensalada de tomate y bonito", "Cena"], ["Pintxo de tortilla con bonito y mayonesa (doble)", "Desayuno"], ["Domingo de chucherías", "Extras"]];
 
-const VERSION = "2026.08.30-2";
+const VERSION = "2026.08.30-3";
 const FRANJAS = ["Desayuno","Hamaiketako","Comida","Merienda","Cena","Extras"];
 const DIAS = ["lunes","martes","miércoles","jueves","viernes","sábado","domingo"];
 const MESES = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
@@ -670,7 +670,10 @@ function vistaRegistro() {
     if (idxs.length === 0) return;
     const sub = totales(idxs.map(i => reg[i]));
     h += '<div class="grupo"><div class="gcab"><span class="gnom">'+esc(f)+'</span>'
-      + '<span class="gsub">'+fmt(sub.kcal)+' kcal · '+fmt(sub.prot)+' g P</span></div><div class="gcue">';
+      + '<span class="gsub">'+fmt(sub.kcal)+' kcal · '+fmt(sub.prot)+' g P</span>'
+      + '<button class="btnf" data-act="guardarplato" data-v="'+esc(f)+'" '
+      + 'title="Guardar esta franja como un plato reutilizable">Guardar como plato</button>'
+      + '</div><div class="gcue">';
     const pintado = {};
     idxs.forEach(function(i){
       const e = reg[i], it = BY[e[0]];
