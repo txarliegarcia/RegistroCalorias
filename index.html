@@ -210,7 +210,7 @@ const SEMILLA_RECETAS = [["Pollo thai con curry verde", "Zanahoria", 100.0, 1.07
 
 const VIAB  = [["Txuletón", "Comida"], ["Parrillada de carne (Kamado)", "Comida"], ["Costillas BBQ (Kamado)", "Comida"], ["Hamburguesa Berty's (Emily Love's)", "Comida"], ["Hamburguesa de restaurante", "Comida"], ["KFC (alitas de pollo)", "Comida"], ["Ramen tantanmen", "Comida"], ["Lasaña de atún", "Comida"], ["Pollo thai con curry verde", "Comida"], ["Lentejas caseras", "Comida"], ["Alubias caseras", "Comida"], ["Ensaladilla rusa", "Comida"], ["Vainas con patata", "Comida"], ["Ensalada con todo", "Comida"], ["Sopa y garbanzos", "Comida"], ["Fabada Cidacos", "Comida"], ["Pollo hindú Mercadona", "Comida"], ["Pizza Kamado casera", "Cena"], ["Zorza del Mercadona con patatas y huevos", "Cena"], ["Sushi (10-12 piezas)", "Cena"], ["Ensalada de tomate y bonito", "Cena"], ["Pintxo de tortilla con bonito y mayonesa (doble)", "Desayuno"], ["Domingo de chucherías", "Extras"]];
 
-const VERSION = "2026.08.29-5";
+const VERSION = "2026.08.30-1";
 const FRANJAS = ["Desayuno","Hamaiketako","Comida","Merienda","Cena","Extras"];
 const DIAS = ["lunes","martes","miércoles","jueves","viernes","sábado","domingo"];
 const MESES = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
@@ -1096,8 +1096,8 @@ if ("serviceWorker" in navigator) {
     borrarPlatos: Object.keys(S.pend.borrarPlatos),
     pedirCat: pedirCat
   };
-  // la primerísima vez: subir el catálogo y el plan incrustados para sembrar la hoja
-  if (!catDeLaHoja) {
+  // se manda siempre que se pide el catálogo: el servidor solo escribe donde esté vacío
+  if (pedirCat) {
     cuerpo.sembrar = {
       catalogo: SEMILLA_ITEMS.map(function (i) {
         return [i[0], i[1], i[2], i[3], i[4], i[5], i[6], (i[7]||0)+(i[8]||0), i[9], i[10],
@@ -1154,6 +1154,14 @@ if ("serviceWorker" in navigator) {
                 ori === 3 ? "propio" : ""];
       });
       reindex(); catDeLaHoja = true; S.pedirCat = false;
+      // completar: los alimentos de la semilla que la hoja no tenga se suben como altas
+      let añadidos = 0;
+      SEMILLA_ITEMS.forEach(function (i) {
+        if (BY[i[0]]) return;
+        ITEMS = ITEMS.concat([i.slice()]);
+        S.pend.platos[i[0]] = 1; añadidos++;
+      });
+      if (añadidos) { reindex(); S.aviso = "Faltaban "+añadidos+" alimentos en la hoja. Se están subiendo."; }
     }
     if (d.recetas) { RECETAS = d.recetas; Store.set("carlos:recetas", RECETAS); }
     if (d.plan && d.plan.length) {
