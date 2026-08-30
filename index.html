@@ -121,6 +121,8 @@ input:focus-visible{outline:2px solid var(--pine);outline-offset:-1px}
 .v-justo{background:#F6E2B8;color:#6B3F06}
 .v-no{background:#F7CFC9;color:#8A1C11}
 table{width:100%;border-collapse:collapse;font-size:14px}
+.btnf{background:none;border:1px solid rgba(255,255,255,.45);color:#fff;border-radius:3px;font:inherit;font-size:11.5px;font-weight:600;padding:3px 8px;cursor:pointer;white-space:nowrap}
+.btnf:hover{background:rgba(255,255,255,.15)}
 .platoc{border:1.5px solid var(--line);border-radius:3px;margin:9px 0;background:#F7F9F6}
 .platoh{display:flex;align-items:center;gap:9px;padding:8px 10px;border-bottom:1px solid var(--line)}
 .platob{background:none;border:none;padding:0;font:inherit;font-size:15px;font-weight:700;color:var(--ink);
@@ -210,7 +212,7 @@ const SEMILLA_RECETAS = [["Pollo thai con curry verde", "Zanahoria", 100.0, 1.07
 
 const VIAB  = [["Txuletón", "Comida"], ["Parrillada de carne (Kamado)", "Comida"], ["Costillas BBQ (Kamado)", "Comida"], ["Hamburguesa Berty's (Emily Love's)", "Comida"], ["Hamburguesa de restaurante", "Comida"], ["KFC (alitas de pollo)", "Comida"], ["Ramen tantanmen", "Comida"], ["Lasaña de atún", "Comida"], ["Pollo thai con curry verde", "Comida"], ["Lentejas caseras", "Comida"], ["Alubias caseras", "Comida"], ["Ensaladilla rusa", "Comida"], ["Vainas con patata", "Comida"], ["Ensalada con todo", "Comida"], ["Sopa y garbanzos", "Comida"], ["Fabada Cidacos", "Comida"], ["Pollo hindú Mercadona", "Comida"], ["Pizza Kamado casera", "Cena"], ["Zorza del Mercadona con patatas y huevos", "Cena"], ["Sushi (10-12 piezas)", "Cena"], ["Ensalada de tomate y bonito", "Cena"], ["Pintxo de tortilla con bonito y mayonesa (doble)", "Desayuno"], ["Domingo de chucherías", "Extras"]];
 
-const VERSION = "2026.08.30-1";
+const VERSION = "2026.08.30-2";
 const FRANJAS = ["Desayuno","Hamaiketako","Comida","Merienda","Cena","Extras"];
 const DIAS = ["lunes","martes","miércoles","jueves","viernes","sábado","domingo"];
 const MESES = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
@@ -294,6 +296,10 @@ const S = {
   ordSem: null,
   grupos: Store.get("carlos:grupos", {}),
   cerrados: {},
+  repetir: null,
+  guardarPlato: null,
+  nomPlato: "",
+  recetasPend: Store.get("carlos:recpend", []),
   sug:    ""
 };
 
@@ -411,6 +417,7 @@ const guardar = () => {
   Store.set("carlos:plan", PLAN);
   Store.set("carlos:recetas", RECETAS);
   Store.set("carlos:grupos", S.grupos || {});
+  Store.set("carlos:recpend", S.recetasPend || []);
   Store.set("carlos:v", 5);
 };
 
@@ -597,7 +604,37 @@ function vistaRegistro() {
 
   h += vistaSugerencias(reg, objD, o);
 
-  h += '<div class="card"><span class="eyebrow">Añadir a</span>'
+  // repetir una franja de otro día
+  if (S.repetir) {
+    const dias = diasConFranja(S.repetir, 10);
+    h += '<div class="card"><div class="row"><span class="eyebrow">Repetir '+esc(S.repetir).toLowerCase()+' de otro día</span>'
+      + '<button class="btn ghost tiny" data-act="repetir" data-v="">Cerrar</button></div>';
+    if (!dias.length) h += '<p class="note" style="margin:9px 0 0">No hay ningún día anterior con algo en esa franja.</p>';
+    else dias.forEach(function (d) {
+      h += '<div class="logrow"><div class="info">'
+        + '<div style="font-size:15px;font-weight:600">'+nfDia(parseIso(d.fecha))+'</div>'
+        + '<div class="note">'+esc(d.nombres.slice(0,4).join(" · "))+(d.nombres.length>4?" …":"")+'</div>'
+        + '<div class="note mono" style="font-weight:600">'+fmt(d.kcal)+' kcal · '+d.n+' líneas</div></div>'
+        + '<button class="btn tiny" data-act="copiardia" data-v="'+d.fecha+'" data-f="'+esc(S.repetir)+'">Copiar</button></div>';
+    });
+    h += '</div>';
+  }
+
+  // guardar una franja como plato
+  if (S.guardarPlato) {
+    h += '<div class="card"><div class="row"><span class="eyebrow">Guardar '+esc(S.guardarPlato).toLowerCase()+' como plato</span>'
+      + '<button class="btn ghost tiny" data-act="guardarplato" data-v="">Cerrar</button></div>'
+      + '<p class="note" style="margin:8px 0 9px">Se crea un plato con lo que hay ahora en esa franja, sumando sus '
+      + 'calorías y macros. Podrás añadirlo de un toque y seguirá desglosado en sus partes.</p>'
+      + '<input id="nomplato" value="'+esc(S.nomPlato||"")+'" placeholder="Ensalada sin atún, buffet del hotel…" '
+      + 'aria-label="Nombre del plato nuevo">'
+      + '<div style="margin-top:10px"><button class="btn" data-act="crearplato">Guardar</button></div>';
+    if (S.aviso) h += '<p class="aviso" style="margin-top:10px">'+esc(S.aviso)+'</p>';
+    h += '</div>';
+  }
+
+  h += '<div class="card"><div class="row"><span class="eyebrow">Añadir a</span>'
+    + '<button class="btn ghost tiny" data-act="repetir" data-v="'+esc(S.franja)+'">Repetir otro día</button></div>'
     + '<div style="display:flex;flex-wrap:wrap;gap:5px;margin:7px 0 11px">';
   FRANJAS.forEach(function(f){
     h += '<button class="btn tiny'+(S.franja===f?"":" ghost")+'" data-act="franja" data-v="'+esc(f)+'">'+esc(f)+'</button>';
@@ -1094,6 +1131,7 @@ if ("serviceWorker" in navigator) {
               it[12], it[13]];
     }).filter(Boolean),
     borrarPlatos: Object.keys(S.pend.borrarPlatos),
+    recetasNuevas: S.recetasPend || [],
     pedirCat: pedirCat
   };
   // se manda siempre que se pide el catálogo: el servidor solo escribe donde esté vacío
@@ -1176,6 +1214,7 @@ if ("serviceWorker" in navigator) {
       if (dias.length) PLAN = dias;
     }
     S.pend = { ent:{}, pesos:{}, meta:{}, platos:{}, borrarPlatos:{} };
+    S.recetasPend = [];
     S.sync.ultimo = Number(d.ts) || Date.now();
     S.sync.cuando = Date.now();
     S.sync.estado = "Al día · "+ITEMS.length+" alimentos y "+PLAN.length+" días de plan desde la hoja"
@@ -1223,6 +1262,69 @@ function bloqueSync() {
     + 'segundos después de cada cambio. Todo se guarda primero en este navegador, así que puedes registrar sin '
     + 'cobertura y se subirá cuando vuelvas a tener red.</p></div>';
   return h;
+}
+
+/* ---------- repetir un día y guardar una franja como plato ---------- */
+function diasConFranja(fr, limite) {
+  const por = {};
+  Object.keys(S.ent).forEach(function (id) {
+    const e = S.ent[id];
+    if (e.borrado || e.franja !== fr || e.fecha === S.fecha) return;
+    (por[e.fecha] = por[e.fecha] || []).push(e);
+  });
+  return Object.keys(por).sort().reverse().slice(0, limite || 10).map(function (f) {
+    const l = por[f];
+    return { fecha:f, n:l.length, kcal: totales(l.map(e => [e.alimento, e.cant, e.franja, e.id, e.ts, e.grupo, e.factor])).kcal,
+             nombres: l.map(e => (e.grupo && S.grupos && S.grupos[e.grupo]) || e.alimento)
+                       .filter(function (x, i, a) { return a.indexOf(x) === i; }) };
+  });
+}
+
+function copiarFranja(fr, desde) {
+  const mapa = {};
+  Object.keys(S.ent).forEach(function (id) {
+    const e = S.ent[id];
+    if (e.borrado || e.franja !== fr || e.fecha !== desde) return;
+    let g = "";
+    if (e.grupo) {
+      if (!mapa[e.grupo]) {
+        mapa[e.grupo] = "g" + uid();
+        S.grupos = S.grupos || {};
+        S.grupos[mapa[e.grupo]] = S.grupos[e.grupo] || "Plato";
+      }
+      g = mapa[e.grupo];
+    }
+    anotar(S.fecha, e.alimento, e.cant, fr, g, e.factor || 1);
+  });
+  guardar();
+}
+
+/* Convierte lo que hay ahora en una franja en un plato nuevo del catálogo, con su receta. */
+function franjaComoPlato(fr, nombre) {
+  const nom = String(nombre || "").trim();
+  if (!nom) return "Ponle un nombre.";
+  if (BY[nom]) return "Ya existe un alimento con ese nombre.";
+  const reg = logDe(S.fecha).filter(e => e[2] === fr);
+  if (!reg.length) return "No hay nada en esa franja.";
+  const t = totales(reg);
+  const it = [nom, "Mis platos", Math.round(t.kcal), Math.round(t.prot*10)/10, Math.round(t.grasa*10)/10,
+              Math.round(t.hidratos*10)/10, Math.round(t.alc*10)/10,
+              Math.round(t.verdura + t.fruta), 0, "N.A.",
+              "Guardado desde el registro del "+nfDia(parseIso(S.fecha)), 3, 1, "raciones", "propio"];
+  ITEMS = ITEMS.concat([it]);
+  S.pend.platos[nom] = 1;
+  // la receta: cada línea con su cantidad y su factor
+  const junta = {};
+  reg.forEach(function (e) {
+    const k = e[0] + "|" + (e[6] || 1);
+    if (!junta[k]) junta[k] = { ing:e[0], cant:0, f:e[6] || 1 };
+    junta[k].cant += e[1];
+  });
+  S.recetasPend = (S.recetasPend || []).filter(r => r[0] !== nom)
+    .concat(Object.keys(junta).map(k => [nom, junta[k].ing, Math.round(junta[k].cant*10)/10, junta[k].f]));
+  RECETAS = RECETAS.filter(r => r[0] !== nom).concat(S.recetasPend.filter(r => r[0] === nom));
+  reindex(); guardar();
+  return null;
 }
 
 /* ---------- la semana: qué toca y qué comprar ---------- */
@@ -1774,6 +1876,14 @@ document.getElementById("app").addEventListener("click", function(ev){
     S.ordSem = (S.ordSem && S.ordSem.col === c) ? { col:c, dir:-S.ordSem.dir }
                                                 : { col:c, dir: c === "plato" ? 1 : -1 };
   }
+  else if (a === "repetir") { S.repetir = b.dataset.v || null; S.guardarPlato = null; S.aviso = ""; }
+  else if (a === "copiardia") { copiarFranja(b.dataset.f, b.dataset.v); S.repetir = null; }
+  else if (a === "guardarplato") { S.guardarPlato = b.dataset.v || null; S.repetir = null; S.nomPlato = ""; S.aviso = ""; }
+  else if (a === "crearplato") {
+    const err = franjaComoPlato(S.guardarPlato, S.nomPlato);
+    if (err) S.aviso = err;
+    else { S.aviso = "Guardado «"+String(S.nomPlato).trim()+"». Ya lo tienes en el buscador."; S.guardarPlato = null; S.nomPlato = ""; }
+  }
   else if (a === "sug") { S.sug = b.dataset.v; }
   else if (a === "addsug") {
     anotarPlato(S.fecha, b.dataset.v, BASE(BY[b.dataset.v]), b.dataset.f); guardar();
@@ -1823,6 +1933,7 @@ document.getElementById("app").addEventListener("input", function(ev){
   const el = ev.target;
   if (el.id === "buscar") { S.q = el.value; render(); return; }
   if (el.id === "qalim") { S.qa = el.value; render(); return; }
+  if (el.id === "nomplato") { S.nomPlato = el.value; return; }
   if (el.id === "pegado") { S.pegado = el.value; render(); return; }
   if (el.dataset.sync) { S.sync[el.dataset.sync] = el.value.trim(); guardar(); render(); return; }
   if (el.dataset.mover) { moverFranja(el); return; }
