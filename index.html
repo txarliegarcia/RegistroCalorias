@@ -327,6 +327,7 @@ const S = {
   sync:   Store.get("carlos:sync", { url:"", token:"" }),
   catVer: Store.get("carlos:catver", ""),
   semana: null,
+  backend: "",
   fecha:  iso(new Date()),
   vista:  "registro",
   q:      "",
@@ -1346,6 +1347,16 @@ async function pedir(cuerpo, texto) {
       return null;
     }
     aplicar(d);
+    if (!d.backend) {
+      colaError = "El script de Google que tienes desplegado es antiguo y no guarda nada. "
+        + "En Apps Script: Implementar → Gestionar implementaciones → lápiz → Versión nueva → Implementar.";
+      return null;
+    }
+    if (d.backend !== VERSION) {
+      colaError = "La app es la "+VERSION+" y el script desplegado es la "+d.backend
+        + ". Vuelve a desplegar el script (Versión nueva) o sube el index.html que le corresponda.";
+      return null;
+    }
     colaError = "";
     return d;
   } catch (err) {
