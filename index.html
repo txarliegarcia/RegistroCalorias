@@ -123,6 +123,16 @@ input:focus-visible{outline:2px solid var(--pine);outline-offset:-1px}
 table{width:100%;border-collapse:collapse;font-size:14px}
 .btnf{background:none;border:1px solid rgba(255,255,255,.45);color:#fff;border-radius:3px;font:inherit;font-size:11.5px;font-weight:600;padding:3px 8px;cursor:pointer;white-space:nowrap}
 .btnf:hover{background:rgba(255,255,255,.15)}
+/* aviso de que está hablando con la hoja */
+.cargando{position:fixed;left:50%;transform:translateX(-50%);bottom:-70px;z-index:60;
+  display:flex;align-items:center;gap:10px;background:var(--ink);color:#fff;
+  padding:11px 18px;border-radius:4px;font-size:14px;font-weight:600;
+  box-shadow:0 6px 20px rgba(0,0,0,.28);transition:bottom .18s ease-out;pointer-events:none}
+.cargando.on{bottom:22px}
+.rueda{width:16px;height:16px;border:2.5px solid rgba(255,255,255,.3);border-top-color:#fff;
+  border-radius:50%;animation:gira .7s linear infinite;flex:0 0 auto}
+@keyframes gira{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.rueda{animation-duration:2s}}
 .platoc{border:1.5px solid var(--line);border-radius:3px;margin:9px 0;background:#F7F9F6}
 .platoh{display:flex;align-items:center;gap:10px;padding:9px 10px;border-bottom:1px solid var(--line)}
 .platoh .info{flex:1 1 auto;min-width:0}
@@ -233,6 +243,7 @@ td.num,th.num{text-align:right;font-family:'IBM Plex Mono',monospace;font-varian
 </style>
 </head>
 <body>
+<div class="cargando" id="cargando" aria-live="polite"><span class="rueda"></span><span class="ctxt">Guardando…</span></div>
 <div class="wrap" id="app"></div>
 <script>
 "use strict";
@@ -244,7 +255,7 @@ const SEMILLA_RECETAS = [["Pollo thai con curry verde", "Zanahoria", 100.0, 1.07
 
 const VIAB  = [["Txuletón", "Comida"], ["Parrillada de carne (Kamado)", "Comida"], ["Costillas BBQ (Kamado)", "Comida"], ["Hamburguesa Berty's (Emily Love's)", "Comida"], ["Hamburguesa de restaurante", "Comida"], ["KFC (alitas de pollo)", "Comida"], ["Ramen tantanmen", "Comida"], ["Lasaña de atún", "Comida"], ["Pollo thai con curry verde", "Comida"], ["Lentejas caseras", "Comida"], ["Alubias caseras", "Comida"], ["Ensaladilla rusa", "Comida"], ["Vainas con patata", "Comida"], ["Ensalada con todo", "Comida"], ["Sopa y garbanzos", "Comida"], ["Fabada Cidacos", "Comida"], ["Pollo hindú Mercadona", "Comida"], ["Pizza Kamado casera", "Cena"], ["Zorza del Mercadona con patatas y huevos", "Cena"], ["Sushi (10-12 piezas)", "Cena"], ["Ensalada de tomate y bonito", "Cena"], ["Pintxo de tortilla con bonito y mayonesa (doble)", "Desayuno"], ["Domingo de chucherías", "Extras"]];
 
-const VERSION = "2026.08.30-17";
+const VERSION = "2026.08.31-1";
 const FRANJAS = ["Desayuno","Hamaiketako","Comida","Merienda","Cena","Extras"];
 const DIAS = ["lunes","martes","miércoles","jueves","viernes","sábado","domingo"];
 const MESES = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
@@ -311,12 +322,11 @@ const BY = {}; ITEMS.forEach(i => BY[i[0]] = i);
 /* ---------- estado ---------- */
 const S = {
   params: Object.assign({}, DEFAULTS, Store.get("carlos:params", {})),
-  ent:    Store.get("carlos:ent", {}),      // id -> {id,fecha,franja,alimento,cant,ts,borrado}
-  pesos:  Store.get("carlos:pesos", {}),    // fecha -> peso
-  pesosTs:Store.get("carlos:pesosTs", {}),  // fecha -> ts
-  metaTs: Store.get("carlos:metaTs", {}),   // clave -> ts
-  pend:   Store.get("carlos:pend", { ent:{}, pesos:{}, meta:{}, platos:{}, borrarPlatos:{} }),
-  sync:   Store.get("carlos:sync", { url:"", token:"", ultimo:0, estado:"", cuando:0 }),
+  ent:    {},          // se piden a la hoja; aquí no se guardan      // id -> {id,fecha,franja,alimento,cant,ts,borrado}
+  pesos:  {},    // fecha -> peso
+  sync:   Store.get("carlos:sync", { url:"", token:"" }),
+  catVer: Store.get("carlos:catver", ""),
+  semana: null,
   fecha:  iso(new Date()),
   vista:  "registro",
   q:      "",
@@ -324,7 +334,6 @@ const S = {
   aviso:  "",
   qa:     "",
   pegado: "",
-  pedirCat: false,
   ordSem: null,
   grupos: Store.get("carlos:grupos", {}),
   cerrados: {},
@@ -333,25 +342,14 @@ const S = {
   fechaCopia: "",
   recien: [],
   borrarAlim: null,
-  resyncTotal: false,
   franjaRecien: "",
   guardarPlato: null,
   nomPlato: "",
-  recetasPend: Store.get("carlos:recpend", []),
   sug:    ""
 };
 
 /* El estado guardado puede venir de una versión anterior de la app, con menos campos.
    Se completa lo que falte para que nada reviente al leerlo. */
-(function normalizarEstado(){
-  const p = S.pend || {};
-  S.pend = { ent: p.ent || {}, pesos: p.pesos || {}, meta: p.meta || {},
-             platos: p.platos || {}, borrarPlatos: p.borrarPlatos || {} };
-  S.sync = Object.assign({ url:"", token:"", ultimo:0, estado:"", cuando:0 }, S.sync || {});
-  S.ent = S.ent || {}; S.pesos = S.pesos || {}; S.pesosTs = S.pesosTs || {}; S.metaTs = S.metaTs || {};
-  if (!Array.isArray(ITEMS) || !ITEMS.length) { ITEMS = SEMILLA_ITEMS.map(i => i.slice()); catDeLaHoja = false; }
-  if (!Array.isArray(PLAN)  || !PLAN.length)  { PLAN  = SEMILLA_PLAN; }
-})();
 
 /* ---------- acceso al registro por entradas ---------- */
 const g_ = x => x;
@@ -369,41 +367,6 @@ function logDe(fecha) {
   });
   return out;
 }
-const fechasConRegistro = () => {
-  const f = {};
-  Object.keys(S.ent).forEach(function (id) { if (!S.ent[id].borrado) f[S.ent[id].fecha] = 1; });
-  return Object.keys(f);
-};
-function anotar(fecha, alimento, cant, franja, grupo, factor) {
-  const id = uid();
-  S.ent[id] = { id:id, fecha:fecha, franja:franja, alimento:alimento, cant:cant, ts:Date.now(), borrado:0,
-                grupo: grupo || "", factor: factor || 1 };
-  S.pend.ent[id] = 1;
-  return id;
-}
-
-/* Añade un plato. Si tiene receta, mete sus ingredientes agrupados en vez de una sola línea. */
-function anotarPlato(fecha, plato, cant, franja) {
-  const r = recetaDe(plato);
-  if (!r.length) return anotar(fecha, plato, cant, franja);
-  const it = BY[plato];
-  const prop = it ? cant / BASE(it) : 1;            // por si registras media ración
-  const g = "g" + uid();
-  r.forEach(function (x) {
-    if (BY[x[1]]) anotar(fecha, x[1], Math.round(x[2] * prop * 10) / 10, franja, g, x[3]);
-  });
-  S.grupos = S.grupos || {};
-  S.grupos[g] = plato;
-  Store.set("carlos:grupos", S.grupos);
-  return g;
-}
-function tocar(id, cambios) {
-  const e = S.ent[id]; if (!e) return;
-  Object.keys(cambios).forEach(function (k) { e[k] = cambios[k]; });
-  e.ts = Date.now();
-  S.pend.ent[id] = 1;
-}
-function borrarEntrada(id) { tocar(id, { borrado:1 }); }
 const BASE = it => (it && it[12]) || 1;
 const UNI  = it => (it && it[13]) || "raciones";
 const factor = (nombre, cant) => cant / BASE(BY[nombre]);
@@ -411,73 +374,17 @@ function reindex() {
   Object.keys(BY).forEach(k => { delete BY[k]; });
   ITEMS.forEach(i => BY[i[0]] = i);
 }
-const catalogo = () => ITEMS;
-
-
-/* Platos renombrados. Se aplica siempre: es idempotente y también arregla lo que
-   llegue por sincronización desde un dispositivo con el catálogo antiguo. */
-const RENOMBRES = {
-  "Yogur proteico":            ["Skyr proteico maracuyá (Milsani, Aldi)", 150],
-  "Yogur proteico con fruta":  ["Skyr con fruta", null],
-  "Pollo al curry con arroz basmati": ["Pollo hindú Mercadona", null],
-  "Arroz hindú con pollo":     ["Arroz hindú con pollo (casero)", null]
+const fechasConRegistro = () => {
+  const f = {};
+  Object.keys(S.ent).forEach(function (id) { if (!S.ent[id].borrado) f[S.ent[id].fecha] = 1; });
+  return Object.keys(f);
 };
-function aplicarRenombres() {
-  let n = 0;
-  Object.keys(S.ent).forEach(function (id) {
-    const e = S.ent[id], r = RENOMBRES[e.alimento];
-    if (!r) return;
-    e.alimento = r[0];
-    if (r[1] !== null) e.cant = r[1];
-    e.ts = Date.now(); S.pend.ent[id] = 1; n++;
-  });
-  if (n) { reindex(); guardar(); }
-  return n;
-}
-aplicarRenombres();
+
+const catalogo = () => ITEMS;
 
 
 /* ---------- datos derivados ---------- */
 if (!S.params.planStart) S.params.planStart = iso(mondayOf(new Date()));
-if (Object.keys(S.pesos).length === 0) S.pesos[iso(new Date())] = S.params.peso;
-
-reindex();
-
-const guardar = () => {
-  Store.set("carlos:params", S.params);
-  Store.set("carlos:ent", S.ent);
-  Store.set("carlos:pesos", S.pesos);
-  Store.set("carlos:pesosTs", S.pesosTs);
-  Store.set("carlos:metaTs", S.metaTs);
-  Store.set("carlos:pend", S.pend);
-  Store.set("carlos:sync", S.sync);
-  Store.set("carlos:cat", ITEMS);
-  Store.set("carlos:plan", PLAN);
-  Store.set("carlos:recetas", RECETAS);
-  Store.set("carlos:grupos", S.grupos || {});
-  Store.set("carlos:recpend", S.recetasPend || []);
-  Store.set("carlos:v", 5);
-};
-
-/* migración: de días con multiplicadores (v<3) y de días con cantidades (v3) a entradas (v4) */
-(function migrar(){
-  const v = Store.get("carlos:v", 1);
-  if (v >= 4) return;
-  const viejo = Store.get("carlos:log", {});
-  Object.keys(viejo).forEach(function(f){
-    (viejo[f] || []).forEach(function(e){
-      const it = BY[e[0]];                       // puede no existir: platos renombrados
-      const cant = (v < 3 && it) ? e[1] * (it[12] || 1) : e[1];
-      const id = uid();
-      S.ent[id] = { id:id, fecha:f, franja:e[2], alimento:e[0],
-                    cant: Math.round(cant*1000)/1000, ts: Date.now(), borrado:0 };
-      S.pend.ent[id] = 1;
-    });
-  });
-  Object.keys(S.pesos).forEach(function(f){ if (!S.pesosTs[f]) S.pesosTs[f] = Date.now(); });
-  reindex(); guardar();
-})();
-
 
 /* ---------- cálculo ---------- */
 function objetivos(p) {
@@ -564,6 +471,13 @@ function hero() {
 }
 
 function vistaRegistro() {
+  if (colaError) {
+    var hErr = '<div class="card" style="border-color:var(--rojo)">'
+      + '<span class="eyebrow" style="color:var(--rojo)">No se ha podido hablar con la hoja</span>'
+      + '<p class="note" style="margin:8px 0 10px">'+esc(colaError)+'</p>'
+      + '<button class="btn" data-act="recargar">Reintentar</button></div>';
+  } else var hErr = "";
+
   const o = objetivos(S.params);
   const d = parseIso(S.fecha);
   const objD = esFinde(d) ? o.fin : o.lab;
@@ -572,7 +486,7 @@ function vistaRegistro() {
   const dif = t.kcal - objD;
   const idx = planIndex(d);
   const pd = idx === null ? null : PLAN[idx];
-  let h = "";
+  let h = hErr + "";
 
   h += '<div class="card"><div class="row" style="margin-bottom:12px">'
     + '<button class="btn ghost tiny" data-act="dia" data-n="-1" aria-label="Día anterior">◀</button>'
@@ -996,231 +910,32 @@ function bloqueInstalar() {
   return h;
 }
 
-/* ---------- sincronización con Google Apps Script ---------- */
-let sincronizando = false;
-
-function pendientes() {
-  return Object.keys(S.pend.ent).length + Object.keys(S.pend.pesos).length
-       + Object.keys(S.pend.meta).length + Object.keys(S.pend.platos).length
-       + Object.keys(S.pend.borrarPlatos).length;
-}
-
-async function sincronizar(silencioso) {
-  if (sincronizando) return;
-  if (!S.sync.url || !S.sync.token) {
-    if (!silencioso) { S.sync.estado = "Falta configurar la dirección y el token en Ajustes."; render(); }
-    return;
-  }
-  sincronizando = true;
-  S.sync.estado = "Sincronizando…";
-  if (!silencioso) render();
-sincronizar(true);
-document.addEventListener("visibilitychange", function(){ if (!document.hidden) sincronizar(true); });
-window.addEventListener("online", function(){ sincronizar(true); });
-window.addEventListener("beforeinstallprompt", function (e) {
-  e.preventDefault(); promptInstalar = e;
-  if (S.vista === "ajustes") render();
-});
-window.addEventListener("appinstalled", function () { promptInstalar = null; render(); });
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", function () {
-    navigator.serviceWorker.register("sw.js").then(function () {
-      swRegistrado = true;
-      if (S.vista === "ajustes") render();
-    }).catch(function () { swRegistrado = false; });
-  });
-}
-
-  const pedirCat = !catDeLaHoja || S.pedirCat;
-  const pendientesHuerfanos = [];
-  const cuerpo = {
-    token: S.sync.token,
-    desde: S.sync.ultimo || 0,
-    entradas: Object.keys(S.pend.ent).map(id => S.ent[id]).filter(Boolean),
-    pesos: Object.keys(S.pend.pesos).map(f => ({ fecha:f, peso:S.pesos[f], ts:S.pesosTs[f] || Date.now() })),
-    // los parámetros van en cada sincronización: es una fila y evita que la hoja se quede sin ellos
-    meta: [{ clave:"params", valor:JSON.stringify(S.params),
-             ts: S.pend.meta.params ? (S.metaTs.params || Date.now()) : (S.metaTs.params || 1) }],
-    platos: Object.keys(S.pend.platos).map(function (n) {
-      const it = BY[n] || ITEMS.filter(x => x[0] === n)[0];
-      if (!it) { pendientesHuerfanos.push(n); return null; }
-      return [it[0], it[1], it[2], it[3], it[4], it[5], it[6], (it[7]||0)+(it[8]||0),
-              it[9], it[10], ["Estimación","MyFitnessPal","Etiqueta","Tuyo"][it[11]] || "Estimación",
-              it[12], it[13]];
-    }).filter(Boolean),
-    borrarPlatos: Object.keys(S.pend.borrarPlatos),
-    recetasNuevas: S.recetasPend || [],
-    pedirCat: pedirCat
-  };
-  // se manda siempre que se pide el catálogo: el servidor solo escribe donde esté vacío
-  if (pedirCat) {
-    cuerpo.sembrar = {
-      catalogo: SEMILLA_ITEMS.map(function (i) {
-        return [i[0], i[1], i[2], i[3], i[4], i[5], i[6], (i[7]||0)+(i[8]||0), i[9], i[10],
-                ["Estimación","MyFitnessPal","Etiqueta","Tuyo"][i[11]] || "Estimación", i[12], i[13]];
-      }),
-      recetas: SEMILLA_RECETAS,
-      plan: (function () {
-        const f = [];
-        SEMILLA_PLAN.forEach(function (d, idx) {
-          d.items.forEach(function (x) {
-            const it = SEMILLA_ITEMS.filter(y => y[0] === x[0])[0];
-            f.push([idx + 1, d.sem, d.dia, d.tipo, d.nota || "", x[1], x[0],
-                    x.length > 2 ? x[2] : (it ? it[12] : 1)]);
-          });
-        });
-        return f;
-      })()
-    };
-  }
-
-  try {
-    const res = await fetch(S.sync.url, {
-      method: "POST", redirect: "follow",
-      headers: { "Content-Type": "text/plain;charset=utf-8" },   // evita el preflight de CORS
-      body: JSON.stringify(cuerpo)
-    });
-    const d = await res.json();
-    if (d.error) throw new Error(d.error);
-
-    let nuevas = 0, cambiadas = 0;
-    /* Google Sheets puede devolver "Sat Aug 29 2026 00:00:00 GMT+0200". Se lee el texto
-       tal cual, sin convertirlo a fecha, para que la zona horaria no mueva el día. */
-    const MESIN = { Jan:"01", Feb:"02", Mar:"03", Apr:"04", May:"05", Jun:"06",
-                    Jul:"07", Aug:"08", Sep:"09", Oct:"10", Nov:"11", Dec:"12" };
-    const isoFecha = function (v) {
-      const t = String(v || "").trim();
-      if (/^\d{4}-\d{2}-\d{2}/.test(t)) return t.slice(0, 10);
-      const m = t.match(/^\w{3}\s+(\w{3})\s+(\d{1,2})\s+(\d{4})/);
-      if (m && MESIN[m[1]]) return m[3] + "-" + MESIN[m[1]] + "-" + ("0" + m[2]).slice(-2);
-      const f = new Date(t);
-      return isNaN(f) ? t : iso(f);
-    };
-    (d.entradas || []).forEach(function (r) {
-      r.fecha = isoFecha(r.fecha);
-      const local = S.ent[r.id];
-      if (!local) { S.ent[r.id] = r; nuevas++; return; }
-      // un borrado es definitivo: gana siempre, aunque la copia local sea más reciente.
-      // Si no, una migración que resella las marcas de tiempo resucitaría lo borrado.
-      if (r.borrado && !local.borrado) {
-        local.borrado = 1; local.ts = Math.max(Number(r.ts), Number(local.ts));
-        S.pend.ent[r.id] = 1; cambiadas++; return;
-      }
-      if (local.borrado && !r.borrado) { S.pend.ent[r.id] = 1; return; }   // reafirmar el borrado
-      if (Number(r.ts) > Number(local.ts)) { S.ent[r.id] = r; cambiadas++; }
-    });
-    (d.pesos || []).forEach(function (p) {
-      p.fecha = isoFecha(p.fecha);
-      if (!S.pesosTs[p.fecha] || Number(p.ts) > Number(S.pesosTs[p.fecha])) {
-        S.pesos[p.fecha] = Number(p.peso); S.pesosTs[p.fecha] = Number(p.ts);
-      }
-    });
-    (d.meta || []).forEach(function (m) {
-      if (S.metaTs[m.clave] && Number(m.ts) <= Number(S.metaTs[m.clave])) return;
-      try {
-        const v = JSON.parse(m.valor);
-        if (m.clave === "params") S.params = Object.assign({}, DEFAULTS, v);
-        S.metaTs[m.clave] = Number(m.ts);
-      } catch (e) {}
-    });
-
-    if (d.catalogo && d.catalogo.length) {
-      // lo que todavía no ha llegado a la hoja se conserva: si no, se perdería para siempre
-      const sinSubir = ITEMS.filter(x => S.pend.platos[x[0]]);
-      ITEMS = d.catalogo.map(function (f) {
-        const ori = { "Estimación":0, "MyFitnessPal":1, "Etiqueta":2, "Tuyo":3 }[String(f[10])] || 0;
-        return [f[0], f[1], f[2], f[3], f[4], f[5], f[6], f[7], 0, f[8], f[9], ori, f[11], f[12],
-                ori === 3 ? "propio" : ""];
-      });
-      sinSubir.forEach(function (x) { if (!ITEMS.some(y => y[0] === x[0])) ITEMS = ITEMS.concat([x]); });
-      reindex(); catDeLaHoja = true; S.pedirCat = false;
-      // completar: los alimentos de la semilla que la hoja no tenga se suben como altas
-      let añadidos = 0;
-      SEMILLA_ITEMS.forEach(function (i) {
-        if (BY[i[0]]) return;
-        ITEMS = ITEMS.concat([i.slice()]);
-        S.pend.platos[i[0]] = 1; añadidos++;
-      });
-      if (añadidos) { reindex(); S.aviso = "Faltaban "+añadidos+" alimentos en la hoja. Se están subiendo."; }
-    }
-    if (d.recetas) { RECETAS = d.recetas; Store.set("carlos:recetas", RECETAS); }
-    if (d.plan && d.plan.length) {
-      const porDia = {};
-      d.plan.forEach(function (f) {
-        const k = f[0];
-        if (!porDia[k]) porDia[k] = { sem:f[1], dia:f[2], tipo:f[3], nota:f[4], items:[] };
-        if (f[4] && !porDia[k].nota) porDia[k].nota = f[4];
-        porDia[k].items.push([f[6], f[5], f[7]]);
-      });
-      const dias = Object.keys(porDia).map(Number).sort((a,b) => a-b).map(k => porDia[k]);
-      if (dias.length) PLAN = dias;
-    }
-    // reemplazo total: lo que ya no está en la hoja se va también de aquí.
-    // Se respeta lo que aún esté pendiente de subir, que si no se perdería.
-    if (S.resyncTotal) {
-      const enHoja = {};
-      (d.entradas || []).forEach(function (r) { enHoja[r.id] = 1; });
-      let quitadas = 0;
-      Object.keys(S.ent).forEach(function (id) {
-        if (!enHoja[id] && !S.pend.ent[id]) { delete S.ent[id]; quitadas++; }
-      });
-      S.resyncTotal = false;
-      if (quitadas) S.aviso = "Quitadas "+quitadas+(quitadas===1?" línea que ya no estaba":" líneas que ya no estaban")
-        + " en la hoja.";
-    }
-    S.pend = { ent:{}, pesos:{}, meta:{}, platos:{}, borrarPlatos:{} };
-    // si algo quedó sin poder enviarse, sigue pendiente en vez de desaparecer
-    pendientesHuerfanos.forEach(function (n) { S.pend.platos[n] = 1; });
-    S.recetasPend = [];
-    S.sync.ultimo = Number(d.ts) || Date.now();
-    S.sync.cuando = Date.now();
-    S.sync.estado = "Al día · "+ITEMS.length+" alimentos y "+PLAN.length+" días de plan desde la hoja"
-      + (nuevas || cambiadas ? " · "+(nuevas+cambiadas)+" registros recibidos" : "")
-      + (d.sembrado ? " · SEMBRADA la hoja con "+d.sembrado+" alimentos" : "");
-    guardar();
-  } catch (err) {
-    S.sync.estado = "No se ha podido sincronizar: " + (err && err.message ? err.message : err);
-    guardar();
-  }
-  sincronizando = false;
-  render();
-}
-
-let temporizador = null;
-function sincronizarPronto() {
-  if (!S.sync.url) return;
-  clearTimeout(temporizador);
-  temporizador = setTimeout(function () { sincronizar(true); }, 2500);
-}
+function pendientes() { return 0; }
 
 function bloqueSync() {
-  const p = pendientes();
-  const conf = S.sync.url && S.sync.token;
-  const col = !conf ? "var(--ink)" : (p ? "var(--quince)" : "var(--verde)");
-  let h = '<div class="card"><div class="row"><span class="eyebrow">Sincronización entre el PC y el móvil</span>'
-    + '<span class="eyebrow" title="Versión de la app que estás viendo">versión '+VERSION+'</span></div>';
-  h += '<p class="note" style="margin:8px 0 10px;font-weight:600;color:'+col+'">'
-    + (!conf ? "Sin configurar: los datos solo viven en este navegador."
-             : (p ? p+(p===1?" cambio pendiente de subir":" cambios pendientes de subir")
-                  : "Todo subido."))
-    + (S.sync.cuando ? " Última sincronización: "+new Date(S.sync.cuando).toLocaleString("es-ES")+"." : "")+'</p>';
-  h += '<div class="grid2"><div><span class="eyebrow">Dirección del script</span>'
-    + '<input id="sy_url" data-sync="url" value="'+esc(S.sync.url)+'" '
+  let h = '<div class="card"><div class="row"><span class="eyebrow">Conexión con la hoja de Google</span>'
+    + '<span class="eyebrow" title="Versión de la app que estás viendo">versión '+VERSION+'</span></div>'
+    + '<p class="note" style="margin:8px 0 10px">Tus comidas viven <b>solo en la hoja</b>. Este dispositivo no '
+    + 'guarda ninguna: las pide al abrir y escribe cada cambio allí antes de pintarlo. Por eso el móvil y el PC '
+    + 'ven siempre lo mismo.</p>';
+  if (colaError) h += '<p class="aviso" style="margin:0 0 10px">'+esc(colaError)+'</p>';
+  h += '<div class="grid2">'
+    + '<div><span class="eyebrow">Dirección del script</span>'
+    + '<input id="syncurl" data-sync="url" value="'+esc(S.sync.url)+'" '
     + 'placeholder="https://script.google.com/macros/s/…/exec" aria-label="Dirección del script" style="margin-top:5px"></div>'
     + '<div><span class="eyebrow">Token</span>'
-    + '<input id="sy_token" data-sync="token" value="'+esc(S.sync.token)+'" '
-    + 'placeholder="el mismo que pusiste en Code.gs" aria-label="Token" style="margin-top:5px"></div></div>';
-  h += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">'
-    + '<button class="btn" data-act="sincronizar">Sincronizar ahora</button>'
-    + '<button class="btn ghost" data-act="recargarcat">Recargar alimentos y plan</button>'
-    + '<button class="btn ghost" data-act="resync" '
-    + 'title="Sustituye el registro de este dispositivo por el de la hoja">Volver a bajar todo</button></div>';
-  if (S.sync.estado) h += '<p class="note" style="margin-top:10px;font-weight:600">'+esc(S.sync.estado)+'</p>';
-  h += '<p class="note" style="margin-top:10px"><b>Volver a bajar todo</b> deja este dispositivo exactamente igual '
-    + 'que la hoja: se trae lo que falte y quita lo que ya no esté. Lo que tengas pendiente de subir se respeta.</p>'
-    + '<p class="note" style="margin-top:8px">Se sincroniza sola al abrir la app, al volver a la pestaña y unos '
-    + 'segundos después de cada cambio. Todo se guarda primero en este navegador, así que puedes registrar sin '
-    + 'cobertura y se subirá cuando vuelvas a tener red.</p></div>';
+    + '<input id="synctok" data-sync="token" value="'+esc(S.sync.token)+'" '
+    + 'aria-label="Token" style="margin-top:5px"></div></div>'
+    + '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:11px">'
+    + '<button class="btn" data-act="recargar">Volver a leer la hoja</button>'
+    + '<button class="btn ghost" data-act="recargarcat">Recargar alimentos y plan</button></div>';
+  if (S.semana) h += '<p class="note" style="margin-top:10px">Semana cargada: del '
+    + esc(S.semana.desde.split("-").reverse().join("-"))+' al '+esc(S.semana.hasta.split("-").reverse().join("-"))
+    + ' · '+Object.keys(S.ent).length+' entradas · '+ITEMS.length+' alimentos.</p>';
+  h += '<p class="note" style="margin-top:8px">La hoja atiende <b>una petición cada vez</b>: si el otro dispositivo '
+    + 'está guardando, este espera su turno. No se pueden pisar.</p>'
+    + '<p class="note" style="margin-top:8px"><b>Hace falta conexión.</b> Sin red no se puede registrar; apúntalo '
+    + 'y lo metes luego.</p></div>';
   return h;
 }
 
@@ -1366,6 +1081,12 @@ function vistaPeso() {
 }
 
 
+/* Pasa un alimento del formato interno al de la pestaña «catalogo». */
+function filaCat(i) {
+  return [i[0], i[1], i[2], i[3], i[4], i[5], i[6], (i[7]||0)+(i[8]||0), i[9], i[10],
+          ["Estimación","MyFitnessPal","Etiqueta","Tuyo"][i[11]] || "Estimación", i[12], i[13]];
+}
+
 /* Qué se lleva por delante borrar un alimento. */
 function avisosBorrado(nom) {
   const av = [];
@@ -1487,17 +1208,16 @@ function crearPlatoDesde(nom, reg, descripcion) {
   ITEMS = ITEMS.concat([[nom, "Mis platos", Math.round(t.kcal), Math.round(t.prot*10)/10,
     Math.round(t.grasa*10)/10, Math.round(t.hidratos*10)/10, Math.round(t.alc*10)/10,
     Math.round(t.verdura + t.fruta), 0, "N.A.", descripcion, 3, 1, "raciones", "propio"]]);
-  S.pend.platos[nom] = 1;
   const junta = {};
   reg.forEach(function (e) {
     const k = e[0] + "|" + (e[6] || 1);
     if (!junta[k]) junta[k] = { ing:e[0], cant:0, f:e[6] || 1 };
     junta[k].cant += e[1];
   });
-  S.recetasPend = (S.recetasPend || []).filter(r => r[0] !== nom)
-    .concat(Object.keys(junta).map(k => [nom, junta[k].ing, Math.round(junta[k].cant*10)/10, junta[k].f]));
-  RECETAS = RECETAS.filter(r => r[0] !== nom).concat(S.recetasPend.filter(r => r[0] === nom));
-  reindex(); guardar();
+  const filasR = Object.keys(junta).map(k => [nom, junta[k].ing, Math.round(junta[k].cant*10)/10, junta[k].f]);
+  RECETAS = RECETAS.filter(r => r[0] !== nom).concat(filasR);
+  reindex();
+  guardarPlatos([filaCat(ITEMS[ITEMS.length-1])], [], filasR);
   return null;
 }
 
@@ -1587,6 +1307,177 @@ function vistaSemana() {
   h += '</tbody></table></div></div></div>';
   return h;
 }
+
+
+/* ================== ACCESO A DATOS ==================
+   La hoja de Google es la ÚNICA base de datos. Aquí no se guarda ningún registro:
+   se piden al abrir y cada cambio se escribe allí antes de pintarlo.
+   El servidor atiende una petición cada vez, así que dos dispositivos nunca
+   escriben a la vez: uno espera al otro. ==================================== */
+
+let ocupado = 0;
+let colaError = "";
+
+function trabajando(on, texto) {
+  ocupado = Math.max(0, ocupado + (on ? 1 : -1));
+  const cap = document.getElementById("cargando");
+  if (!cap) return;
+  cap.className = ocupado ? "cargando on" : "cargando";
+  if (on && texto) cap.querySelector(".ctxt").textContent = texto;
+}
+
+async function pedir(cuerpo, texto) {
+  if (!S.sync.url || !S.sync.token) {
+    colaError = "Falta la dirección del script o el token. Ve a Ajustes.";
+    render();
+    return null;
+  }
+  trabajando(true, texto || "Guardando…");
+  try {
+    const res = await fetch(S.sync.url, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify(Object.assign({ token: S.sync.token, fecha: S.fecha, catVer: S.catVer || "" }, cuerpo))
+    });
+    const d = await res.json();
+    if (d.error) {
+      colaError = d.mensaje || "No se ha podido guardar.";
+      if (d.error === "ocupado") colaError = "El otro dispositivo estaba guardando. Vuelve a intentarlo.";
+      return null;
+    }
+    aplicar(d);
+    colaError = "";
+    return d;
+  } catch (err) {
+    colaError = "Sin conexión con la hoja. Comprueba la red y vuelve a intentarlo.";
+    return null;
+  } finally {
+    trabajando(false);
+    render();
+  }
+}
+
+/* Vuelca en memoria lo que ha devuelto la hoja. Nada de esto se guarda en el navegador
+   salvo el catálogo, que es material de consulta y no datos tuyos. */
+function aplicar(d) {
+  S.ent = {};
+  (d.entradas || []).forEach(function (e) { S.ent[e.id] = e; });
+  S.semana = d.semana || null;
+  S.pesos = d.pesos || {};
+  if (d.params) S.params = Object.assign({}, DEFAULTS, d.params);
+  if (d.catalogo && d.catalogo.length) {
+    ITEMS = d.catalogo.map(function (f) {
+      const ori = { "Estimación":0, "MyFitnessPal":1, "Etiqueta":2, "Tuyo":3 }[String(f[10])] || 0;
+      return [f[0], f[1], f[2], f[3], f[4], f[5], f[6], f[7], 0, f[8], f[9], ori, f[11], f[12],
+              ori === 3 ? "propio" : ""];
+    });
+    reindex();
+    Store.set("carlos:cat", ITEMS);
+  }
+  if (d.recetas) { RECETAS = d.recetas; Store.set("carlos:recetas", RECETAS); }
+  if (d.plan && d.plan.length) {
+    const porDia = {};
+    d.plan.forEach(function (f) {
+      const k = f[0];
+      if (!porDia[k]) porDia[k] = { sem:f[1], dia:f[2], tipo:f[3], nota:f[4], items:[] };
+      porDia[k].items.push([f[6], f[5], f[7]]);
+    });
+    const dias = Object.keys(porDia).map(Number).sort((a,b) => a-b).map(k => porDia[k]);
+    if (dias.length) { PLAN = dias; Store.set("carlos:plan", PLAN); }
+  }
+  if (d.catVer) { S.catVer = d.catVer; Store.set("carlos:catver", d.catVer); }
+}
+
+/* La semana cargada cubre la fecha que se está viendo. Si te vas a otra, se pide. */
+function necesitaCargar(f) {
+  return !S.semana || f < S.semana.desde || f > S.semana.hasta;
+}
+
+async function cargar(texto) {
+  return pedir({ accion: "cargar" }, texto || "Cargando…");
+}
+
+async function irA(fecha) {
+  S.fecha = fecha;
+  if (necesitaCargar(fecha)) await cargar("Cargando la semana…");
+  else render();
+}
+
+async function anotar(fecha, alimento, cant, franja, grupo, factor) {
+  const it = { id: uid(), fecha: fecha, franja: franja, alimento: alimento,
+               cant: cant, grupo: grupo || "", factor: factor || 1 };
+  return pedir({ accion: "anotar", items: [it] }, "Añadiendo…");
+}
+
+async function anotarVarios(items) {
+  if (!items.length) return null;
+  return pedir({ accion: "anotar", items: items.map(function (x) {
+    return { id: uid(), fecha: x.fecha, franja: x.franja, alimento: x.alimento,
+             cant: x.cant, grupo: x.grupo || "", factor: x.factor || 1 };
+  }) }, "Añadiendo…");
+}
+
+/* Un plato con receta entra como sus ingredientes, agrupados. */
+function itemsDePlato(fecha, plato, cant, franja) {
+  const r = recetaDe(plato);
+  if (!r.length) return [{ fecha:fecha, franja:franja, alimento:plato, cant:cant }];
+  const it = BY[plato];
+  const prop = it ? cant / BASE(it) : 1;
+  const g = "g" + uid();
+  S.grupos = S.grupos || {};
+  S.grupos[g] = plato;
+  Store.set("carlos:grupos", S.grupos);
+  return r.filter(x => BY[x[1]]).map(function (x) {
+    return { fecha:fecha, franja:franja, alimento:x[1],
+             cant: Math.round(x[2] * prop * 10) / 10, grupo:g, factor:x[3] };
+  });
+}
+
+async function anotarPlato(fecha, plato, cant, franja) {
+  return anotarVarios(itemsDePlato(fecha, plato, cant, franja));
+}
+
+async function tocar(id, cambios) {
+  const e = S.ent[id];
+  if (e) Object.assign(e, cambios);       // se pinta ya, y se confirma al volver de la hoja
+  render();
+  return pedir({ accion: "editar", id: id, cambios: cambios }, "Guardando…");
+}
+
+async function borrarEntrada(id) {
+  return borrarVarias([id]);
+}
+
+async function borrarVarias(ids) {
+  ids.forEach(function (id) { delete S.ent[id]; });
+  render();
+  return pedir({ accion: "borrar", ids: ids }, "Quitando…");
+}
+
+async function ponerPeso(fecha, peso) {
+  S.pesos[fecha] = peso;
+  return pedir({ accion: "peso", fecha: fecha, peso: peso }, "Guardando el peso…");
+}
+
+async function guardarParams() {
+  return pedir({ accion: "params", params: S.params }, "Guardando los ajustes…");
+}
+
+async function guardarPlatos(platos, bajas, recetas) {
+  return pedir({ accion: "platos", platos: platos || [], borrarPlatos: bajas || [],
+                 recetas: recetas || [] }, "Guardando el alimento…");
+}
+
+/* Lo único que se guarda en el navegador es material de consulta, no datos tuyos. */
+const guardar = () => {
+  Store.set("carlos:params", S.params);
+  Store.set("carlos:sync", S.sync);
+  Store.set("carlos:grupos", S.grupos || {});
+  Store.set("carlos:cat", ITEMS);
+  Store.set("carlos:plan", PLAN);
+  Store.set("carlos:recetas", RECETAS);
+  Store.set("carlos:v", 6);
+};
 
 /* ---------- motor de sugerencias ---------- */
 const COMPAT = {
@@ -1772,8 +1663,9 @@ function guardarEd() {
               String(e.racion || "").trim() || (fmtCant(bs) + " " + (e.unidad || "raciones")),
               0, bs, e.unidad || "raciones", "propio"];
   ITEMS = ITEMS.filter(x => x[0] !== e.nombreOrig && x[0] !== nom).concat([it]);
-  S.pend.platos[nom] = 1;
-  if (e.nombreOrig && nom !== e.nombreOrig) S.pend.borrarPlatos[e.nombreOrig] = 1;
+  reindex();
+  const bajas = (e.nombreOrig && nom !== e.nombreOrig) ? [e.nombreOrig] : [];
+  guardarPlatos([filaCat(it)], bajas, []);
   if (e.nombreOrig && nom !== e.nombreOrig) {
     Object.keys(S.ent).forEach(function(id){
       if (S.ent[id].alimento === e.nombreOrig) tocar(id, { alimento: nom });
@@ -2082,8 +1974,8 @@ document.getElementById("app").addEventListener("click", function(ev){
   const a = b.dataset.act;
   const reg = logDe(S.fecha);
   if (a === "vista") { S.vista = b.dataset.v; S.aviso = ""; }
-  else if (a === "ir") { S.fecha = b.dataset.f; S.vista = "registro"; }
-  else if (a === "dia") { S.fecha = iso(addDays(parseIso(S.fecha), +b.dataset.n)); }
+  else if (a === "ir") { S.vista = "registro"; irA(b.dataset.f); return; }
+  else if (a === "dia") { irA(iso(addDays(parseIso(S.fecha), +b.dataset.n))); return; }
   else if (a === "franja") { S.franja = b.dataset.v; }
   else if (a === "instalar") {
     if (promptInstalar) {
@@ -2094,12 +1986,6 @@ document.getElementById("app").addEventListener("click", function(ev){
     }
     return;
   }
-  else if (a === "sincronizar") { guardar(); sincronizar(false); return; }
-  else if (a === "resync") {
-    S.sync.ultimo = 0; S.sync.estado = ""; S.resyncTotal = true;
-    guardar(); sincronizar(false); return;
-  }
-  else if (a === "recargarcat") { S.pedirCat = true; guardar(); sincronizar(false); return; }
   else if (a === "crearhuerfano") {
     S.vista = "alimentos"; abrirEd(null);
     S.ed.nombre = b.dataset.v; S.ed.cat = "Ingredientes";
@@ -2137,7 +2023,7 @@ document.getElementById("app").addEventListener("click", function(ev){
 
       // 1) primero los que no tienen receta: son ingredientes o platos sueltos
       let nIng = 0, nPlat = 0, nRec = 0, saltados = [], sinIngr = [];
-      const creados = [];
+      const creados = [], porSubir = []; let recSubir = [];
       const alta = function (o) {
         const nom = String(o.nombre || "").trim();
         if (!nom) return null;
@@ -2148,8 +2034,7 @@ document.getElementById("app").addEventListener("click", function(ev){
                     num(o.hidratos), num(o.alc), num(o.verdura) + num(o.fruta) + num(o.vf), 0, "N.A.",
                     String(o.racion || (fmtCant(bs) + " " + un)), 3, bs, un, "propio"];
         ITEMS = ITEMS.filter(x => x[0] !== nom).concat([it]);
-        S.pend.platos[nom] = 1;
-        reindex();
+        reindex(); porSubir.push(it);
         return it;
       };
       d.filter(o => !o.receta).forEach(function (o) { const it = alta(o); if (it) { nIng++; creados.push(it[0]); } });
@@ -2181,18 +2066,18 @@ document.getElementById("app").addEventListener("click", function(ev){
                     String(o.racion || (raciones > 1 ? "1 ración de "+raciones : "1 ración")),
                     3, 1, "raciones", "propio"];
         ITEMS = ITEMS.filter(x => x[0] !== nom).concat([it]);
-        S.pend.platos[nom] = 1;
-        S.recetasPend = (S.recetasPend || []).filter(r => r[0] !== nom)
-          .concat(o.receta.map(r => [nom, String(r[0]), Math.round(num(r[1])/raciones*10)/10, factor]));
-        RECETAS = RECETAS.filter(r => r[0] !== nom).concat(S.recetasPend.filter(r => r[0] === nom));
+        porSubir.push(it);
+        const fr = o.receta.map(r => [nom, String(r[0]), Math.round(num(r[1])/raciones*10)/10, factor]);
+        recSubir = recSubir.concat(fr);
+        RECETAS = RECETAS.filter(r => r[0] !== nom).concat(fr);
         nPlat++; nRec += o.receta.length; creados.push(nom);
         reindex();
       });
 
       S.recien = creados;
       S.franjaRecien = S.franjaRecien || S.franja;
-      guardar();
       S.pegado = "";
+      if (porSubir.length || recSubir.length) guardarPlatos(porSubir.map(filaCat), [], recSubir);
       const partes = [];
       if (nIng) partes.push(nIng + (nIng === 1 ? " alimento" : " alimentos"));
       if (nPlat) partes.push(nPlat + (nPlat === 1 ? " plato con receta" : " platos con receta") + " ("+nRec+" ingredientes)");
@@ -2205,12 +2090,6 @@ document.getElementById("app").addEventListener("click", function(ev){
       S.aviso = "Eso no es un JSON válido. Cópialo entero, con los corchetes.";
     }
   }
-  else if (a === "sincronizar") { guardar(); sincronizar(false); return; }
-  else if (a === "resync") {
-    S.sync.ultimo = 0; S.sync.estado = ""; S.resyncTotal = true;
-    guardar(); sincronizar(false); return;
-  }
-  else if (a === "recargarcat") { S.pedirCat = true; guardar(); sincronizar(false); return; }
   else if (a === "crearhuerfano") {
     S.vista = "alimentos"; abrirEd(null);
     S.ed.nombre = b.dataset.v; S.ed.cat = "Ingredientes";
@@ -2254,8 +2133,7 @@ document.getElementById("app").addEventListener("click", function(ev){
         ITEMS = ITEMS.concat([[nom, String(o.categoria || "Alimentos sueltos"),
           num(o.kcal), num(o.prot), num(o.grasa), num(o.hidratos), num(o.alc),
           num(o.verdura) + num(o.fruta), 0,
-          "N.A.", String(o.racion || (fmtCant(bs)+" "+un)), 3, bs, un, "propio"]]);
-        S.pend.platos[nom] = 1; n++;
+          "N.A.", String(o.racion || (fmtCant(bs)+" "+un)), 3, bs, un, "propio"]]); n++;
       });
       reindex(); guardar();
       S.pegado = "";
@@ -2270,9 +2148,8 @@ document.getElementById("app").addEventListener("click", function(ev){
     const nom = b.dataset.v;
     ITEMS = ITEMS.filter(x => x[0] !== nom);
     RECETAS = RECETAS.filter(r => r[0] !== nom);
-    S.pend.borrarPlatos[nom] = 1; delete S.pend.platos[nom];
-    S.borrarAlim = null;
-    reindex(); guardar();
+    S.borrarAlim = null; reindex();
+    guardarPlatos([], [nom], []);
     S.aviso = "Borrado «"+nom+"».";
   }
   else if (a === "ednuevo") { S.vista = "alimentos"; abrirEd(null); S.aviso = ""; }
@@ -2294,8 +2171,8 @@ document.getElementById("app").addEventListener("click", function(ev){
   else if (a === "edborrar") {
     const nom = S.ed.nombreOrig;
     ITEMS = ITEMS.filter(x => x[0] !== nom);
-    S.pend.borrarPlatos[nom] = 1; delete S.pend.platos[nom];
-    reindex(); guardar(); S.ed = null;
+    reindex(); S.ed = null;
+    guardarPlatos([], [nom], []);
     S.aviso = "Borrado «"+nom+"». Los días donde estaba registrado dejan de sumarlo.";
   }
   else if (a === "crear") {
@@ -2374,7 +2251,7 @@ document.getElementById("app").addEventListener("click", function(ev){
     const v = parseFloat((el.value || "").replace(",", "."));
     if (!isNaN(v) && v > 30 && v < 250) {
       const f = iso(new Date());
-      S.pesos[f] = v; S.pesosTs[f] = Date.now(); S.pend.pesos[f] = 1; guardar();
+      ponerPeso(f, v); return;
     }
   }
   else if (a === "borrardia") {
@@ -2383,7 +2260,7 @@ document.getElementById("app").addEventListener("click", function(ev){
   }
   else if (a === "exportar") {
     const datos = { version:4, exportado:new Date().toISOString(), params:S.params,
-                    ent:S.ent, pesos:S.pesos, pesosTs:S.pesosTs, catalogo:ITEMS };
+                    ent:S.ent, pesos:S.pesos, catalogo:ITEMS };
     const url = URL.createObjectURL(new Blob([JSON.stringify(datos, null, 1)], { type:"application/json" }));
     const link = document.createElement("a");
     link.href = url; link.download = "registro-comidas-"+iso(new Date())+".json";
@@ -2393,7 +2270,6 @@ document.getElementById("app").addEventListener("click", function(ev){
   }
   else if (a === "importar") { document.getElementById("ficheroImport").click(); return; }
   render();
-  sincronizarPronto();
 });
 
 document.getElementById("app").addEventListener("input", function(ev){
@@ -2414,7 +2290,7 @@ document.getElementById("app").addEventListener("input", function(ev){
         tocar(id, { franja: el.value }); n++;
       }
     });
-    if (n) { guardar(); render(); sincronizarPronto(); }
+    if (n) { guardar(); render(); }
     return;
   }
   if (el.dataset.ed && S.ed) { S.ed[el.dataset.ed] = el.value; render(); return; }
@@ -2428,7 +2304,7 @@ document.getElementById("app").addEventListener("input", function(ev){
   if (el.dataset.par) {
     const k = el.dataset.par;
     S.params[k] = k === "planStart" ? el.value : (parseFloat(el.value) || 0);
-    S.metaTs.params = Date.now(); S.pend.meta.params = 1; guardar(); render();
+    guardar(); render(); guardarParams();
   }
 });
 
@@ -2437,7 +2313,7 @@ document.getElementById("app").addEventListener("keydown", function(ev){
     const v = parseFloat((ev.target.value || "").replace(",", "."));
     if (!isNaN(v) && v > 30 && v < 250) {
       const f = iso(new Date());
-      S.pesos[f] = v; S.pesosTs[f] = Date.now(); S.pend.pesos[f] = 1; guardar(); render();
+      ponerPeso(f, v); return;
     }
   }
 });
@@ -2446,7 +2322,7 @@ function moverFranja(el) {
   const id = el.dataset.mover;
   if (!id || !S.ent[id] || S.ent[id].franja === el.value) return false;
   tocar(id, { franja: el.value });
-  guardar(); render(); sincronizarPronto();
+  guardar(); render();
   return true;
 }
 
@@ -2461,7 +2337,7 @@ document.getElementById("app").addEventListener("change", function(ev){
         tocar(id, { franja: ev.target.value }); n++;
       }
     });
-    if (n) { guardar(); render(); sincronizarPronto(); }
+    if (n) { guardar(); render(); }
     return;
   }
   if (ev.target.id !== "ficheroImport") return;
@@ -2472,7 +2348,7 @@ document.getElementById("app").addEventListener("change", function(ev){
       const d = JSON.parse(lector.result);
       if (!d || typeof d !== "object" || (!d.ent && !d.log)) throw new Error("formato");
       S.params = Object.assign({}, DEFAULTS, d.params || {});
-      S.pesos = d.pesos || {}; S.pesosTs = d.pesosTs || {};
+      S.pesos = d.pesos || {};
       if (d.catalogo && d.catalogo.length) { ITEMS = d.catalogo; }
       if (d.ent) S.ent = d.ent;
       else {   // copia antigua por días
@@ -2484,9 +2360,6 @@ document.getElementById("app").addEventListener("change", function(ev){
           });
         });
       }
-      Object.keys(S.ent).forEach(function(id){ S.pend.ent[id] = 1; });
-      Object.keys(S.pesos).forEach(function(f){ S.pend.pesos[f] = 1; if (!S.pesosTs[f]) S.pesosTs[f] = Date.now(); });
-      S.pend.meta.params = 1;
       reindex(); guardar();
       S.aviso = "Copia cargada: "+fechasConRegistro().length+" días de registro y "+ITEMS.length+" alimentos.";
     } catch(e) { S.aviso = "Ese archivo no es una copia válida. Debe ser el JSON que genera «Descargar copia»."; }
@@ -2496,9 +2369,16 @@ document.getElementById("app").addEventListener("change", function(ev){
 });
 
 render();
-sincronizar(true);
-document.addEventListener("visibilitychange", function(){ if (!document.hidden) sincronizar(true); });
-window.addEventListener("online", function(){ sincronizar(true); });
+cargar("Cargando…");
+
+let ultimaLectura = Date.now();
+document.addEventListener("visibilitychange", function () {
+  if (!document.hidden && Date.now() - ultimaLectura > 15000) {
+    ultimaLectura = Date.now();
+    cargar("Actualizando…");
+  }
+});
+window.addEventListener("online", function () { cargar("Reconectando…"); });
 window.addEventListener("beforeinstallprompt", function (e) {
   e.preventDefault(); promptInstalar = e;
   if (S.vista === "ajustes") render();
