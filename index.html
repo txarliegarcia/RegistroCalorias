@@ -244,7 +244,7 @@ const SEMILLA_RECETAS = [["Pollo thai con curry verde", "Zanahoria", 100.0, 1.07
 
 const VIAB  = [["Txuletón", "Comida"], ["Parrillada de carne (Kamado)", "Comida"], ["Costillas BBQ (Kamado)", "Comida"], ["Hamburguesa Berty's (Emily Love's)", "Comida"], ["Hamburguesa de restaurante", "Comida"], ["KFC (alitas de pollo)", "Comida"], ["Ramen tantanmen", "Comida"], ["Lasaña de atún", "Comida"], ["Pollo thai con curry verde", "Comida"], ["Lentejas caseras", "Comida"], ["Alubias caseras", "Comida"], ["Ensaladilla rusa", "Comida"], ["Vainas con patata", "Comida"], ["Ensalada con todo", "Comida"], ["Sopa y garbanzos", "Comida"], ["Fabada Cidacos", "Comida"], ["Pollo hindú Mercadona", "Comida"], ["Pizza Kamado casera", "Cena"], ["Zorza del Mercadona con patatas y huevos", "Cena"], ["Sushi (10-12 piezas)", "Cena"], ["Ensalada de tomate y bonito", "Cena"], ["Pintxo de tortilla con bonito y mayonesa (doble)", "Desayuno"], ["Domingo de chucherías", "Extras"]];
 
-const VERSION = "2026.08.30-14";
+const VERSION = "2026.08.30-15";
 const FRANJAS = ["Desayuno","Hamaiketako","Comida","Merienda","Cena","Extras"];
 const DIAS = ["lunes","martes","miércoles","jueves","viernes","sábado","domingo"];
 const MESES = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
@@ -333,6 +333,7 @@ const S = {
   fechaCopia: "",
   recien: [],
   borrarAlim: null,
+  resyncTotal: false,
   franjaRecien: "",
   guardarPlato: null,
   nomPlato: "",
@@ -1154,6 +1155,19 @@ if ("serviceWorker" in navigator) {
       const dias = Object.keys(porDia).map(Number).sort((a,b) => a-b).map(k => porDia[k]);
       if (dias.length) PLAN = dias;
     }
+    // reemplazo total: lo que ya no está en la hoja se va también de aquí.
+    // Se respeta lo que aún esté pendiente de subir, que si no se perdería.
+    if (S.resyncTotal) {
+      const enHoja = {};
+      (d.entradas || []).forEach(function (r) { enHoja[r.id] = 1; });
+      let quitadas = 0;
+      Object.keys(S.ent).forEach(function (id) {
+        if (!enHoja[id] && !S.pend.ent[id]) { delete S.ent[id]; quitadas++; }
+      });
+      S.resyncTotal = false;
+      if (quitadas) S.aviso = "Quitadas "+quitadas+(quitadas===1?" línea que ya no estaba":" líneas que ya no estaban")
+        + " en la hoja.";
+    }
     S.pend = { ent:{}, pesos:{}, meta:{}, platos:{}, borrarPlatos:{} };
     // si algo quedó sin poder enviarse, sigue pendiente en vez de desaparecer
     pendientesHuerfanos.forEach(function (n) { S.pend.platos[n] = 1; });
@@ -1199,9 +1213,12 @@ function bloqueSync() {
   h += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">'
     + '<button class="btn" data-act="sincronizar">Sincronizar ahora</button>'
     + '<button class="btn ghost" data-act="recargarcat">Recargar alimentos y plan</button>'
-    + '<button class="btn ghost" data-act="resync">Volver a bajar todo</button></div>';
+    + '<button class="btn ghost" data-act="resync" '
+    + 'title="Sustituye el registro de este dispositivo por el de la hoja">Volver a bajar todo</button></div>';
   if (S.sync.estado) h += '<p class="note" style="margin-top:10px;font-weight:600">'+esc(S.sync.estado)+'</p>';
-  h += '<p class="note" style="margin-top:10px">Se sincroniza sola al abrir la app, al volver a la pestaña y unos '
+  h += '<p class="note" style="margin-top:10px"><b>Volver a bajar todo</b> deja este dispositivo exactamente igual '
+    + 'que la hoja: se trae lo que falte y quita lo que ya no esté. Lo que tengas pendiente de subir se respeta.</p>'
+    + '<p class="note" style="margin-top:8px">Se sincroniza sola al abrir la app, al volver a la pestaña y unos '
     + 'segundos después de cada cambio. Todo se guarda primero en este navegador, así que puedes registrar sin '
     + 'cobertura y se subirá cuando vuelvas a tener red.</p></div>';
   return h;
@@ -2048,7 +2065,10 @@ document.getElementById("app").addEventListener("click", function(ev){
     return;
   }
   else if (a === "sincronizar") { guardar(); sincronizar(false); return; }
-  else if (a === "resync") { S.sync.ultimo = 0; S.sync.estado = ""; guardar(); sincronizar(false); return; }
+  else if (a === "resync") {
+    S.sync.ultimo = 0; S.sync.estado = ""; S.resyncTotal = true;
+    guardar(); sincronizar(false); return;
+  }
   else if (a === "recargarcat") { S.pedirCat = true; guardar(); sincronizar(false); return; }
   else if (a === "cerrarrecien") { S.recien = []; }
   else if (a === "franjarecien") { S.franjaRecien = b.dataset.v; }
@@ -2142,7 +2162,10 @@ document.getElementById("app").addEventListener("click", function(ev){
     }
   }
   else if (a === "sincronizar") { guardar(); sincronizar(false); return; }
-  else if (a === "resync") { S.sync.ultimo = 0; S.sync.estado = ""; guardar(); sincronizar(false); return; }
+  else if (a === "resync") {
+    S.sync.ultimo = 0; S.sync.estado = ""; S.resyncTotal = true;
+    guardar(); sincronizar(false); return;
+  }
   else if (a === "recargarcat") { S.pedirCat = true; guardar(); sincronizar(false); return; }
   else if (a === "cerrarrecien") { S.recien = []; }
   else if (a === "franjarecien") { S.franjaRecien = b.dataset.v; }
