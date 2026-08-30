@@ -244,7 +244,7 @@ const SEMILLA_RECETAS = [["Pollo thai con curry verde", "Zanahoria", 100.0, 1.07
 
 const VIAB  = [["Txuletón", "Comida"], ["Parrillada de carne (Kamado)", "Comida"], ["Costillas BBQ (Kamado)", "Comida"], ["Hamburguesa Berty's (Emily Love's)", "Comida"], ["Hamburguesa de restaurante", "Comida"], ["KFC (alitas de pollo)", "Comida"], ["Ramen tantanmen", "Comida"], ["Lasaña de atún", "Comida"], ["Pollo thai con curry verde", "Comida"], ["Lentejas caseras", "Comida"], ["Alubias caseras", "Comida"], ["Ensaladilla rusa", "Comida"], ["Vainas con patata", "Comida"], ["Ensalada con todo", "Comida"], ["Sopa y garbanzos", "Comida"], ["Fabada Cidacos", "Comida"], ["Pollo hindú Mercadona", "Comida"], ["Pizza Kamado casera", "Cena"], ["Zorza del Mercadona con patatas y huevos", "Cena"], ["Sushi (10-12 piezas)", "Cena"], ["Ensalada de tomate y bonito", "Cena"], ["Pintxo de tortilla con bonito y mayonesa (doble)", "Desayuno"], ["Domingo de chucherías", "Extras"]];
 
-const VERSION = "2026.08.30-15";
+const VERSION = "2026.08.30-16";
 const FRANJAS = ["Desayuno","Hamaiketako","Comida","Merienda","Cena","Extras"];
 const DIAS = ["lunes","martes","miércoles","jueves","viernes","sábado","domingo"];
 const MESES = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
@@ -1899,6 +1899,36 @@ function vistaAlimentos() {
   }
   h += '</div>';
 
+  // alimentos a los que apunta el registro y que ya no existen
+  const huerfanos = {};
+  Object.keys(S.ent).forEach(function (id) {
+    const e = S.ent[id];
+    if (e.borrado || BY[e.alimento]) return;
+    if (!huerfanos[e.alimento]) huerfanos[e.alimento] = { n:0, dias:{} };
+    huerfanos[e.alimento].n++; huerfanos[e.alimento].dias[e.fecha] = 1;
+  });
+  const listaH = Object.keys(huerfanos).sort();
+  if (listaH.length) {
+    h += '<div class="card" style="border-color:var(--rojo)">'
+      + '<span class="eyebrow" style="color:var(--rojo)">Alimentos que faltan · '+listaH.length+'</span>'
+      + '<p class="note" style="margin:8px 0 10px">Tienes comidas registradas que apuntan a alimentos que ya no '
+      + 'están en el catálogo, así que no suman nada. O los vuelves a crear con el mismo nombre, o quitas esas '
+      + 'líneas del registro.</p>';
+    listaH.forEach(function (n) {
+      const d = huerfanos[n];
+      const nd = Object.keys(d.dias).length;
+      h += '<div class="platoc"><div class="ingr"><div class="info">'
+        + '<div style="font-size:15px;font-weight:600">'+esc(n)+'</div>'
+        + '<div class="note">'+d.n+(d.n===1?' línea':' líneas')+' en '+nd+(nd===1?' día':' días')+'</div></div>'
+        + '<div style="display:flex;gap:6px;flex:0 0 auto">'
+        + '<button class="btn tiny" data-act="crearhuerfano" data-v="'+esc(n)+'">Crearlo</button>'
+        + '<button class="quitax" data-act="quitarhuerfano" data-v="'+esc(n)+'" '
+        + 'title="Quitar esas líneas del registro" aria-label="Quitar las líneas de '+esc(n)+'">✕</button>'
+        + '</div></div></div>';
+    });
+    h += '</div>';
+  }
+
   if (S.recien && S.recien.length) {
     h += '<div class="card"><div class="row"><span class="eyebrow">Recién creados · '+S.recien.length+'</span>'
       + '<button class="btn ghost tiny" data-act="cerrarrecien">Cerrar</button></div>'
@@ -2070,6 +2100,20 @@ document.getElementById("app").addEventListener("click", function(ev){
     guardar(); sincronizar(false); return;
   }
   else if (a === "recargarcat") { S.pedirCat = true; guardar(); sincronizar(false); return; }
+  else if (a === "crearhuerfano") {
+    S.vista = "alimentos"; abrirEd(null);
+    S.ed.nombre = b.dataset.v; S.ed.cat = "Ingredientes";
+    S.aviso = "Pon los datos de «"+b.dataset.v+"» y guarda. Las líneas ya registradas se contarán solas.";
+  }
+  else if (a === "quitarhuerfano") {
+    const nom = b.dataset.v;
+    let n = 0;
+    Object.keys(S.ent).forEach(function (id) {
+      if (!S.ent[id].borrado && S.ent[id].alimento === nom) { borrarEntrada(id); n++; }
+    });
+    guardar();
+    S.aviso = "Quitadas "+n+(n===1?" línea de ":" líneas de ")+nom+".";
+  }
   else if (a === "cerrarrecien") { S.recien = []; }
   else if (a === "franjarecien") { S.franjaRecien = b.dataset.v; }
   else if (a === "addrecien") {
@@ -2167,6 +2211,20 @@ document.getElementById("app").addEventListener("click", function(ev){
     guardar(); sincronizar(false); return;
   }
   else if (a === "recargarcat") { S.pedirCat = true; guardar(); sincronizar(false); return; }
+  else if (a === "crearhuerfano") {
+    S.vista = "alimentos"; abrirEd(null);
+    S.ed.nombre = b.dataset.v; S.ed.cat = "Ingredientes";
+    S.aviso = "Pon los datos de «"+b.dataset.v+"» y guarda. Las líneas ya registradas se contarán solas.";
+  }
+  else if (a === "quitarhuerfano") {
+    const nom = b.dataset.v;
+    let n = 0;
+    Object.keys(S.ent).forEach(function (id) {
+      if (!S.ent[id].borrado && S.ent[id].alimento === nom) { borrarEntrada(id); n++; }
+    });
+    guardar();
+    S.aviso = "Quitadas "+n+(n===1?" línea de ":" líneas de ")+nom+".";
+  }
   else if (a === "cerrarrecien") { S.recien = []; }
   else if (a === "franjarecien") { S.franjaRecien = b.dataset.v; }
   else if (a === "addrecien") {
