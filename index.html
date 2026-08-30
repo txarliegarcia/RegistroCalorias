@@ -124,10 +124,13 @@ table{width:100%;border-collapse:collapse;font-size:14px}
 .btnf{background:none;border:1px solid rgba(255,255,255,.45);color:#fff;border-radius:3px;font:inherit;font-size:11.5px;font-weight:600;padding:3px 8px;cursor:pointer;white-space:nowrap}
 .btnf:hover{background:rgba(255,255,255,.15)}
 .platoc{border:1.5px solid var(--line);border-radius:3px;margin:9px 0;background:#F7F9F6}
-.platoh{display:flex;align-items:center;gap:9px;padding:8px 10px;border-bottom:1px solid var(--line)}
+.platoh{display:flex;align-items:center;gap:10px;padding:9px 10px;border-bottom:1px solid var(--line)}
+.platoh .info{flex:1 1 auto;min-width:0}
 .platob{background:none;border:none;padding:0;font:inherit;font-size:15px;font-weight:700;color:var(--ink);
-  cursor:pointer;flex:1;text-align:left}
+  cursor:pointer;text-align:left}
 .btnv{background:var(--verde);border:none;color:#fff;border-radius:3px;font:inherit;font-size:11.5px;font-weight:700;padding:4px 9px;cursor:pointer;white-space:nowrap}
+.iconb{background:none;border:none;font-size:15px;line-height:1;cursor:pointer;padding:3px 6px;border-radius:3px}
+.iconb:hover{background:#E2E8E3}
 .quitax{background:none;border:none;font-size:17px;line-height:1;color:var(--rojo);cursor:pointer;
   padding:3px 6px;border-radius:3px;flex:0 0 auto}
 .quitax:hover{background:#F7CFC9}
@@ -145,13 +148,20 @@ table{width:100%;border-collapse:collapse;font-size:14px}
   .ctrl2 input{grid-area:cant}
   .ctrl2 .uni{grid-area:uni}
   .ctrl2 select{grid-area:franja;width:100%}
-  .ctrl2 .quitax{grid-area:quitar}
+  .ctrl2 .iconb{background:none;border:none;font-size:15px;line-height:1;cursor:pointer;padding:3px 6px;border-radius:3px}
+.iconb:hover{background:#E2E8E3}
+.quitax{grid-area:quitar}
   .ctrl2.sinfr{grid-template-columns:62px minmax(0,1fr) 34px;grid-template-areas:"cant uni quitar"}
   .ingr .info{flex:1 1 100%}
 }
-.selg{background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:3px;
-  font:inherit;font-size:12px;font-weight:600;padding:3px 5px;max-width:118px}
-.selg option{color:var(--ink)}
+.ctrlp{display:flex;align-items:center;gap:7px;flex:0 0 auto;flex-wrap:wrap;justify-content:flex-end}
+.ctrlp select{width:122px;font-size:14px;padding:6px 7px}
+@media (max-width:640px){
+  .platoh{flex-wrap:wrap}
+  .platoh .info{flex:1 1 100%}
+  .ctrlp{width:100%;justify-content:flex-start;margin-top:7px}
+  .ctrlp select{flex:1 1 auto;width:auto;min-width:0}
+}
 .ingr{display:flex;align-items:center;gap:9px;padding:7px 10px;border-bottom:1px solid var(--line);flex-wrap:wrap}
 .ingr:last-child{border-bottom:none}
 .ingr .info{flex:1 1 150px;min-width:0}
@@ -234,7 +244,7 @@ const SEMILLA_RECETAS = [["Pollo thai con curry verde", "Zanahoria", 100.0, 1.07
 
 const VIAB  = [["Txuletón", "Comida"], ["Parrillada de carne (Kamado)", "Comida"], ["Costillas BBQ (Kamado)", "Comida"], ["Hamburguesa Berty's (Emily Love's)", "Comida"], ["Hamburguesa de restaurante", "Comida"], ["KFC (alitas de pollo)", "Comida"], ["Ramen tantanmen", "Comida"], ["Lasaña de atún", "Comida"], ["Pollo thai con curry verde", "Comida"], ["Lentejas caseras", "Comida"], ["Alubias caseras", "Comida"], ["Ensaladilla rusa", "Comida"], ["Vainas con patata", "Comida"], ["Ensalada con todo", "Comida"], ["Sopa y garbanzos", "Comida"], ["Fabada Cidacos", "Comida"], ["Pollo hindú Mercadona", "Comida"], ["Pizza Kamado casera", "Cena"], ["Zorza del Mercadona con patatas y huevos", "Cena"], ["Sushi (10-12 piezas)", "Cena"], ["Ensalada de tomate y bonito", "Cena"], ["Pintxo de tortilla con bonito y mayonesa (doble)", "Desayuno"], ["Domingo de chucherías", "Extras"]];
 
-const VERSION = "2026.08.30-9";
+const VERSION = "2026.08.30-13";
 const FRANJAS = ["Desayuno","Hamaiketako","Comida","Merienda","Cena","Extras"];
 const DIAS = ["lunes","martes","miércoles","jueves","viernes","sábado","domingo"];
 const MESES = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
@@ -321,6 +331,9 @@ const S = {
   copiarA: null,
   guardarVar: null,
   fechaCopia: "",
+  recien: [],
+  borrarAlim: null,
+  franjaRecien: "",
   guardarPlato: null,
   nomPlato: "",
   recetasPend: Store.get("carlos:recpend", []),
@@ -590,7 +603,14 @@ function vistaRegistro() {
     const abierto = !!S.params.planAbierto;
     h += '<div class="card"><div class="row"><div><span class="eyebrow">Lo que toca según el plan</span>'
       + '<div style="font-size:15px;margin-top:5px;font-weight:500">Semana '+pd.sem+', '+esc(pd.dia.toLowerCase())
-      + ' · '+esc(pd.tipo.toLowerCase())+'</div></div>'
+      + ' · '+esc(pd.tipo.toLowerCase())+'</div>'
+      + (function(){
+          const tp = totales(filas.map(x => [x.nombre, x.cant, x.franja, "", 0, "", 1]));
+          return '<div class="note mono" style="font-weight:600;margin-top:3px">El día entero: '+fmt(tp.kcal)
+            + ' kcal · '+fmt(tp.prot)+' P · '+fmt(tp.grasa)+' G · '+fmt(tp.hidratos)+' H · '
+            + fmt(tp.verdura+tp.fruta)+' g de verdura y fruta</div>';
+        })()
+      + '</div>'
       + '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">'
       + (faltan ? '<button class="btn tiny" data-act="cargarplan">Añadir los '+faltan+' que faltan</button>'
                 : '<span class="veredicto v-cabe">día completo</span>')
@@ -709,10 +729,13 @@ function vistaRegistro() {
         const tg = totales(herm);
         const abierto = !(S.cerrados && S.cerrados[gr]);
         h += '<div class="platoc"><div class="platoh">'
+          + '<div class="info">'
           + '<button class="platob" data-act="plegargrupo" data-v="'+gr+'" aria-expanded="'+(abierto?"true":"false")+'">'
           + (abierto ? "▾ " : "▸ ")+esc(nom)+'</button>'
-          + '<span class="note mono" style="font-weight:700;white-space:nowrap">'+fmt(tg.kcal)+' kcal · '+fmt(tg.prot)+' P</span>'
-          + '<select class="selg" data-movergrupo="'+gr+'" aria-label="Mover '+esc(nom)+' a otra franja">'
+          + '<div class="note mono" style="font-weight:600">'+fmt(tg.kcal)+' kcal · '+fmt(tg.prot)+' P · '
+          + fmt(tg.grasa)+' G · '+fmt(tg.hidratos)+' H</div></div>'
+          + '<div class="ctrlp">'
+          + '<select data-movergrupo="'+gr+'" aria-label="Mover '+esc(nom)+' a otra franja">'
           + FRANJAS.map(function (fx) {
               return '<option value="'+esc(fx)+'"'+(fx === f ? " selected" : "")+'>'+esc(fx)+'</option>';
             }).join("")
@@ -721,7 +744,7 @@ function vistaRegistro() {
              ? '<button class="btnv" data-act="guardarvar" data-v="'+gr+'" '
                + 'title="Has cambiado la receta: guárdalo como plato nuevo">Guardar variante</button>' : '')
           + '<button class="quitax" data-act="delgrupo" data-v="'+gr+'" title="Quitar el plato entero" '
-          + 'aria-label="Quitar '+esc(nom)+' entero">✕</button></div>';
+          + 'aria-label="Quitar '+esc(nom)+' entero">✕</button></div></div>';
         if (S.guardarVar === gr) {
           h += '<div style="padding:9px 10px;border-bottom:1px solid var(--line);background:#fff">'
             + '<p class="note" style="margin:0 0 8px">Has cambiado «'+esc(nom)+'». Guárdalo con otro nombre y '
@@ -1311,6 +1334,27 @@ function vistaPeso() {
 }
 
 
+/* Qué se lleva por delante borrar un alimento. */
+function avisosBorrado(nom) {
+  const av = [];
+  const propia = recetaDe(nom);
+  if (propia.length) av.push("Se borrará también su receta, de "+propia.length+" ingredientes.");
+  const enRecetas = {};
+  RECETAS.forEach(function (r) { if (r[1] === nom) enRecetas[r[0]] = 1; });
+  const platos = Object.keys(enRecetas);
+  if (platos.length) av.push("Es ingrediente de "+platos.length+(platos.length===1?" plato: ":" platos: ")
+    + platos.slice(0,4).join(", ") + (platos.length>4 ? " y "+(platos.length-4)+" más" : "")
+    + ". Esas recetas quedarán incompletas y sumarán menos de lo que deben.");
+  let enPlan = 0;
+  PLAN.forEach(function (d) { d.items.forEach(function (x) { if (x[0] === nom) enPlan++; }); });
+  if (enPlan) av.push("Aparece "+enPlan+(enPlan===1?" vez":" veces")+" en el plan de 28 días. Esos días quedarán con un hueco.");
+  let enReg = 0;
+  Object.keys(S.ent).forEach(function (id) { if (!S.ent[id].borrado && S.ent[id].alimento === nom) enReg++; });
+  if (enReg) av.push("Lo tienes en "+enReg+(enReg===1?" línea":" líneas")+" ya registradas, que dejarán de sumar.");
+  if (!av.length) av.push("No lo usa nada: se puede borrar sin consecuencias.");
+  return av;
+}
+
 /* Controles de una línea: cantidad, unidad, franja y la equis de quitar. */
 function ctrlLinea(id, cant, uni, franja, etiqueta) {
   return '<div class="ctrl2">'
@@ -1739,14 +1783,14 @@ function vistaAlimentos() {
   let lista;
   if (q.length >= 2) {
     const n = norm(q);
-    lista = catalogo().filter(it => norm(it[0]).indexOf(n) >= 0).slice(0, 60);
+    lista = catalogo().filter(it => norm(it[0]).indexOf(n) >= 0)
+      .sort(function (a, b) { return a[0].localeCompare(b[0], "es"); }).slice(0, 60);
   } else {
-    lista = catalogo().filter(it => it[11] === 3).slice(0, 60);   // los tuyos primero
+    lista = catalogo().slice().sort(function (a, b) { return a[0].localeCompare(b[0], "es"); });
   }
   h += '</div>';
   h += '<div class="card"><span class="eyebrow">'
-    + (q.length >= 2 ? 'Resultados · '+lista.length
-       : 'Tuyos y modificados · '+lista.length+(lista.length ? '' : ' (busca arriba para editar los del catálogo)'))+'</span>';
+    + (q.length >= 2 ? 'Resultados · '+lista.length : 'Todos los alimentos · '+lista.length)+'</span>';
   if (!lista.length) h += '<p class="note" style="margin:9px 0 0">Nada que mostrar. Escribe en el buscador de arriba '
     + 'para editar cualquiera de los '+ITEMS.length+' platos del catálogo, o crea uno nuevo.</p>';
   else {
@@ -1757,16 +1801,54 @@ function vistaAlimentos() {
       const esEditado = propio && ITEMS.some(y => y[0] === i[0]);
       const etiqueta = esEditado ? '<span class="veredicto v-justo">modificado</span>'
         : (propio ? '<span class="veredicto v-cabe">tuyo</span>' : '');
-      h += '<tr><td><div style="font-weight:600">'+esc(i[0])+' '+etiqueta+'</div>'
-        + '<div class="note">'+esc(i[10])+'</div></td>'
+      const conf = S.borrarAlim === i[0];
+      h += '<tr><td><div style="font-weight:600">'+esc(i[0])+' '+etiqueta+'</div></td>'
         + '<td class="num">'+fmt(i[2])+'</td><td class="num">'+fmt(i[3])+'</td>'
         + '<td class="num">'+fmt(i[4])+'</td><td class="num">'+fmt(i[5])+'</td>'
         + '<td class="num">'+fmtCant(i[12])+' '+esc(i[13])+'</td>'
-        + '<td><button class="btn ghost tiny" data-act="ededit" data-v="'+esc(i[0])+'">Editar</button></td></tr>';
+        + '<td style="white-space:nowrap">'
+        + '<button class="iconb" data-act="ededit" data-v="'+esc(i[0])+'" title="Editar" '
+        + 'aria-label="Editar '+esc(i[0])+'">✏️</button>'
+        + '<button class="quitax" data-act="pedirborrar" data-v="'+esc(i[0])+'" title="Borrar" '
+        + 'aria-label="Borrar '+esc(i[0])+'">✕</button></td></tr>';
+      if (conf) {
+        const usos = avisosBorrado(i[0]);
+        h += '<tr><td colspan="7" style="background:#FBE9C7">'
+          + '<div style="padding:8px 2px"><b>¿Seguro que quieres borrar «'+esc(i[0])+'»?</b>'
+          + (usos.length ? '<ul style="margin:7px 0 0;padding-left:18px">'
+              + usos.map(u => '<li class="note" style="margin:2px 0">'+esc(u)+'</li>').join("") + '</ul>' : '')
+          + '<div style="display:flex;gap:8px;margin-top:10px">'
+          + '<button class="btn" data-act="confborrar" data-v="'+esc(i[0])+'">Sí, borrar</button>'
+          + '<button class="btn ghost" data-act="pedirborrar" data-v="">Cancelar</button></div></div></td></tr>';
+      }
     });
     h += '</tbody></table></div>';
   }
   h += '</div>';
+
+  if (S.recien && S.recien.length) {
+    h += '<div class="card"><div class="row"><span class="eyebrow">Recién creados · '+S.recien.length+'</span>'
+      + '<button class="btn ghost tiny" data-act="cerrarrecien">Cerrar</button></div>'
+      + '<p class="note" style="margin:8px 0 10px">Ya están en tu catálogo. Si quieres, añádelos al día que tienes '
+      + 'abierto en Registro ('+nfDia(parseIso(S.fecha))+'). Si no, cierra y ya está.</p>'
+      + '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:11px">';
+    FRANJAS.forEach(function (fx) {
+      h += '<button class="btn tiny'+(S.franjaRecien === fx ? "" : " ghost")+'" data-act="franjarecien" '
+        + 'data-v="'+esc(fx)+'">'+esc(fx)+'</button>';
+    });
+    h += '</div>';
+    S.recien.forEach(function (n) {
+      const it = BY[n];
+      h += '<div class="platoc"><div class="ingr"><div class="info">'
+        + '<div style="font-size:15px;font-weight:600">'+esc(n)+'</div>'
+        + '<div class="note mono" style="font-weight:600">'+(it ? fmt(it[2])+' kcal · '+fmt(it[3])+' g P' : "")+'</div></div>'
+        + '<button class="btn tiny" data-act="addrecien" data-v="'+esc(n)+'">Añadir</button></div></div>';
+    });
+    if (S.recien.length > 1)
+      h += '<div style="margin-top:10px"><button class="btn" data-act="addrecien" data-v="__todos__">'
+        + 'Añadir los '+S.recien.length+' a '+esc(S.franjaRecien || S.franja).toLowerCase()+'</button></div>';
+    h += '</div>';
+  }
 
   h += '<div class="card"><span class="eyebrow">Añadir desde la etiqueta de un producto</span>'
     + '<p class="note" style="margin:8px 0 8px">La app no puede leer fotos por sí sola: es un archivo HTML sin '
@@ -1912,6 +1994,21 @@ document.getElementById("app").addEventListener("click", function(ev){
   else if (a === "sincronizar") { guardar(); sincronizar(false); return; }
   else if (a === "resync") { S.sync.ultimo = 0; S.sync.estado = ""; guardar(); sincronizar(false); return; }
   else if (a === "recargarcat") { S.pedirCat = true; guardar(); sincronizar(false); return; }
+  else if (a === "cerrarrecien") { S.recien = []; }
+  else if (a === "franjarecien") { S.franjaRecien = b.dataset.v; }
+  else if (a === "addrecien") {
+    const fr = S.franjaRecien || S.franja;
+    const lista = b.dataset.v === "__todos__" ? (S.recien || []) : [b.dataset.v];
+    let n = 0;
+    lista.forEach(function (nom) {
+      const it = BY[nom]; if (!it) return;
+      anotarPlato(S.fecha, nom, BASE(it), fr); n++;
+    });
+    guardar();
+    S.recien = (S.recien || []).filter(x => lista.indexOf(x) < 0);
+    S.aviso = n === 1 ? "Añadido a "+fr.toLowerCase()+" del "+nfDia(parseIso(S.fecha))+"."
+                      : "Añadidos "+n+" a "+fr.toLowerCase()+" del "+nfDia(parseIso(S.fecha))+".";
+  }
   else if (a === "pegar") {
     const num = v => { const x = parseFloat(String(v == null ? "" : v).replace(",", ".")); return isNaN(x) ? 0 : x; };
     try {
@@ -1920,6 +2017,7 @@ document.getElementById("app").addEventListener("click", function(ev){
 
       // 1) primero los que no tienen receta: son ingredientes o platos sueltos
       let nIng = 0, nPlat = 0, nRec = 0, saltados = [], sinIngr = [];
+      const creados = [];
       const alta = function (o) {
         const nom = String(o.nombre || "").trim();
         if (!nom) return null;
@@ -1934,7 +2032,7 @@ document.getElementById("app").addEventListener("click", function(ev){
         reindex();
         return it;
       };
-      d.filter(o => !o.receta).forEach(function (o) { if (alta(o)) nIng++; });
+      d.filter(o => !o.receta).forEach(function (o) { const it = alta(o); if (it) { nIng++; creados.push(it[0]); } });
 
       // 2) luego los platos con receta, para que sus ingredientes ya existan
       d.filter(o => o.receta && o.receta.length).forEach(function (o) {
@@ -1967,10 +2065,12 @@ document.getElementById("app").addEventListener("click", function(ev){
         S.recetasPend = (S.recetasPend || []).filter(r => r[0] !== nom)
           .concat(o.receta.map(r => [nom, String(r[0]), Math.round(num(r[1])/raciones*10)/10, factor]));
         RECETAS = RECETAS.filter(r => r[0] !== nom).concat(S.recetasPend.filter(r => r[0] === nom));
-        nPlat++; nRec += o.receta.length;
+        nPlat++; nRec += o.receta.length; creados.push(nom);
         reindex();
       });
 
+      S.recien = creados;
+      S.franjaRecien = S.franjaRecien || S.franja;
       guardar();
       S.pegado = "";
       const partes = [];
@@ -1988,6 +2088,21 @@ document.getElementById("app").addEventListener("click", function(ev){
   else if (a === "sincronizar") { guardar(); sincronizar(false); return; }
   else if (a === "resync") { S.sync.ultimo = 0; S.sync.estado = ""; guardar(); sincronizar(false); return; }
   else if (a === "recargarcat") { S.pedirCat = true; guardar(); sincronizar(false); return; }
+  else if (a === "cerrarrecien") { S.recien = []; }
+  else if (a === "franjarecien") { S.franjaRecien = b.dataset.v; }
+  else if (a === "addrecien") {
+    const fr = S.franjaRecien || S.franja;
+    const lista = b.dataset.v === "__todos__" ? (S.recien || []) : [b.dataset.v];
+    let n = 0;
+    lista.forEach(function (nom) {
+      const it = BY[nom]; if (!it) return;
+      anotarPlato(S.fecha, nom, BASE(it), fr); n++;
+    });
+    guardar();
+    S.recien = (S.recien || []).filter(x => lista.indexOf(x) < 0);
+    S.aviso = n === 1 ? "Añadido a "+fr.toLowerCase()+" del "+nfDia(parseIso(S.fecha))+"."
+                      : "Añadidos "+n+" a "+fr.toLowerCase()+" del "+nfDia(parseIso(S.fecha))+".";
+  }
   else if (a === "pegar") {
     let n = 0, malos = 0;
     try {
@@ -2012,6 +2127,16 @@ document.getElementById("app").addEventListener("click", function(ev){
     } catch (err) {
       S.aviso = "Eso no es un JSON válido. Copia y pega tal cual lo que te dé el chat, incluidos los corchetes.";
     }
+  }
+  else if (a === "pedirborrar") { S.borrarAlim = b.dataset.v || null; }
+  else if (a === "confborrar") {
+    const nom = b.dataset.v;
+    ITEMS = ITEMS.filter(x => x[0] !== nom);
+    RECETAS = RECETAS.filter(r => r[0] !== nom);
+    S.pend.borrarPlatos[nom] = 1; delete S.pend.platos[nom];
+    S.borrarAlim = null;
+    reindex(); guardar();
+    S.aviso = "Borrado «"+nom+"».";
   }
   else if (a === "ednuevo") { S.vista = "alimentos"; abrirEd(null); S.aviso = ""; }
   else if (a === "ededit") { S.vista = "alimentos"; abrirEd(b.dataset.v); S.aviso = ""; }
