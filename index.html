@@ -332,7 +332,7 @@ const SEMILLA_RECETAS = [["Pollo thai con curry verde", "Zanahoria", 100.0, 1.07
 
 const VIAB  = [["Txuletón", "Comida"], ["Parrillada de carne (Kamado)", "Comida"], ["Costillas BBQ (Kamado)", "Comida"], ["Hamburguesa Berty's (Emily Love's)", "Comida"], ["Hamburguesa de restaurante", "Comida"], ["KFC (alitas de pollo)", "Comida"], ["Ramen tantanmen", "Comida"], ["Lasaña de atún", "Comida"], ["Pollo thai con curry verde", "Comida"], ["Lentejas caseras", "Comida"], ["Alubias caseras", "Comida"], ["Ensaladilla rusa", "Comida"], ["Vainas con patata", "Comida"], ["Ensalada con todo", "Comida"], ["Sopa y garbanzos", "Comida"], ["Fabada Cidacos", "Comida"], ["Pollo hindú Mercadona", "Comida"], ["Pizza Kamado casera", "Cena"], ["Zorza del Mercadona con patatas y huevos", "Cena"], ["Sushi (10-12 piezas)", "Cena"], ["Ensalada de tomate y bonito", "Cena"], ["Pintxo de tortilla con bonito y mayonesa (doble)", "Desayuno"], ["Domingo de chucherías", "Extras"]];
 
-const VERSION = "2026.08.31-5";
+const VERSION = "2026.08.31-6";
 const FRANJAS = ["Desayuno","Hamaiketako","Comida","Merienda","Cena","Extras"];
 const DIAS = ["lunes","martes","miércoles","jueves","viernes","sábado","domingo"];
 const MESES = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
@@ -837,7 +837,7 @@ function vistaAjustes() {
   const o = objetivos(S.params);
   const campo = (k2, label, unidad, step) =>
     '<div><span class="eyebrow">'+esc(label)+'</span>'
-    + '<input type="number" step="'+(step||1)+'" value="'+S.params[k2]+'" data-par="'+k2+'" '
+    + '<input inputmode="decimal" enterkeyhint="done" value="'+fmtCant(S.params[k2])+'" data-par="'+k2+'" '
     + 'aria-label="'+esc(label)+' en '+esc(unidad)+'" style="margin-top:5px">'
     + '<div class="note">'+esc(unidad)+'</div></div>';
   let h = '<div class="card"><span class="eyebrow">Tus datos</span><div class="grid3" style="margin-top:10px">'
@@ -1095,7 +1095,7 @@ function vistaPeso() {
 
   let h = '<div class="card"><span class="eyebrow">Peso de hoy</span>'
     + '<div style="display:flex;gap:8px;margin-top:8px">'
-    + '<input id="pesohoy" inputmode="decimal" placeholder="84,35" aria-label="Peso en kilos">'
+    + '<input id="pesohoy" inputmode="decimal" enterkeyhint="done" placeholder="84,35" aria-label="Peso en kilos">'
     + '<button class="btn" data-act="peso">Anotar</button></div>'
     + '<p class="note" style="margin:9px 0 0">Pésate en ayunas, después del baño. El dato del día no significa nada '
     + 'por sí solo: oscila 1-2 kg por agua y sal. Lo que mide tu progreso es la media de 7 días.</p></div>';
@@ -1425,6 +1425,7 @@ function vistaSemana() {
 
 let ocupado = 0;
 const esperaCant = {};
+let esperaParams = null;
 let colaError = "";
 
 /* Actualiza solo la barra de macros. Repintar todo mientras escribes te robaría el cursor. */
@@ -1860,7 +1861,7 @@ function vistaAlimentos() {
         : (e[c[0]] == null ? "" : e[c[0]]);
       h += '<div class="campo"><span class="eyebrow">'+esc(c[1])+'</span>'
         + '<div class="fila"><input id="ed_'+c[0]+'" data-ed="'+c[0]+'" value="'+esc(String(val))+'" '
-        + 'type="number" inputmode="decimal" step="0.1" aria-label="'+esc(c[1])+' en '+esc(c[2])+'">'
+        + 'inputmode="decimal" enterkeyhint="done" aria-label="'+esc(c[1])+' en '+esc(c[2])+'">'
         + '<span class="u">'+esc(c[2])+'</span></div>'
         + (c[3] ? '<div class="pie">'+esc(c[3])+'</div>' : '') + '</div>';
     });
@@ -2053,6 +2054,12 @@ function pantallaEdge() {
     + '</div></div>';
 }
 
+/* Al salir de un campo del editor se repinta una vez, para recalcular los avisos. */
+document.getElementById("app").addEventListener("change", function (ev) {
+  const el = ev.target;
+  if (el && el.dataset && el.dataset.ed && S.ed) render();
+});
+
 document.getElementById("app").addEventListener("click", function(ev){
   const b = ev.target.closest("[data-edge]"); if (!b) return;
   const msg = document.getElementById("edgeMsg");
@@ -2124,6 +2131,12 @@ function pintar() {
     if (el) { el.focus(); if (caret != null && el.setSelectionRange) { try { el.setSelectionRange(caret, caret); } catch(e){} } }
   }
 }
+
+/* Al salir de un campo del editor se repinta una vez, para recalcular los avisos. */
+document.getElementById("app").addEventListener("change", function (ev) {
+  const el = ev.target;
+  if (el && el.dataset && el.dataset.ed && S.ed) render();
+});
 
 document.getElementById("app").addEventListener("click", function(ev){
   const b = ev.target.closest("[data-act]"); if (!b) return;
@@ -2460,7 +2473,7 @@ document.getElementById("app").addEventListener("input", function(ev){
     if (n) { guardar(); render(); }
     return;
   }
-  if (el.dataset.ed && S.ed) { S.ed[el.dataset.ed] = el.value; render(); return; }
+  if (el.dataset.ed && S.ed) { S.ed[el.dataset.ed] = el.value; return; }   // sin repintar: se perdía el cursor
   if (el.dataset.rac != null) {
     const id = el.dataset.rac, v = cantidad(el.value);
     if (v == null) return;                       // a medio escribir: no se toca nada
@@ -2475,8 +2488,10 @@ document.getElementById("app").addEventListener("input", function(ev){
   }
   if (el.dataset.par) {
     const k = el.dataset.par;
-    S.params[k] = k === "planStart" ? el.value : (parseFloat(el.value) || 0);
-    guardar(); render(); guardarParams();
+    S.params[k] = k === "planStart" ? el.value : (cantidad(el.value) || parseFloat(String(el.value).replace(",", ".")) || 0);
+    guardar();
+    clearTimeout(esperaParams);
+    esperaParams = setTimeout(function () { guardarParams(); render(); }, 900);
   }
 });
 
