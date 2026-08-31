@@ -240,6 +240,79 @@ td.num,th.num{text-align:right;font-family:'IBM Plex Mono',monospace;font-varian
 .bloqueo code{font-family:'IBM Plex Mono',monospace;background:#25332E;padding:2px 6px;border-radius:2px;
   font-size:14px;word-break:break-all}
 .bloqueo .ok{color:#6FE0AC;font-weight:700}
+
+/* ---------- cabecera del día ---------- */
+.hdr-dia{display:flex;align-items:center;gap:10px;padding:11px 12px}
+.hdr-dia .hdr-txt{flex:1;min-width:0;text-align:center}
+.hdr-fecha{font-size:17px;font-weight:700;line-height:1.2}
+.hdr-obj{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.05em;
+  text-transform:uppercase;color:var(--soft);margin-top:2px}
+.hdr-rest{font-family:'IBM Plex Mono',monospace;font-size:21px;font-weight:700;
+  white-space:nowrap;flex:0 0 auto;text-align:right}
+.hdr-rest .hdr-u{font-size:11px;font-weight:600;margin-left:3px;color:var(--soft)}
+.hdr-rest.rok{color:var(--verde)} .hdr-rest.rno{color:var(--rojo)}
+.card.err{border-color:var(--rojo)}
+
+/* ---------- medidor semanal, más bajo ---------- */
+.hero .mdrow{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-top:6px}
+.mdnum{font-size:30px;font-weight:700;line-height:1}
+.mdnum .mdu{font-size:13px;font-weight:600;margin-left:6px}
+.mdcons{font-size:15px;font-weight:700;color:#fff;white-space:nowrap}
+.hero .gauge{height:74px;margin-top:10px}
+.hero .collab{margin-top:4px}
+.col[data-hoy]{box-shadow:inset 0 0 0 1.5px #EDF0EC}
+
+/* ---------- controles compactos de cada línea ---------- */
+.ctrl2{display:grid;grid-template-columns:52px 52px 44px 30px;gap:5px;align-items:center;
+  flex:0 0 auto;margin-left:auto}
+.ctrl2>*{min-width:0}
+.ctrl2 input.cant-input{width:100%;text-align:center;font-weight:700;font-size:14px;padding:5px 2px;
+  border-radius:3px}
+.ctrl2 .uni{font-size:12px;font-weight:600;line-height:1.1;overflow-wrap:break-word}
+.franja-btn{background:none;border:1.4px solid var(--line);border-radius:3px;font:inherit;
+  font-size:12px;font-weight:700;padding:5px 3px;cursor:pointer;color:var(--ink);width:100%}
+.franja-btn.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.ctrl2 .quitax{padding:2px 4px;font-size:15px}
+.chips{display:flex;flex-wrap:wrap;gap:4px;padding:7px 10px 9px;background:#fff;
+  border-top:1px solid var(--line)}
+.chip{background:none;border:1.4px solid var(--line);border-radius:3px;font:inherit;font-size:12.5px;
+  font-weight:600;padding:5px 9px;cursor:pointer;color:var(--ink)}
+.chip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.chev{background:none;border:1.4px solid var(--line);border-radius:3px;font-size:15px;line-height:1;
+  padding:4px 9px;cursor:pointer;color:var(--ink);flex:0 0 auto}
+.chev:hover{background:#E2E8E3}
+.lnk{background:none;border:none;padding:0;font:inherit;font-weight:600;color:var(--pine);
+  cursor:pointer;text-decoration:underline}
+
+/* ---------- tabla de la semana ---------- */
+.tsem{font-size:13.5px}
+.tsem th,.tsem td{padding:5px 7px}
+.tsem tr.hoy{background:#EDF2EE;font-weight:700}
+.tsem tfoot td{border-top:2px solid var(--ink);font-weight:700}
+.tsem .obj{color:var(--soft)}
+.tsem .rojo{color:var(--rojo)} .tsem .verde{color:var(--verde)}
+.filaf{display:flex;gap:9px;padding:6px 0;border-bottom:1px solid var(--line)}
+.filaf .ff{font-weight:700;flex:0 0 80px}
+.filaf .fp{font-size:14px;flex:1}
+
+/* ---------- panel flotante, más bajo ---------- */
+#restante .rejilla{display:grid;grid-template-columns:1fr 1fr;gap:1px 14px}
+#restante .rf{display:flex;justify-content:space-between;gap:7px;align-items:baseline;padding:1px 0}
+#restante .rf-kcal{grid-column:1 / -1;border-bottom:1px solid rgba(255,255,255,.16);
+  padding-bottom:4px;margin-bottom:3px}
+#restante .rf-kcal .rn{font-size:13.5px;font-weight:700}
+#restante .rf-kcal .rv{font-size:16px}
+#restante .rn{font-size:12px;flex:0 0 auto}
+#restante .rv{font-family:'IBM Plex Mono',monospace;font-size:12.5px;font-weight:700;
+  white-space:nowrap;margin-left:auto}
+#restante .obj{color:var(--hero-soft);font-weight:500}
+
+@media (max-width:640px){
+  .ctrl2{grid-template-columns:50px 46px 42px 28px;gap:4px}
+  .ctrl2 input.cant-input{font-size:15px}
+  .ingr .info,.logrow .info{flex:1 1 130px}
+  .filaf .ff{flex:0 0 66px}
+}
 </style>
 </head>
 <body>
@@ -255,7 +328,7 @@ const SEMILLA_RECETAS = [["Pollo thai con curry verde", "Zanahoria", 100.0, 1.07
 
 const VIAB  = [["Txuletón", "Comida"], ["Parrillada de carne (Kamado)", "Comida"], ["Costillas BBQ (Kamado)", "Comida"], ["Hamburguesa Berty's (Emily Love's)", "Comida"], ["Hamburguesa de restaurante", "Comida"], ["KFC (alitas de pollo)", "Comida"], ["Ramen tantanmen", "Comida"], ["Lasaña de atún", "Comida"], ["Pollo thai con curry verde", "Comida"], ["Lentejas caseras", "Comida"], ["Alubias caseras", "Comida"], ["Ensaladilla rusa", "Comida"], ["Vainas con patata", "Comida"], ["Ensalada con todo", "Comida"], ["Sopa y garbanzos", "Comida"], ["Fabada Cidacos", "Comida"], ["Pollo hindú Mercadona", "Comida"], ["Pizza Kamado casera", "Cena"], ["Zorza del Mercadona con patatas y huevos", "Cena"], ["Sushi (10-12 piezas)", "Cena"], ["Ensalada de tomate y bonito", "Cena"], ["Pintxo de tortilla con bonito y mayonesa (doble)", "Desayuno"], ["Domingo de chucherías", "Extras"]];
 
-const VERSION = "2026.08.31-2";
+const VERSION = "2026.08.31-3";
 const FRANJAS = ["Desayuno","Hamaiketako","Comida","Merienda","Cena","Extras"];
 const DIAS = ["lunes","martes","miércoles","jueves","viernes","sábado","domingo"];
 const MESES = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
@@ -322,12 +395,13 @@ const BY = {}; ITEMS.forEach(i => BY[i[0]] = i);
 /* ---------- estado ---------- */
 const S = {
   params: Object.assign({}, DEFAULTS, Store.get("carlos:params", {})),
-  ent:    {},          // se piden a la hoja; aquí no se guardan      // id -> {id,fecha,franja,alimento,cant,ts,borrado}
+  ent:    Store.get("carlos:vista", {}),   // copia de PANTALLA: se sustituye en cuanto responde la hoja      // id -> {id,fecha,franja,alimento,cant,ts,borrado}
   pesos:  {},    // fecha -> peso
   sync:   Store.get("carlos:sync", { url:"", token:"" }),
   catVer: Store.get("carlos:catver", ""),
-  semana: null,
+  semana: Store.get("carlos:vistasem", null),
   backend: "",
+  moverId: null,
   fecha:  iso(new Date()),
   vista:  "registro",
   q:      "",
@@ -438,47 +512,35 @@ function metrica(label, valor, obj, unidad, modo) {
 
 function hero() {
   const o = objetivos(S.params);
-  const d = parseIso(S.fecha);
-  const lunes = mondayOf(d);
-  let kcalSem = 0;
-  let cols = "", labs = "";
+  const lunes = mondayOf(parseIso(S.fecha));
+  let kcalSem = 0, cols = "", labs = "";
   for (let i = 0; i < 7; i++) {
     const dd = addDays(lunes, i), k = iso(dd);
     const kc = totales(logDe(k)).kcal;
     const objD = esFinde(dd) ? o.fin : o.lab;
     kcalSem += kc;
-    const h = Math.min(100, (kc/(o.fin*1.15))*100);
-    const tk = Math.min(100, (objD/(o.fin*1.15))*100);
+    /* La altura de cada barra ES el objetivo de ese día. Llena = objetivo justo,
+       desbordada = te pasaste. Sin línea de referencia: no hace falta. */
+    const alto = Math.min(112, (kc / objD) * 100);
     cols += '<button class="col" data-act="ir" data-f="'+k+'" aria-label="'+esc(nfDia(dd))+': '+fmt(kc)+' kcal"'
-      + ' style="box-shadow:'+(k===S.fecha?"inset 0 0 0 1.5px #EDF0EC":"none")+'">'
-      + '<span class="fill" style="height:'+h+'%;background:'+(kc>objD?"var(--pimenton)":"var(--mint)")+'"></span>'
-      + '<span class="tick" style="bottom:'+tk+'%"></span></button>';
+      + (k === S.fecha ? ' data-hoy="1"' : '')+'>'
+      + '<span class="fill" style="height:'+alto+'%;background:'+(kc>objD?"var(--pimenton)":"var(--mint)")+'"></span>'
+      + '</button>';
     labs += '<span class="'+(k===S.fecha?"on":"")+'">'+DIAS[i].charAt(0).toUpperCase()+'</span>';
   }
   const restan = o.semanal - kcalSem;
-  return '<div class="card hero"><div class="row"><span class="eyebrow">Semana del '+lunes.getDate()+' '
-    + MESES[lunes.getMonth()]+' · presupuesto '+fmt(o.semanal)+' kcal</span>'
-    + '<span class="eyebrow">'+(Store.modo()==="memoria"?"sin guardar":"")+'</span></div>'
-    + '<div class="row" style="margin-top:8px;align-items:flex-end"><div>'
-    + '<div class="disp big mono" style="color:'+(restan<0?"var(--rojo-claro)":"var(--verde-claro)")+'">'
-    + (restan<0?"−":"")+fmt(Math.abs(restan))+'</div>'
-    + '<div style="margin-top:5px;font-size:15px;font-weight:700;color:'+(restan<0?"var(--rojo-claro)":"var(--verde-claro)")+'">'
-    + (restan<0?"kcal de más esta semana":"kcal te quedan esta semana")+'</div></div>'
-    + '<div style="text-align:right"><div class="mono" style="font-size:17px;font-weight:700;color:#FFFFFF">'+fmt(kcalSem)+'</div>'
-    + '<div class="eyebrow">consumidas</div></div></div>'
-    + '<div class="gauge">'+cols+'</div><div class="collab">'+labs+'</div>'
-    + '<p class="note" style="color:var(--hero-soft);margin:9px 0 0">La línea blanca de cada columna es el objetivo diario. '
-    + 'Lo que cuenta es el total de la semana, no cada día por separado.</p></div>';
+  const col = restan < 0 ? "var(--rojo-claro)" : "var(--verde-claro)";
+  return '<div class="card hero" id="medidor">'
+    + '<span class="eyebrow">Sem. '+lunes.getDate()+'-'+MESES[lunes.getMonth()].slice(0,3)
+    + ' · '+fmt(o.semanal)+' kcal semanales</span>'
+    + '<div class="mdrow">'
+    + '<div class="mdnum mono" style="color:'+col+'">'+(restan<0?"−":"")+fmt(Math.abs(restan))
+    + '<span class="mdu">kcal '+(restan<0?"de más":"quedan")+'</span></div>'
+    + '<div class="mdcons mono">'+fmt(kcalSem)+'<span class="eyebrow"> consumidas</span></div></div>'
+    + '<div class="gauge">'+cols+'</div><div class="collab">'+labs+'</div></div>';
 }
 
 function vistaRegistro() {
-  if (colaError) {
-    var hErr = '<div class="card" style="border-color:var(--rojo)">'
-      + '<span class="eyebrow" style="color:var(--rojo)">No se ha podido hablar con la hoja</span>'
-      + '<p class="note" style="margin:8px 0 10px">'+esc(colaError)+'</p>'
-      + '<button class="btn" data-act="recargar">Reintentar</button></div>';
-  } else var hErr = "";
-
   const o = objetivos(S.params);
   const d = parseIso(S.fecha);
   const objD = esFinde(d) ? o.fin : o.lab;
@@ -487,80 +549,24 @@ function vistaRegistro() {
   const dif = t.kcal - objD;
   const idx = planIndex(d);
   const pd = idx === null ? null : PLAN[idx];
-  let h = hErr + "";
+  let h = "";
 
-  h += '<div class="card"><div class="row" style="margin-bottom:12px">'
-    + '<button class="btn ghost tiny" data-act="dia" data-n="-1" aria-label="Día anterior">◀</button>'
-    + '<div style="text-align:center"><div class="disp" style="font-size:22px">'+esc(nfDia(d))+'</div>'
-    + '<div class="eyebrow" style="margin-top:4px">objetivo '+fmt(objD)+' kcal</div></div>'
-    + '<button class="btn ghost tiny" data-act="dia" data-n="1" aria-label="Día siguiente">▶</button></div>'
-    + '<div style="text-align:center;padding:12px 0 16px;border-top:1.5px solid var(--line);border-bottom:1.5px solid var(--line);margin-bottom:14px">'
-    + '<div class="restante" style="color:'+(dif>0?"var(--rojo)":"var(--verde)")+'">'
-    + (dif>0?"+":"")+fmt(Math.abs(dif))+' kcal</div>'
-    + '<div class="restlab" style="color:'+(dif>0?"var(--rojo)":"var(--verde)")+'">'
-    + (dif>0?"te has pasado":"te quedan por comer")+'</div></div>'
-    + metrica("Calorías (máximo)", t.kcal, objD, "kcal")
-    + metrica("Proteína (mínimo)", t.prot, o.prot, "g", "min")
-    + metrica("Grasa (mínimo)", t.grasa, o.grasa, "g", "min")
-    + metrica("Hidratos (máximo)", t.hidratos, o.hidratos, "g")
-    + metrica("Verdura y fruta (mínimo)", t.verdura+t.fruta, S.params.objVF, "g", "min");
-  h += '<p class="note" style="margin-top:4px"><b>Máximo</b> = conviene no pasarse; se pone en rojo al superarlo. '
-    + '<b>Mínimo</b> = hay que llegar; está en verde cuando lo alcanzas y en rojo mientras te falte. '
-    + 'La grasa es un mínimo, no un techo: por debajo de '+fmt(o.grasa)+' g se resiente la parte hormonal.</p>';
-  if (t.alc > 0) h += '<p class="note" style="margin-top:6px">Incluye '+fmt(t.alc)+' g de alcohol ('
-    + fmt(t.alc*7)+' kcal), que no cuentan como proteína, grasa ni hidratos.</p>';
-  h += '</div>';
-
-  if (pd) {
-    const filas = pd.items.map(function(x){
-      return { nombre:x[0], franja:x[1], cant: x.length > 2 ? x[2] : BASE(BY[x[0]]) }; });
-    const puesto = (n, f) => reg.some(e => e[0] === n && e[2] === f);
-    const faltan = filas.filter(x => !puesto(x.nombre, x.franja)).length;
-    const abierto = !!S.params.planAbierto;
-    h += '<div class="card"><div class="row"><div><span class="eyebrow">Lo que toca según el plan</span>'
-      + '<div style="font-size:15px;margin-top:5px;font-weight:500">Semana '+pd.sem+', '+esc(pd.dia.toLowerCase())
-      + ' · '+esc(pd.tipo.toLowerCase())+'</div>'
-      + (function(){
-          const tp = totales(filas.map(x => [x.nombre, x.cant, x.franja, "", 0, "", 1]));
-          return '<div class="note mono" style="font-weight:600;margin-top:3px">El día entero: '+fmt(tp.kcal)
-            + ' kcal · '+fmt(tp.prot)+' P · '+fmt(tp.grasa)+' G · '+fmt(tp.hidratos)+' H · '
-            + fmt(tp.verdura+tp.fruta)+' g de verdura y fruta</div>';
-        })()
-      + '</div>'
-      + '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">'
-      + (faltan ? '<button class="btn tiny" data-act="cargarplan">Añadir los '+faltan+' que faltan</button>'
-                : '<span class="veredicto v-cabe">día completo</span>')
-      + '<button class="btn ghost tiny" data-act="plegarplan" aria-expanded="'+(abierto?"true":"false")+'">'
-      + (abierto ? "Ocultar" : "Ver los "+filas.length)+'</button></div></div>';
-    if (!abierto) { h += '</div>'; }
-    else {
-    if (pd.nota) h += '<p class="note" style="margin:8px 0 0">'+esc(pd.nota)+'</p>';
-    h += '<div style="margin-top:6px">';
-    FRANJAS.forEach(function(fr){
-      const dela = filas.filter(x => x.franja === fr);
-      if (!dela.length) return;
-      const subK = dela.reduce(function(a,x){ const t=BY[x.nombre]; return a + (t ? t[2]*x.cant/BASE(t) : 0); }, 0);
-      const subP = dela.reduce(function(a,x){ const t=BY[x.nombre]; return a + (t ? t[3]*x.cant/BASE(t) : 0); }, 0);
-      h += '<div class="grupo"><div class="gcab"><span class="gnom">'+esc(fr)+'</span>'
-        + '<span class="gsub">'+fmt(subK)+' kcal · '+fmt(subP)+' g P</span></div><div class="gcue">';
-      dela.forEach(function(x){
-        const it = BY[x.nombre], ya = puesto(x.nombre, x.franja);
-        if (!it) return;
-        h += '<div class="logrow"><div class="info">'
-          + '<div style="font-size:15px;'+(ya ? 'color:#5D6C65' : 'font-weight:600')+'">'+esc(x.nombre)+'</div>'
-          + '<div class="note mono" style="font-weight:600">'+fmt(it[2]*x.cant/BASE(it))+' kcal · '
-          + fmt(it[3]*x.cant/BASE(it))+' g P · '+fmtCant(x.cant)+' '+esc(UNI(it))+'</div></div>'
-          + (ya ? '<span class="veredicto v-cabe">ya está</span>'
-                : '<button class="btn tiny" data-act="addplan" data-v="'+esc(x.nombre)+'" data-f="'+esc(fr)+'" data-c="'+x.cant+'">Añadir</button>')
-          + '</div>';
-      });
-      h += '</div></div>';
-    });
-    h += '</div></div>';
-    }
+  if (colaError) {
+    h += '<div class="card err" id="aviso-error">'
+      + '<span class="eyebrow" style="color:var(--rojo)">No se ha podido hablar con la hoja</span>'
+      + '<p class="note" style="margin:8px 0 10px">'+esc(colaError)+'</p>'
+      + '<button class="btn" data-act="recargar">Reintentar</button></div>';
   }
 
-  h += vistaSemana();
+  /* cabecera: día, objetivo y lo que queda. Nada más. */
+  h += '<div class="card hdr-dia" id="hdr-dia">'
+    + '<button class="btn ghost tiny" data-act="dia" data-n="-1" aria-label="Día anterior">◀</button>'
+    + '<div class="hdr-txt">'
+    + '<div class="hdr-fecha">'+esc(nfDia(d))+'</div>'
+    + '<div class="hdr-obj">objetivo '+fmt(objD)+' kcal</div></div>'
+    + '<div class="hdr-rest '+(dif>0?"rno":"rok")+'">'
+    + (dif>0?"+":"")+fmt(Math.abs(dif))+'<span class="hdr-u">kcal</span></div>'
+    + '<button class="btn ghost tiny" data-act="dia" data-n="1" aria-label="Día siguiente">▶</button></div>';
 
   h += vistaSugerencias(reg, objD, o);
 
@@ -651,16 +657,17 @@ function vistaRegistro() {
           + '<div class="note mono" style="font-weight:600">'+fmt(tg.kcal)+' kcal · '+fmt(tg.prot)+' P · '
           + fmt(tg.grasa)+' G · '+fmt(tg.hidratos)+' H</div></div>'
           + '<div class="ctrlp">'
-          + '<select data-movergrupo="'+gr+'" aria-label="Mover '+esc(nom)+' a otra franja">'
-          + FRANJAS.map(function (fx) {
-              return '<option value="'+esc(fx)+'"'+(fx === f ? " selected" : "")+'>'+esc(fx)+'</option>';
-            }).join("")
-          + '</select>'
+          + '<button class="franja-btn' + (S.moverId === gr ? " on" : "") + '" data-act="mover" data-v="'+gr+'" '
+          + 'aria-label="Cambiar la franja de '+esc(nom)+'">'+esc(FRABREV[f] || f.slice(0,3))+'</button>'
           + (grupoModificado(herm, nom)
              ? '<button class="btnv" data-act="guardarvar" data-v="'+gr+'" '
                + 'title="Has cambiado la receta: guárdalo como plato nuevo">Guardar variante</button>' : '')
           + '<button class="quitax" data-act="delgrupo" data-v="'+gr+'" title="Quitar el plato entero" '
-          + 'aria-label="Quitar '+esc(nom)+' entero">✕</button></div></div>';
+          + 'aria-label="Quitar '+esc(nom)+' entero">✕</button></div></div>'
+          + (S.moverId === gr ? '<div class="chips">' + FRANJAS.map(function (fx) {
+              return '<button class="chip'+(fx === f ? " on" : "")+'" data-act="moverGrupoA" '
+                + 'data-v="'+gr+'" data-f="'+esc(fx)+'">'+esc(fx)+'</button>';
+            }).join("") + '</div>' : '');
         if (S.guardarVar === gr) {
           h += '<div style="padding:9px 10px;border-bottom:1px solid var(--line);background:#fff">'
             + '<p class="note" style="margin:0 0 8px">Has cambiado «'+esc(nom)+'». Guárdalo con otro nombre y '
@@ -714,6 +721,59 @@ function vistaRegistro() {
 
   if (S.aviso) h += '<p class="aviso" style="margin-top:10px">'+esc(S.aviso)+'</p>';
   h += '</div>';
+
+  if (pd) {
+    const filas = pd.items.map(function(x){
+      return { nombre:x[0], franja:x[1], cant: x.length > 2 ? x[2] : BASE(BY[x[0]]) }; });
+    const puesto = (n, f) => reg.some(e => e[0] === n && e[2] === f);
+    const faltan = filas.filter(x => !puesto(x.nombre, x.franja)).length;
+    const abierto = !!S.params.planAbierto;
+    h += '<div class="card"><div class="row"><div><span class="eyebrow">Lo que toca según el plan</span>'
+      + '<div style="font-size:15px;margin-top:5px;font-weight:500">Semana '+pd.sem+', '+esc(pd.dia.toLowerCase())
+      + ' · '+esc(pd.tipo.toLowerCase())+'</div>'
+      + (function(){
+          const tp = totales(filas.map(x => [x.nombre, x.cant, x.franja, "", 0, "", 1]));
+          return '<div class="note mono" style="font-weight:600;margin-top:3px">El día entero: '+fmt(tp.kcal)
+            + ' kcal · '+fmt(tp.prot)+' P · '+fmt(tp.grasa)+' G · '+fmt(tp.hidratos)+' H · '
+            + fmt(tp.verdura+tp.fruta)+' g de verdura y fruta</div>';
+        })()
+      + '</div>'
+      + '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">'
+      + (faltan ? '<span class="note mono" style="font-weight:700">'+faltan+' sin poner</span>'
+                : '<span class="veredicto v-cabe">día completo</span>')
+      + '<button class="chev" data-act="plegarplan" aria-expanded="'+(abierto?"true":"false")+'" '
+      + 'aria-label="'+(abierto?"Ocultar":"Ver")+' el plan del día">'
+      + (abierto ? "▾" : "▸")+'</button></div></div>';
+    if (!abierto) { h += '</div>'; }
+    else {
+    if (pd.nota) h += '<p class="note" style="margin:8px 0 0">'+esc(pd.nota)+'</p>';
+    h += '<div style="margin-top:6px">';
+    FRANJAS.forEach(function(fr){
+      const dela = filas.filter(x => x.franja === fr);
+      if (!dela.length) return;
+      const subK = dela.reduce(function(a,x){ const t=BY[x.nombre]; return a + (t ? t[2]*x.cant/BASE(t) : 0); }, 0);
+      const subP = dela.reduce(function(a,x){ const t=BY[x.nombre]; return a + (t ? t[3]*x.cant/BASE(t) : 0); }, 0);
+      h += '<div class="grupo"><div class="gcab"><span class="gnom">'+esc(fr)+'</span>'
+        + '<span class="gsub">'+fmt(subK)+' kcal · '+fmt(subP)+' g P</span></div><div class="gcue">';
+      dela.forEach(function(x){
+        const it = BY[x.nombre], ya = puesto(x.nombre, x.franja);
+        if (!it) return;
+        h += '<div class="logrow"><div class="info">'
+          + '<div style="font-size:15px;'+(ya ? 'color:#5D6C65' : 'font-weight:600')+'">'+esc(x.nombre)+'</div>'
+          + '<div class="note mono" style="font-weight:600">'+fmt(it[2]*x.cant/BASE(it))+' kcal · '
+          + fmt(it[3]*x.cant/BASE(it))+' g P · '+fmtCant(x.cant)+' '+esc(UNI(it))+'</div></div>'
+          + (ya ? '<span class="veredicto v-cabe">ya está</span>'
+                : '<button class="btn tiny" data-act="addplan" data-v="'+esc(x.nombre)+'" data-f="'+esc(fr)+'" data-c="'+x.cant+'">Añadir</button>')
+          + '</div>';
+      });
+      h += '</div></div>';
+    });
+    h += '</div></div>';
+    }
+  }
+
+  h += vistaSemana();
+
   return h;
 }
 
@@ -845,25 +905,21 @@ function vistaAjustes() {
 /* ---------- panel flotante: lo que queda por comer ---------- */
 function panelRestante(t, objD, o) {
   const filas = [
-    ["Proteína",        t.prot,               o.prot,          "min"],
-    ["Grasa",           t.grasa,              o.grasa,         "min"],
-    ["Hidratos",        t.hidratos,           o.hidratos,      "max"],
-    ["Verdura y fruta", t.verdura + t.fruta,  S.params.objVF,  "min"]
+    ["Calorías",  t.kcal,     objD,       "max"],
+    ["Proteína",  t.prot,     o.prot,     "min"],
+    ["Grasa",     t.grasa,    o.grasa,    "min"],
+    ["Hidratos",  t.hidratos, o.hidratos, "max"],
+    ["Verd. y fruta", t.verdura + t.fruta, S.params.objVF, "min"]
   ];
-  const kcal = objD - t.kcal;
-  let h = '<div id="restante" aria-live="polite"><div class="cab"><div>'
-    + '<div class="rt">'+(kcal >= 0 ? "te queda por comer" : "te has pasado")+'</div>'
-    + '<div class="rk '+(kcal >= 0 ? "rok" : "rno")+'">'+fmt(Math.abs(kcal))+' <span class="ru">kcal</span></div>'
-    + '<div class="rt2"><span class="'+(kcal >= 0 ? "rok" : "rno")+'">'+fmt(t.kcal)+'</span>'
-    + '<span class="obj"> / '+fmt(objD)+' kcal</span></div></div></div><div class="rejilla">';
-  filas.forEach(function (f) {
+  let h = '<div id="restante" aria-live="polite"><div class="rejilla">';
+  filas.forEach(function (f, k) {
     const dif = f[2] - f[1];
-    // mínimo: verde al alcanzarlo. máximo: verde mientras no se pase.
     const ok = f[3] === "min" ? dif <= 0.5 : dif >= 0;
     const cls = ok ? "rok" : "rno";
-    h += '<div class="rf"><span class="rn">'+f[0]+'</span>'
+    h += '<div class="rf'+(k === 0 ? " rf-kcal" : "")+'">'
+      + '<span class="rn">'+f[0]+'</span>'
       + '<span class="rv"><span class="'+cls+'">'+fmt(f[1])+'</span>'
-      + '<span class="obj"> / '+fmt(f[2])+'</span>'
+      + '<span class="obj">/'+fmt(f[2])+'</span>'
       + ' <span class="'+cls+'">'+fmt(Math.abs(dif))+'</span></span></div>';
   });
   h += '</div></div>';
@@ -1110,18 +1166,27 @@ function avisosBorrado(nom) {
 }
 
 /* Controles de una línea: cantidad, unidad, franja y la equis de quitar. */
+const FRABREV = { "Desayuno":"Des", "Hamaiketako":"Ham", "Comida":"Com",
+                  "Merienda":"Mer", "Cena":"Cen", "Extras":"Ext" };
+
 function ctrlLinea(id, cant, uni, franja, etiqueta) {
-  return '<div class="ctrl2">'
-    + '<input id="rc_'+id+'" data-rac="'+id+'" value="'+fmtCant(cant)+'" '
+  const abierto = S.moverId === id;
+  let h = '<div class="ctrl2">'
+    + '<input class="cant-input" id="rc_'+id+'" data-rac="'+id+'" value="'+fmtCant(cant)+'" '
     + 'aria-label="Cantidad de '+etiqueta+'">'
     + '<span class="uni">'+esc(uni)+'</span>'
-    + '<select id="fr_'+id+'" data-mover="'+id+'" aria-label="Mover '+etiqueta+' a otra franja">'
-    + FRANJAS.map(function (fx) {
-        return '<option value="'+esc(fx)+'"'+(fx === franja ? " selected" : "")+'>'+esc(fx)+'</option>';
-      }).join("")
-    + '</select>'
+    + '<button class="franja-btn'+(abierto?" on":"")+'" data-act="mover" data-v="'+id+'" '
+    + 'aria-expanded="'+(abierto?"true":"false")+'" aria-label="Cambiar la franja de '+etiqueta+'">'
+    + esc(FRABREV[franja] || franja.slice(0,3))+'</button>'
     + '<button class="quitax" data-act="del" data-id="'+id+'" title="Quitar" '
     + 'aria-label="Quitar '+etiqueta+'">✕</button></div>';
+  if (abierto) {
+    h += '<div class="chips">' + FRANJAS.map(function (fx) {
+      return '<button class="chip'+(fx === franja ? " on" : "")+'" data-act="moverA" '
+        + 'data-v="'+id+'" data-f="'+esc(fx)+'">'+esc(fx)+'</button>';
+    }).join("") + '</div>';
+  }
+  return h;
 }
 
 /* ---------- copiar a otra fecha y guardar variantes ---------- */
@@ -1242,24 +1307,60 @@ function lunesDe(d) {
 
 function vistaSemana() {
   const abierta = !!S.params.semanaAbierta;
+  const o = objetivos(S.params);
   const lun = lunesDe(parseIso(S.fecha));
   const dom = addDays(lun, 6);
-  let h = '<div class="card"><div class="row"><div><span class="eyebrow">La semana</span>'
+  let h = '<div class="card" id="sec-semana"><div class="row">'
+    + '<div><span class="eyebrow">La semana</span>'
     + '<div style="font-size:15px;margin-top:5px;font-weight:500">Del '+nfDia(lun)+' al '+nfDia(dom)+'</div></div>'
-    + '<button class="btn ghost tiny" data-act="plegarsemana" aria-expanded="'+(abierta?"true":"false")+'">'
-    + (abierta ? "Ocultar" : "Ver")+'</button></div>';
+    + '<button class="chev" data-act="plegarsemana" aria-expanded="'+(abierta?"true":"false")+'" '
+    + 'aria-label="'+(abierta?"Ocultar":"Ver")+' la semana">'+(abierta?"▾":"▸")+'</button></div>';
   if (!abierta) { h += '</div>'; return h; }
 
-  /* ---- los siete días, que es lo que se usa para cocinar ---- */
+  /* --- resumen numérico: qué llevas cada día y cómo va el cómputo semanal --- */
+  let acumKcal = 0, acumProt = 0, acumObj = 0;
+  let filas = "";
+  for (let i = 0; i < 7; i++) {
+    const dd = addDays(lun, i), k = iso(dd);
+    const reg = logDe(k);
+    const tt = totales(reg);
+    const objD = esFinde(dd) ? o.fin : o.lab;
+    const hayDatos = reg.length > 0;
+    acumKcal += tt.kcal; acumProt += tt.prot; acumObj += objD;
+    const desv = tt.kcal - objD;
+    filas += '<tr'+(k === S.fecha ? ' class="hoy"' : '')+'>'
+      + '<td><button class="lnk" data-act="ir" data-f="'+k+'">'+DIAS[i].slice(0,3)+' '+dd.getDate()+'</button></td>'
+      + '<td class="num mono">'+(hayDatos ? fmt(tt.kcal) : "—")+'</td>'
+      + '<td class="num mono obj">'+fmt(objD)+'</td>'
+      + '<td class="num mono '+(hayDatos ? (desv > 0 ? "rojo" : "verde") : "")+'">'
+      + (hayDatos ? (desv > 0 ? "+" : "") + fmt(desv) : "—")+'</td>'
+      + '<td class="num mono '+(hayDatos ? (tt.prot >= o.prot ? "verde" : "rojo") : "")+'">'
+      + (hayDatos ? fmt(tt.prot) : "—")+'</td></tr>';
+  }
+  const balance = acumKcal - acumObj;
+  h += '<div style="overflow-x:auto;margin-top:10px"><table class="tsem"><thead><tr>'
+    + '<th>Día</th><th class="num">kcal</th><th class="num">obj.</th><th class="num">desvío</th>'
+    + '<th class="num">prot.</th></tr></thead><tbody>'+filas+'</tbody>'
+    + '<tfoot><tr><td>Semana</td><td class="num mono">'+fmt(acumKcal)+'</td>'
+    + '<td class="num mono obj">'+fmt(o.semanal)+'</td>'
+    + '<td class="num mono '+(acumKcal > o.semanal ? "rojo" : "verde")+'">'
+    + (acumKcal > o.semanal ? "+" : "")+fmt(acumKcal - o.semanal)+'</td>'
+    + '<td class="num mono">'+fmt(acumProt)+'</td></tr></tfoot></table></div>';
+  h += '<p class="note" style="margin:8px 0 0">El desvío de cada día no importa por sí solo: lo que cuenta es '
+    + 'la fila de abajo. '+(balance > 0
+        ? 'Vas <b>'+fmt(balance)+' kcal por encima</b> de lo que tocaría a estas alturas.'
+        : 'Te sobran <b>'+fmt(Math.abs(balance))+' kcal</b> respecto a lo que tocaría.')+'</p>';
+
+  /* --- los siete días con sus platos --- */
   const compra = {};
   for (let i = 0; i < 7; i++) {
-    const d = addDays(lun, i);
-    const idx = planIndex(d);
+    const dd = addDays(lun, i);
+    const idx = planIndex(dd);
     const pd = idx == null ? null : PLAN[idx];
-    const hoy = iso(d) === iso(new Date());
-    h += '<div class="grupo" style="margin-top:'+(i?10:12)+'px'+(hoy?';border-width:2.5px':'')+'">'
-      + '<div class="gcab"><span class="gnom">'+nfDia(d)+(hoy?' · hoy':'')+'</span>'
-      + '<span class="gsub">'+esc(iso(d).split("-").reverse().join("-"))+'</span></div><div class="gcue">';
+    const esHoy = iso(dd) === S.fecha;
+    h += '<div class="grupo" style="margin-top:'+(i?10:14)+'px'+(esHoy?';border-width:2.5px':'')+'">'
+      + '<div class="gcab"><span class="gnom">'+nfDia(dd)+(esHoy?' · hoy':'')+'</span>'
+      + '<span class="gsub">'+esc(iso(dd).split("-").reverse().join("-"))+'</span></div><div class="gcue">';
     if (!pd) h += '<p class="note" style="padding:8px 0">Sin plan para ese día.</p>';
     else {
       const porFranja = {};
@@ -1267,27 +1368,26 @@ function vistaSemana() {
         (porFranja[x[1]] = porFranja[x[1]] || []).push(x[0]);
         const it = BY[x[0]];
         const cant = x.length > 2 ? x[2] : (it ? BASE(it) : 1);
-        if (!compra[x[0]]) compra[x[0]] = { veces: 0, total: 0, uni: it ? UNI(it) : "", dias: [] };
+        if (!compra[x[0]]) compra[x[0]] = { veces:0, total:0, uni: it ? UNI(it) : "", dias:[] };
         compra[x[0]].veces++; compra[x[0]].total += cant;
-        compra[x[0]].dias.push(DIAS[(d.getDay()+6)%7].slice(0,3));
+        compra[x[0]].dias.push(DIAS[(dd.getDay()+6)%7].slice(0,3));
       });
       FRANJAS.forEach(function (fr) {
         const l = porFranja[fr]; if (!l) return;
-        h += '<div style="display:flex;gap:10px;padding:7px 0;border-bottom:1px solid var(--line)">'
-          + '<span class="note" style="font-weight:700;flex:0 0 86px">'+esc(fr)+'</span>'
-          + '<span style="font-size:14.5px;flex:1">'+l.map(esc).join(" · ")+'</span></div>';
+        h += '<div class="filaf"><span class="note ff">'+esc(fr)+'</span>'
+          + '<span class="fp">'+l.map(esc).join(" · ")+'</span></div>';
       });
     }
     h += '</div></div>';
   }
 
-  /* ---- la compra, ordenable ---- */
-  const ord = S.ordSem || { col: "veces", dir: -1 };
-  const filas = Object.keys(compra).map(function (n) {
-    return { plato: n, veces: compra[n].veces, total: compra[n].total,
-             uni: compra[n].uni, dias: compra[n].dias.join(" ") };
+  /* --- la compra --- */
+  const ord = S.ordSem || { col:"veces", dir:-1 };
+  const lista = Object.keys(compra).map(function (n) {
+    return { plato:n, veces:compra[n].veces, total:compra[n].total,
+             uni:compra[n].uni, dias:compra[n].dias.join(" ") };
   });
-  filas.sort(function (a, b) {
+  lista.sort(function (a, b) {
     const x = a[ord.col], y = b[ord.col];
     if (typeof x === "string") return ord.dir * x.localeCompare(y, "es");
     return ord.dir * (x - y);
@@ -1300,7 +1400,7 @@ function vistaSemana() {
     + '<th class="num"><button class="ordth" data-act="ordsem" data-v="veces">Veces'+flecha("veces")+'</button></th>'
     + '<th class="num"><button class="ordth" data-act="ordsem" data-v="total">Total'+flecha("total")+'</button></th>'
     + '<th>Días</th></tr></thead><tbody>';
-  filas.forEach(function (f) {
+  lista.forEach(function (f) {
     h += '<tr><td>'+esc(f.plato)+'</td><td class="num">'+f.veces+'</td>'
       + '<td class="num">'+fmtCant(Math.round(f.total*100)/100)+' '+esc(f.uni)+'</td>'
       + '<td class="note">'+esc(f.dias)+'</td></tr>';
@@ -1371,10 +1471,14 @@ async function pedir(cuerpo, texto) {
 /* Vuelca en memoria lo que ha devuelto la hoja. Nada de esto se guarda en el navegador
    salvo el catálogo, que es material de consulta y no datos tuyos. */
 function aplicar(d) {
-  S.ent = {};
-  (d.entradas || []).forEach(function (e) { S.ent[e.id] = e; });
+  // se sustituye de golpe, ya con los datos en la mano: la pantalla no se queda en blanco
+  const nuevo = {};
+  (d.entradas || []).forEach(function (e) { nuevo[e.id] = e; });
+  S.ent = nuevo;
   S.semana = d.semana || null;
   S.pesos = d.pesos || {};
+  Store.set("carlos:vista", S.ent);
+  Store.set("carlos:vistasem", S.semana);
   if (d.params) S.params = Object.assign({}, DEFAULTS, d.params);
   if (d.catalogo && d.catalogo.length) {
     ITEMS = d.catalogo.map(function (f) {
@@ -1410,8 +1514,8 @@ async function cargar(texto) {
 
 async function irA(fecha) {
   S.fecha = fecha;
+  render();                                  // se pinta ya con lo que haya
   if (necesitaCargar(fecha)) await cargar("Cargando la semana…");
-  else render();
 }
 
 async function anotar(fecha, alimento, cant, franja, grupo, factor) {
@@ -2215,7 +2319,18 @@ document.getElementById("app").addEventListener("click", function(ev){
     const it = BY[b.dataset.v];
     anotarPlato(S.fecha, b.dataset.v, BASE(it), S.franja); S.q = ""; guardar();
   }
-  else if (a === "del") { borrarEntrada(b.dataset.id); guardar(); }
+  else if (a === "mover") { S.moverId = (S.moverId === b.dataset.v) ? null : b.dataset.v; }
+  else if (a === "moverA") { S.moverId = null; tocar(b.dataset.v, { franja: b.dataset.f }); return; }
+  else if (a === "moverGrupoA") {
+    const g = b.dataset.v, fr = b.dataset.f;
+    S.moverId = null;
+    const ids = Object.keys(S.ent).filter(id => S.ent[id].grupo === g && S.ent[id].fecha === S.fecha);
+    ids.forEach(function (id) { S.ent[id].franja = fr; });
+    render();
+    Promise.all(ids.map(id => pedir({ accion:"editar", id:id, cambios:{ franja:fr } }, "Moviendo…")));
+    return;
+  }
+  else if (a === "del") { borrarEntrada(b.dataset.id); return; }
   else if (a === "delgrupo") {
     const g = b.dataset.v;
     reg.forEach(function(e){ if (e[5] === g) borrarEntrada(e[3]); });
