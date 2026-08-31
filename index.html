@@ -265,14 +265,14 @@ td.num,th.num{text-align:right;font-family:'IBM Plex Mono',monospace;font-varian
 .col[data-hoy]{box-shadow:inset 0 0 0 1.5px #EDF0EC}
 
 /* ---------- controles compactos de cada línea ---------- */
-.ctrl2{display:grid;grid-template-columns:52px 52px 44px 30px;gap:5px;align-items:center;
+.ctrl2{display:grid;grid-template-columns:56px 52px 38px 30px;gap:5px;align-items:center;
   flex:0 0 auto;margin-left:auto}
 .ctrl2>*{min-width:0}
 .ctrl2 input.cant-input{width:100%;text-align:center;font-weight:700;font-size:14px;padding:5px 2px;
   border-radius:3px}
 .ctrl2 .uni{font-size:12px;font-weight:600;line-height:1.1;overflow-wrap:break-word}
 .franja-btn{background:none;border:1.4px solid var(--line);border-radius:3px;font:inherit;
-  font-size:12px;font-weight:700;padding:5px 3px;cursor:pointer;color:var(--ink);width:100%}
+  font-size:15px;line-height:1;font-weight:700;padding:5px 3px;cursor:pointer;color:var(--ink);width:100%}
 .franja-btn.on{background:var(--ink);color:#fff;border-color:var(--ink)}
 .ctrl2 .quitax{padding:2px 4px;font-size:15px}
 .chips{display:flex;flex-wrap:wrap;gap:4px;padding:7px 10px 9px;background:#fff;
@@ -312,7 +312,7 @@ td.num,th.num{text-align:right;font-family:'IBM Plex Mono',monospace;font-varian
 #restante .obj{color:var(--hero-soft);font-weight:500}
 
 @media (max-width:640px){
-  .ctrl2{grid-template-columns:50px 46px 42px 28px;gap:4px}
+  .ctrl2{grid-template-columns:54px 46px 38px 28px;gap:4px}
   .ctrl2 input.cant-input{font-size:15px}
   .ingr .info,.logrow .info{flex:1 1 130px}
   .filaf .ff{flex:0 0 66px}
@@ -332,7 +332,7 @@ const SEMILLA_RECETAS = [["Pollo thai con curry verde", "Zanahoria", 100.0, 1.07
 
 const VIAB  = [["Txuletón", "Comida"], ["Parrillada de carne (Kamado)", "Comida"], ["Costillas BBQ (Kamado)", "Comida"], ["Hamburguesa Berty's (Emily Love's)", "Comida"], ["Hamburguesa de restaurante", "Comida"], ["KFC (alitas de pollo)", "Comida"], ["Ramen tantanmen", "Comida"], ["Lasaña de atún", "Comida"], ["Pollo thai con curry verde", "Comida"], ["Lentejas caseras", "Comida"], ["Alubias caseras", "Comida"], ["Ensaladilla rusa", "Comida"], ["Vainas con patata", "Comida"], ["Ensalada con todo", "Comida"], ["Sopa y garbanzos", "Comida"], ["Fabada Cidacos", "Comida"], ["Pollo hindú Mercadona", "Comida"], ["Pizza Kamado casera", "Cena"], ["Zorza del Mercadona con patatas y huevos", "Cena"], ["Sushi (10-12 piezas)", "Cena"], ["Ensalada de tomate y bonito", "Cena"], ["Pintxo de tortilla con bonito y mayonesa (doble)", "Desayuno"], ["Domingo de chucherías", "Extras"]];
 
-const VERSION = "2026.08.31-4";
+const VERSION = "2026.08.31-5";
 const FRANJAS = ["Desayuno","Hamaiketako","Comida","Merienda","Cena","Extras"];
 const DIAS = ["lunes","martes","miércoles","jueves","viernes","sábado","domingo"];
 const MESES = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
@@ -351,6 +351,8 @@ const nfDia = d => DIAS[(d.getDay()+6)%7]+" "+d.getDate()+" "+MESES[d.getMonth()
 const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const norm = s => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
 /* Acepta "1,5", "1.5", "50/33", "3*0,5". Solo dígitos, punto, coma, / y *. */
+/* Acepta coma o punto como separador DECIMAL, indistintamente. Nunca como millares:
+   «1.234» y «1,234» son los dos 1,234. Admite además fracciones: 1/2, 3/4. */
 function cantidad(txt) {
   const t = String(txt == null ? "" : txt).replace(/,/g, ".").replace(/\s+/g, "");
   if (!t) return null;
@@ -662,7 +664,8 @@ function vistaRegistro() {
           + fmt(tg.grasa)+' G · '+fmt(tg.hidratos)+' H</div></div>'
           + '<div class="ctrlp">'
           + '<button class="franja-btn' + (S.moverId === gr ? " on" : "") + '" data-act="mover" data-v="'+gr+'" '
-          + 'aria-label="Cambiar la franja de '+esc(nom)+'">'+esc(FRABREV[f] || f.slice(0,3))+'</button>'
+          + 'title="Mover el plato a otra franja (ahora en '+esc(f)+')" '
+          + 'aria-label="Mover '+esc(nom)+' a otra franja. Ahora en '+esc(f)+'">↕</button>'
           + (grupoModificado(herm, nom)
              ? '<button class="btnv" data-act="guardarvar" data-v="'+gr+'" '
                + 'title="Has cambiado la receta: guárdalo como plato nuevo">Guardar variante</button>' : '')
@@ -692,6 +695,7 @@ function vistaRegistro() {
             + fmt(ix[3]*x[1]/BASE(ix)*f)+' P</div></div>'
             + '<div class="ctrl2 sinfr">'
             + '<input id="rc_'+x[3]+'" data-rac="'+x[3]+'" value="'+fmtCant(x[1])+'" '
+            + 'inputmode="decimal" enterkeyhint="done" '
             + 'aria-label="Cantidad de '+esc(x[0])+'">'
             + '<span class="uni">'+esc(UNI(ix))+'</span>'
             + '<button class="quitax" data-act="del" data-id="'+x[3]+'" title="Quitar este ingrediente" '
@@ -1169,18 +1173,18 @@ function avisosBorrado(nom) {
 }
 
 /* Controles de una línea: cantidad, unidad, franja y la equis de quitar. */
-const FRABREV = { "Desayuno":"Des", "Hamaiketako":"Ham", "Comida":"Com",
-                  "Merienda":"Mer", "Cena":"Cen", "Extras":"Ext" };
 
 function ctrlLinea(id, cant, uni, franja, etiqueta) {
   const abierto = S.moverId === id;
   let h = '<div class="ctrl2">'
     + '<input class="cant-input" id="rc_'+id+'" data-rac="'+id+'" value="'+fmtCant(cant)+'" '
+    + 'inputmode="decimal" enterkeyhint="done" '
     + 'aria-label="Cantidad de '+etiqueta+'">'
     + '<span class="uni">'+esc(uni)+'</span>'
     + '<button class="franja-btn'+(abierto?" on":"")+'" data-act="mover" data-v="'+id+'" '
-    + 'aria-expanded="'+(abierto?"true":"false")+'" aria-label="Cambiar la franja de '+etiqueta+'">'
-    + esc(FRABREV[franja] || franja.slice(0,3))+'</button>'
+    + 'aria-expanded="'+(abierto?"true":"false")+'" '
+    + 'title="Mover a otra franja (ahora en '+esc(franja)+')" '
+    + 'aria-label="Mover '+etiqueta+' a otra franja. Ahora en '+esc(franja)+'">↕</button>'
     + '<button class="quitax" data-act="del" data-id="'+id+'" title="Quitar" '
     + 'aria-label="Quitar '+etiqueta+'">✕</button></div>';
   if (abierto) {
@@ -1420,7 +1424,21 @@ function vistaSemana() {
    escriben a la vez: uno espera al otro. ==================================== */
 
 let ocupado = 0;
+const esperaCant = {};
 let colaError = "";
+
+/* Actualiza solo la barra de macros. Repintar todo mientras escribes te robaría el cursor. */
+function pintarPanel() {
+  const n = document.getElementById("restante");
+  if (!n || !n.parentNode) return;
+  const o = objetivos(S.params);
+  const d = parseIso(S.fecha);
+  const objD = esFinde(d) ? o.fin : o.lab;
+  const t = totales(logDe(S.fecha));
+  const tmp = document.createElement("div");
+  tmp.innerHTML = panelRestante(t, objD, o);
+  if (tmp.firstChild) n.parentNode.replaceChild(tmp.firstChild, n);
+}
 
 function trabajando(on, texto) {
   ocupado = Math.max(0, ocupado + (on ? 1 : -1));
@@ -2444,10 +2462,15 @@ document.getElementById("app").addEventListener("input", function(ev){
   }
   if (el.dataset.ed && S.ed) { S.ed[el.dataset.ed] = el.value; render(); return; }
   if (el.dataset.rac != null) {
-    const v = cantidad(el.value);
-    if (v != null) {
-      tocar(el.dataset.rac, { cant: v }); guardar(); render();
-    }
+    const id = el.dataset.rac, v = cantidad(el.value);
+    if (v == null) return;                       // a medio escribir: no se toca nada
+    if (S.ent[id]) S.ent[id].cant = v;           // se actualiza en pantalla sin repintar
+    pintarPanel();
+    clearTimeout(esperaCant[id]);
+    esperaCant[id] = setTimeout(function () {
+      delete esperaCant[id];
+      pedir({ accion:"editar", id:id, cambios:{ cant:v } }, "Guardando…");
+    }, 800);
     return;
   }
   if (el.dataset.par) {
