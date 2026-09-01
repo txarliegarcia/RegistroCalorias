@@ -185,19 +185,19 @@ td.num,th.num{text-align:right;font-family:'IBM Plex Mono',monospace;font-varian
 /* ---- panel de lo que queda por comer ---- */
 #restante{position:fixed;z-index:80;background:var(--ink);color:#fff;border-radius:3px;
   box-shadow:0 6px 24px rgba(14,24,21,.28);overflow:hidden;box-sizing:border-box}
-#restante .rt{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.13em;
+#restante .rt{font-family:'Instrument Sans',system-ui,-apple-system,sans-serif;font-size:11px;letter-spacing:.11em;
   text-transform:uppercase;color:var(--hero-soft);font-weight:500}
-#restante .rk{font-family:'Bricolage Grotesque','Instrument Sans',sans-serif;font-weight:800;
-  letter-spacing:-.03em;line-height:.95}
+#restante .rk{font-family:'Instrument Sans',system-ui,-apple-system,sans-serif;font-weight:600;
+  letter-spacing:-.02em;line-height:.95;font-variant-numeric:tabular-nums}
 #restante .rf{display:flex;justify-content:space-between;align-items:baseline;gap:10px;
   padding:7px 0;border-top:1px solid #2C3B36}
 #restante .rn{font-size:14px;font-weight:500;color:#E4EAE6}
-#restante .rv{font-family:'IBM Plex Mono',monospace;font-size:13.5px;font-weight:700;
-  white-space:nowrap;text-align:right}
+#restante .rv{font-family:'Instrument Sans',system-ui,-apple-system,sans-serif;font-size:13.5px;font-weight:600;
+  white-space:nowrap;text-align:right;font-variant-numeric:tabular-nums}
 #restante .rc{display:block;font-weight:600;font-size:12.5px}
 #restante .obj{color:var(--hero-soft);font-weight:500}
 #restante .ru{font-family:'Instrument Sans',sans-serif;font-size:16px;font-weight:600}
-#restante .rt2{font-family:'IBM Plex Mono',monospace;font-size:12.5px;font-weight:600;
+#restante .rt2{font-family:'Instrument Sans',system-ui,-apple-system,sans-serif;font-size:12.5px;font-weight:500;
   color:var(--hero-soft);margin-top:3px}
 .rok{color:var(--verde-claro)} .rno{color:var(--rojo-claro)}
 /* pantalla ancha: columna flotante a la derecha */
@@ -300,15 +300,15 @@ td.num,th.num{text-align:right;font-family:'IBM Plex Mono',monospace;font-varian
 
 /* ---------- panel flotante, más bajo ---------- */
 #restante .rejilla{display:grid;grid-template-columns:1fr 1fr;gap:1px 14px}
-#restante .rf{display:flex;justify-content:space-between;gap:9px;align-items:baseline;padding:2px 0;min-width:0}
+#restante .rf{display:flex;justify-content:space-between;gap:9px;align-items:baseline;padding:2px 0;min-width:0;border-top:none}
 #restante .rn{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #restante .rf-kcal{grid-column:1 / -1;border-bottom:1px solid rgba(255,255,255,.16);
   padding-bottom:4px;margin-bottom:3px}
 #restante .rf-kcal .rn{font-size:13.5px;font-weight:700}
 #restante .rf-kcal .rv{font-size:16px}
 #restante .rn{font-size:12px;flex:0 0 auto}
-#restante .rv{font-family:'IBM Plex Mono',monospace;font-size:12.5px;font-weight:700;
-  white-space:nowrap;margin-left:auto}
+#restante .rv{font-family:'Instrument Sans',system-ui,-apple-system,sans-serif;font-size:12.5px;font-weight:600;
+  white-space:nowrap;margin-left:auto;font-variant-numeric:tabular-nums}
 #restante .obj{color:var(--hero-soft);font-weight:500}
 
 @media (max-width:640px){
@@ -332,7 +332,7 @@ const SEMILLA_RECETAS = [["Pollo thai con curry verde", "Zanahoria", 100.0, 1.07
 
 const VIAB  = [["Txuletón", "Comida"], ["Parrillada de carne (Kamado)", "Comida"], ["Costillas BBQ (Kamado)", "Comida"], ["Hamburguesa Berty's (Emily Love's)", "Comida"], ["Hamburguesa de restaurante", "Comida"], ["KFC (alitas de pollo)", "Comida"], ["Ramen tantanmen", "Comida"], ["Lasaña de atún", "Comida"], ["Pollo thai con curry verde", "Comida"], ["Lentejas caseras", "Comida"], ["Alubias caseras", "Comida"], ["Ensaladilla rusa", "Comida"], ["Vainas con patata", "Comida"], ["Ensalada con todo", "Comida"], ["Sopa y garbanzos", "Comida"], ["Fabada Cidacos", "Comida"], ["Pollo hindú Mercadona", "Comida"], ["Pizza Kamado casera", "Cena"], ["Zorza del Mercadona con patatas y huevos", "Cena"], ["Sushi (10-12 piezas)", "Cena"], ["Ensalada de tomate y bonito", "Cena"], ["Pintxo de tortilla con bonito y mayonesa (doble)", "Desayuno"], ["Domingo de chucherías", "Extras"]];
 
-const VERSION = "2026.08.31-6";
+const VERSION = "2026.09.01-1";
 const FRANJAS = ["Desayuno","Hamaiketako","Comida","Merienda","Cena","Extras"];
 const DIAS = ["lunes","martes","miércoles","jueves","viernes","sábado","domingo"];
 const MESES = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
