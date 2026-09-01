@@ -104,6 +104,12 @@ input:focus-visible{outline:2px solid var(--pine);outline-offset:-1px}
 .grupo .gsub{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:700;color:#fff}
 .grupo .gcue{padding:3px 13px 7px}
 .grupo .logrow:first-child{padding-top:9px}
+/* ---- tramos alfabéticos del catálogo de alimentos ---- */
+.alfa{border:1px solid var(--line);border-radius:3px;margin-top:8px;overflow:hidden}
+.alfab{display:flex;width:100%;justify-content:space-between;align-items:center;gap:10px;
+  background:#F2F5F1;border:none;padding:10px 12px;font-size:14.5px;font-weight:600;color:var(--ink)}
+.alfab:hover,.alfab:focus-visible{background:#DCE7E0}
+.alfan{font-size:12.5px;font-weight:600;color:#5B6B64;font-variant-numeric:tabular-nums}
 .res{max-height:250px;overflow-y:auto;border:1px solid var(--line);border-top:none;background:#fff}
 .res button{display:block;width:100%;text-align:left;background:none;border:none;padding:10px;
   font-size:14.5px;border-bottom:1px solid var(--line)}
@@ -332,7 +338,7 @@ const SEMILLA_RECETAS = [["Pollo thai con curry verde", "Zanahoria", 100.0, 1.07
 
 const VIAB  = [["Txuletón", "Comida"], ["Parrillada de carne (Kamado)", "Comida"], ["Costillas BBQ (Kamado)", "Comida"], ["Hamburguesa Berty's (Emily Love's)", "Comida"], ["Hamburguesa de restaurante", "Comida"], ["KFC (alitas de pollo)", "Comida"], ["Ramen tantanmen", "Comida"], ["Lasaña de atún", "Comida"], ["Pollo thai con curry verde", "Comida"], ["Lentejas caseras", "Comida"], ["Alubias caseras", "Comida"], ["Ensaladilla rusa", "Comida"], ["Vainas con patata", "Comida"], ["Ensalada con todo", "Comida"], ["Sopa y garbanzos", "Comida"], ["Fabada Cidacos", "Comida"], ["Pollo hindú Mercadona", "Comida"], ["Pizza Kamado casera", "Cena"], ["Zorza del Mercadona con patatas y huevos", "Cena"], ["Sushi (10-12 piezas)", "Cena"], ["Ensalada de tomate y bonito", "Cena"], ["Pintxo de tortilla con bonito y mayonesa (doble)", "Desayuno"], ["Domingo de chucherías", "Extras"]];
 
-const VERSION = "2026.09.01-1";
+const VERSION = "2026.09.01-2";
 const FRANJAS = ["Desayuno","Hamaiketako","Comida","Merienda","Cena","Extras"];
 const DIAS = ["lunes","martes","miércoles","jueves","viernes","sábado","domingo"];
 const MESES = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
@@ -423,6 +429,7 @@ const S = {
   fechaCopia: "",
   recien: [],
   borrarAlim: null,
+  alfa:   {},
   franjaRecien: "",
   guardarPlato: null,
   nomPlato: "",
@@ -519,21 +526,36 @@ function metrica(label, valor, obj, unidad, modo) {
 function hero() {
   const o = objetivos(S.params);
   const lunes = mondayOf(parseIso(S.fecha));
-  let kcalSem = 0, cols = "", labs = "";
+  let kcalSem = 0, cols = "", labs = "", pico = 0;
+  const dias = [];
   for (let i = 0; i < 7; i++) {
     const dd = addDays(lunes, i), k = iso(dd);
     const kc = totales(logDe(k)).kcal;
     const objD = esFinde(dd) ? o.fin : o.lab;
     kcalSem += kc;
-    /* La altura de cada barra ES el objetivo de ese día. Llena = objetivo justo,
-       desbordada = te pasaste. Sin línea de referencia: no hace falta. */
-    const alto = Math.min(112, (kc / objD) * 100);
-    cols += '<button class="col" data-act="ir" data-f="'+k+'" aria-label="'+esc(nfDia(dd))+': '+fmt(kc)+' kcal"'
-      + (k === S.fecha ? ' data-hoy="1"' : '')+'>'
-      + '<span class="fill" style="height:'+alto+'%;background:'+(kc>objD?"var(--pimenton)":"var(--mint)")+'"></span>'
-      + '</button>';
-    labs += '<span class="'+(k===S.fecha?"on":"")+'">'+DIAS[i].charAt(0).toUpperCase()+'</span>';
+    if (kc > pico) pico = kc;
+    dias.push({ dd: dd, k: k, kc: kc, objD: objD });
   }
+  /* Todas las columnas comparten UN MISMO eje, así el sábado y el domingo se ven
+     más altos que un día de diario porque permiten más kcal. El techo del eje es
+     el objetivo del día más generoso; si un día se desborda el eje crece para que
+     quepa, pero nunca más del doble: una pasada descomunal suele ser un error de
+     registro y no debe comerse la pantalla. La marca blanca de cada columna es el
+     objetivo de ESE día, así que sigue viéndose aunque te hayas pasado. */
+  const techo = Math.max(o.lab, o.fin, 1);
+  const escala = Math.max(techo, Math.min(pico, techo * 2));
+  dias.forEach(function (d, i) {
+    const alto  = Math.max(0, Math.min(100, (d.kc   / escala) * 100));
+    const marca = Math.max(0, Math.min(100, (d.objD / escala) * 100));
+    cols += '<button class="col" data-act="ir" data-f="'+d.k+'" aria-label="'+esc(nfDia(d.dd))+': '
+      + fmt(d.kc)+' de '+fmt(d.objD)+' kcal"'
+      + (d.k === S.fecha ? ' data-hoy="1"' : '')+'>'
+      + '<span class="fill" style="height:'+alto+'%;background:'
+      + (d.kc > d.objD ? "var(--pimenton)" : "var(--mint)")+'"></span>'
+      + '<span class="tick" style="bottom:calc('+marca+'% - 2px)"></span>'
+      + '</button>';
+    labs += '<span class="'+(d.k===S.fecha?"on":"")+'">'+DIAS[i].charAt(0).toUpperCase()+'</span>';
+  });
   const restan = o.semanal - kcalSem;
   const col = restan < 0 ? "var(--rojo-claro)" : "var(--verde-claro)";
   return '<div class="card hero" id="medidor">'
@@ -1832,6 +1854,46 @@ function guardarEd() {
   return null;
 }
 
+/* Tramos alfabéticos del catálogo. Fijos a propósito: si los límites se
+   recalculasen con el número de platos, un alimento cambiaría de bloque al
+   crear otro y no habría forma de acordarse de dónde está nada. */
+const GRUPOS_ALFA = [["A","C"],["D","G"],["H","L"],["M","O"],["P","S"],["T","Z"]];
+function bloqueAlfa(nombre) {
+  const c = norm(String(nombre || "")).charAt(0).toUpperCase();
+  for (var i = 0; i < GRUPOS_ALFA.length; i++)
+    if (c >= GRUPOS_ALFA[i][0] && c <= GRUPOS_ALFA[i][1]) return GRUPOS_ALFA[i][0]+"–"+GRUPOS_ALFA[i][1];
+  return "#";
+}
+const CAB_ALIM = '<thead><tr><th>Alimento</th><th class="num">kcal</th>'
+  + '<th class="num">P</th><th class="num">G</th><th class="num">H</th><th>Por</th><th></th></tr></thead>';
+
+function filaAlim(i) {
+  const propio = i[14] === "propio";
+  const esEditado = propio && ITEMS.some(y => y[0] === i[0]);
+  const etiqueta = esEditado ? '<span class="veredicto v-justo">modificado</span>'
+    : (propio ? '<span class="veredicto v-cabe">tuyo</span>' : '');
+  let f = '<tr><td><div style="font-weight:600">'+esc(i[0])+' '+etiqueta+'</div></td>'
+    + '<td class="num">'+fmt(i[2])+'</td><td class="num">'+fmt(i[3])+'</td>'
+    + '<td class="num">'+fmt(i[4])+'</td><td class="num">'+fmt(i[5])+'</td>'
+    + '<td class="num">'+fmtCant(i[12])+' '+esc(i[13])+'</td>'
+    + '<td style="white-space:nowrap">'
+    + '<button class="iconb" data-act="ededit" data-v="'+esc(i[0])+'" title="Editar" '
+    + 'aria-label="Editar '+esc(i[0])+'">✏️</button>'
+    + '<button class="quitax" data-act="pedirborrar" data-v="'+esc(i[0])+'" title="Borrar" '
+    + 'aria-label="Borrar '+esc(i[0])+'">✕</button></td></tr>';
+  if (S.borrarAlim === i[0]) {
+    const usos = avisosBorrado(i[0]);
+    f += '<tr><td colspan="7" style="background:#FBE9C7">'
+      + '<div style="padding:8px 2px"><b>¿Seguro que quieres borrar «'+esc(i[0])+'»?</b>'
+      + (usos.length ? '<ul style="margin:7px 0 0;padding-left:18px">'
+          + usos.map(u => '<li class="note" style="margin:2px 0">'+esc(u)+'</li>').join("") + '</ul>' : '')
+      + '<div style="display:flex;gap:8px;margin-top:10px">'
+      + '<button class="btn" data-act="confborrar" data-v="'+esc(i[0])+'">Sí, borrar</button>'
+      + '<button class="btn ghost" data-act="pedirborrar" data-v="">Cancelar</button></div></div></td></tr>';
+  }
+  return f;
+}
+
 function vistaAlimentos() {
   let h = "";
   if (S.ed) {
@@ -1915,36 +1977,37 @@ function vistaAlimentos() {
     + (q.length >= 2 ? 'Resultados · '+lista.length : 'Todos los alimentos · '+lista.length)+'</span>';
   if (!lista.length) h += '<p class="note" style="margin:9px 0 0">Nada que mostrar. Escribe en el buscador de arriba '
     + 'para editar cualquiera de los '+ITEMS.length+' platos del catálogo, o crea uno nuevo.</p>';
-  else {
-    h += '<div style="overflow-x:auto;margin-top:8px"><table><thead><tr><th>Alimento</th><th class="num">kcal</th>'
-      + '<th class="num">P</th><th class="num">G</th><th class="num">H</th><th>Por</th><th></th></tr></thead><tbody>';
-    lista.forEach(function(i){
-      const propio = i[14] === "propio";
-      const esEditado = propio && ITEMS.some(y => y[0] === i[0]);
-      const etiqueta = esEditado ? '<span class="veredicto v-justo">modificado</span>'
-        : (propio ? '<span class="veredicto v-cabe">tuyo</span>' : '');
-      const conf = S.borrarAlim === i[0];
-      h += '<tr><td><div style="font-weight:600">'+esc(i[0])+' '+etiqueta+'</div></td>'
-        + '<td class="num">'+fmt(i[2])+'</td><td class="num">'+fmt(i[3])+'</td>'
-        + '<td class="num">'+fmt(i[4])+'</td><td class="num">'+fmt(i[5])+'</td>'
-        + '<td class="num">'+fmtCant(i[12])+' '+esc(i[13])+'</td>'
-        + '<td style="white-space:nowrap">'
-        + '<button class="iconb" data-act="ededit" data-v="'+esc(i[0])+'" title="Editar" '
-        + 'aria-label="Editar '+esc(i[0])+'">✏️</button>'
-        + '<button class="quitax" data-act="pedirborrar" data-v="'+esc(i[0])+'" title="Borrar" '
-        + 'aria-label="Borrar '+esc(i[0])+'">✕</button></td></tr>';
-      if (conf) {
-        const usos = avisosBorrado(i[0]);
-        h += '<tr><td colspan="7" style="background:#FBE9C7">'
-          + '<div style="padding:8px 2px"><b>¿Seguro que quieres borrar «'+esc(i[0])+'»?</b>'
-          + (usos.length ? '<ul style="margin:7px 0 0;padding-left:18px">'
-              + usos.map(u => '<li class="note" style="margin:2px 0">'+esc(u)+'</li>').join("") + '</ul>' : '')
-          + '<div style="display:flex;gap:8px;margin-top:10px">'
-          + '<button class="btn" data-act="confborrar" data-v="'+esc(i[0])+'">Sí, borrar</button>'
-          + '<button class="btn ghost" data-act="pedirborrar" data-v="">Cancelar</button></div></div></td></tr>';
-      }
-    });
+  else if (q.length >= 2) {
+    h += '<div style="overflow-x:auto;margin-top:8px"><table>'+CAB_ALIM+'<tbody>';
+    lista.forEach(function (i) { h += filaAlim(i); });
     h += '</tbody></table></div>';
+  }
+  else {
+    /* Sin búsqueda el catálogo entero es inmanejable de golpe: se parte en tramos
+       alfabéticos plegados y se abre solo el que interesa. Buscar sigue dando la
+       lista plana de siempre. */
+    S.alfa = S.alfa || {};
+    const bloques = {}, orden = [];
+    lista.forEach(function (i) {
+      const b = bloqueAlfa(i[0]);
+      if (!bloques[b]) { bloques[b] = []; orden.push(b); }
+      bloques[b].push(i);
+    });
+    /* si el bloque tiene abierto el diálogo de borrado, se despliega solo */
+    orden.forEach(function (b) {
+      const abierto = !!S.alfa[b] || bloques[b].some(x => x[0] === S.borrarAlim);
+      h += '<div class="alfa">'
+        + '<button class="alfab" data-act="plegaralfa" data-v="'+esc(b)+'" '
+        + 'aria-expanded="'+(abierto ? "true" : "false")+'">'
+        + '<span>'+(abierto ? "▾" : "▸")+' '+esc(b === "#" ? "Otros" : b)+'</span>'
+        + '<span class="alfan">'+bloques[b].length+'</span></button>';
+      if (abierto) {
+        h += '<div style="overflow-x:auto"><table>'+CAB_ALIM+'<tbody>';
+        bloques[b].forEach(function (i) { h += filaAlim(i); });
+        h += '</tbody></table></div>';
+      }
+      h += '</div>';
+    });
   }
   h += '</div>';
 
@@ -2373,6 +2436,10 @@ document.getElementById("app").addEventListener("click", function(ev){
   else if (a === "plegargrupo") {
     S.cerrados = S.cerrados || {};
     S.cerrados[g_(b.dataset.v)] = !S.cerrados[g_(b.dataset.v)];
+  }
+  else if (a === "plegaralfa") {
+    S.alfa = S.alfa || {};
+    S.alfa[b.dataset.v] = !S.alfa[b.dataset.v];
   }
   else if (a === "plegarplan") { S.params.planAbierto = !S.params.planAbierto; guardar(); }
   else if (a === "plegarsemana") { S.params.semanaAbierta = !S.params.semanaAbierta; guardar(); }
