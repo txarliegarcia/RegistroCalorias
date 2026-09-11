@@ -110,6 +110,14 @@ input:focus-visible{outline:2px solid var(--pine);outline-offset:-1px}
   background:#F2F5F1;border:none;padding:10px 12px;font-size:14.5px;font-weight:600;color:var(--ink)}
 .alfab:hover,.alfab:focus-visible{background:#DCE7E0}
 .alfan{font-size:12.5px;font-weight:600;color:#5B6B64;font-variant-numeric:tabular-nums}
+/* sangría dentro del tramo: el nombre no debe tocar el borde de la cajita.
+   Va en las celdas y no en el contenedor con overflow-x, donde el padding
+   derecho se pierde al hacer scroll. */
+.alfa table{width:100%}
+.alfa th:first-child,.alfa td:first-child{padding-left:13px}
+.alfa th:last-child,.alfa td:last-child{padding-right:13px}
+.alfa thead th{padding-top:4px}
+.alfa tbody tr:last-child td{border-bottom:none;padding-bottom:11px}
 .res{max-height:250px;overflow-y:auto;border:1px solid var(--line);border-top:none;background:#fff}
 .res button{display:block;width:100%;text-align:left;background:none;border:none;padding:10px;
   font-size:14.5px;border-bottom:1px solid var(--line)}
@@ -129,6 +137,11 @@ input:focus-visible{outline:2px solid var(--pine);outline-offset:-1px}
 table{width:100%;border-collapse:collapse;font-size:14px}
 .btnf{background:none;border:1px solid rgba(255,255,255,.45);color:#fff;border-radius:3px;font:inherit;font-size:11.5px;font-weight:600;padding:3px 8px;cursor:pointer;white-space:nowrap}
 .btnf:hover{background:rgba(255,255,255,.15)}
+.btnf-del{border-color:rgba(255,150,140,.6);color:#FFCFC8}
+.btnf-del:hover{background:rgba(255,120,110,.22)}
+.gnomb{background:none;border:none;padding:0;font:inherit;color:#fff;cursor:pointer;
+  display:inline-flex;align-items:baseline;gap:6px;text-align:left}
+.gnomb:hover .gnom,.gnomb:focus-visible .gnom{text-decoration:underline}
 /* aviso de que está hablando con la hoja */
 .cargando{position:fixed;left:50%;transform:translateX(-50%);bottom:-70px;z-index:60;
   display:flex;align-items:center;gap:10px;background:var(--ink);color:#fff;
@@ -338,8 +351,13 @@ const SEMILLA_RECETAS = [["Pollo thai con curry verde", "Zanahoria", 100.0, 1.07
 
 const VIAB  = [["Txuletón", "Comida"], ["Parrillada de carne (Kamado)", "Comida"], ["Costillas BBQ (Kamado)", "Comida"], ["Hamburguesa Berty's (Emily Love's)", "Comida"], ["Hamburguesa de restaurante", "Comida"], ["KFC (alitas de pollo)", "Comida"], ["Ramen tantanmen", "Comida"], ["Lasaña de atún", "Comida"], ["Pollo thai con curry verde", "Comida"], ["Lentejas caseras", "Comida"], ["Alubias caseras", "Comida"], ["Ensaladilla rusa", "Comida"], ["Vainas con patata", "Comida"], ["Ensalada con todo", "Comida"], ["Sopa y garbanzos", "Comida"], ["Fabada Cidacos", "Comida"], ["Pollo hindú Mercadona", "Comida"], ["Pizza Kamado casera", "Cena"], ["Zorza del Mercadona con patatas y huevos", "Cena"], ["Sushi (10-12 piezas)", "Cena"], ["Ensalada de tomate y bonito", "Cena"], ["Pintxo de tortilla con bonito y mayonesa (doble)", "Desayuno"], ["Domingo de chucherías", "Extras"]];
 
-const VERSION = "2026.09.01-2";
+const VERSION = "2026.09.11-1";
 const FRANJAS = ["Desayuno","Hamaiketako","Comida","Merienda","Cena","Extras"];
+/* Margen que la columna del medidor NO pinta en rojo. Pasarse un 1-2 % está
+   dentro del ruido de estimar raciones: teñirlo de rojo lo convierte en un
+   fallo del día cuando no lo es. El resto de avisos (textos, panel, etiquetas)
+   siguen marcando el exceso desde el primer kcal. */
+const TOL_COLOR = 1.02;
 const DIAS = ["lunes","martes","miércoles","jueves","viernes","sábado","domingo"];
 const MESES = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
 const DEFAULTS = { peso:84.35, altura:182, edad:48, factor:1.5, deficit:400,
@@ -429,6 +447,8 @@ const S = {
   fechaCopia: "",
   recien: [],
   borrarAlim: null,
+  borrarFranja: null,
+  franjasCerradas: {},
   alfa:   {},
   franjaRecien: "",
   guardarPlato: null,
@@ -447,7 +467,7 @@ function logDe(fecha) {
   Object.keys(S.ent).forEach(function (id) {
     const e = S.ent[id];
     if (e.borrado || e.fecha !== fecha) return;
-    out.push([e.alimento, e.cant, e.franja, id, e.ts, e.grupo || "", e.factor || 1]);
+    out.push([e.alimento, e.cant, e.franja, id, e.ts, e.grupo || "", e.factor || 1, e.nota || ""]);
   });
   out.sort(function (a, b) {
     const ia = FRANJAS.indexOf(a[2]), ib = FRANJAS.indexOf(b[2]);
@@ -551,7 +571,7 @@ function hero() {
       + fmt(d.kc)+' de '+fmt(d.objD)+' kcal"'
       + (d.k === S.fecha ? ' data-hoy="1"' : '')+'>'
       + '<span class="fill" style="height:'+alto+'%;background:'
-      + (d.kc > d.objD ? "var(--pimenton)" : "var(--mint)")+'"></span>'
+      + (d.kc > d.objD * TOL_COLOR ? "var(--pimenton)" : "var(--mint)")+'"></span>'
       + '<span class="tick" style="bottom:calc('+marca+'% - 2px)"></span>'
       + '</button>';
     labs += '<span class="'+(d.k===S.fecha?"on":"")+'">'+DIAS[i].charAt(0).toUpperCase()+'</span>';
@@ -634,13 +654,35 @@ function vistaRegistro() {
     const idxs = []; reg.forEach(function(e,i){ if (e[2] === f) idxs.push(i); });
     if (idxs.length === 0) return;
     const sub = totales(idxs.map(i => reg[i]));
-    h += '<div class="grupo"><div class="gcab"><span class="gnom">'+esc(f)+'</span>'
+    /* Una franja con muchos ingredientes obliga a un scroll largo: se pliega.
+       Si tiene un panel de confirmación abierto se fuerza abierta, para que no
+       quede escondido detrás del pliegue. */
+    S.franjasCerradas = S.franjasCerradas || {};
+    const fAbierta = !S.franjasCerradas[f]
+      || S.copiarA === f || S.guardarPlato === f || S.borrarFranja === f;
+    h += '<div class="grupo"><div class="gcab">'
+      + '<button class="gnomb" data-act="plegarfranja" data-v="'+esc(f)+'" '
+      + 'aria-expanded="'+(fAbierta ? "true" : "false")+'" '
+      + 'aria-label="'+(fAbierta ? "Plegar" : "Desplegar")+' '+esc(f)+'">'
+      + (fAbierta ? "▾" : "▸")+' <span class="gnom">'+esc(f)+'</span></button>'
       + '<span class="gsub">'+fmt(sub.kcal)+' kcal · '+fmt(sub.prot)+' g P</span>'
       + '<button class="btnf" data-act="copiara" data-v="'+esc(f)+'" '
       + 'title="Copiar todo lo de esta franja a otro día">Copiar a otra fecha</button>'
       + '<button class="btnf" data-act="guardarplato" data-v="'+esc(f)+'" '
       + 'title="Guardar esta franja entera como un plato reutilizable">Guardar como plato</button>'
-      + '</div><div class="gcue">';
+      + '<button class="btnf btnf-del" data-act="borrarfranja" data-v="'+esc(f)+'" '
+      + 'title="Quitar del día todo lo de esta franja">Borrar todo</button>'
+      + '</div><div class="gcue"'+(fAbierta ? '' : ' hidden')+'>';
+    if (S.borrarFranja === f) {
+      h += '<div style="padding:10px 0;border-bottom:1px solid var(--line)">'
+        + '<span class="eyebrow" style="color:var(--rojo)">Borrar todo el '+esc(f.toLowerCase())+'</span>'
+        + '<p class="note" style="margin:6px 0 8px">Se quitan las '+idxs.length
+        + (idxs.length===1 ? ' línea' : ' líneas')+' de esta franja ('+fmt(sub.kcal)
+        + ' kcal). Solo afecta al '+esc(nfDia(parseIso(S.fecha)))+'.</p>'
+        + '<div style="display:flex;gap:8px;flex-wrap:wrap">'
+        + '<button class="btn" data-act="confborrarfranja" data-v="'+esc(f)+'">Sí, borrar todo</button>'
+        + '<button class="btn ghost" data-act="borrarfranja" data-v="">Cancelar</button></div></div>';
+    }
     if (S.copiarA === f) {
       h += '<div style="padding:10px 0;border-bottom:1px solid var(--line)">'
         + '<span class="eyebrow">Copiar '+esc(f).toLowerCase()+' a otra fecha</span>'
@@ -675,7 +717,8 @@ function vistaRegistro() {
         if (pintado[gr]) return;
         pintado[gr] = 1;
         const herm = idxs.map(j => reg[j]).filter(x => x[5] === gr);
-        const nom = (S.grupos && S.grupos[gr]) || "Plato";
+        const conNota = herm.filter(x => x[7])[0];
+        const nom = (S.grupos && S.grupos[gr]) || (conNota && conNota[7]) || "Plato";
         const tg = totales(herm);
         const abierto = !(S.cerrados && S.cerrados[gr]);
         h += '<div class="platoc"><div class="platoh">'
@@ -1519,6 +1562,15 @@ function aplicar(d) {
   const nuevo = {};
   (d.entradas || []).forEach(function (e) { nuevo[e.id] = e; });
   S.ent = nuevo;
+  /* Los nombres de plato se reconstruyen desde la nota de cada ingrediente, así
+     que un dispositivo nuevo ve «Ensalada con todo» y no «Plato». */
+  S.grupos = S.grupos || {};
+  let gruposNuevos = false;
+  Object.keys(nuevo).forEach(function (id) {
+    const e = nuevo[id];
+    if (e.grupo && e.nota && S.grupos[e.grupo] !== e.nota) { S.grupos[e.grupo] = e.nota; gruposNuevos = true; }
+  });
+  if (gruposNuevos) Store.set("carlos:grupos", S.grupos);
   S.semana = d.semana || null;
   S.pesos = d.pesos || {};
   Store.set("carlos:vista", S.ent);
@@ -1562,9 +1614,9 @@ async function irA(fecha) {
   if (necesitaCargar(fecha)) await cargar("Cargando la semana…");
 }
 
-async function anotar(fecha, alimento, cant, franja, grupo, factor) {
+async function anotar(fecha, alimento, cant, franja, grupo, factor, nota) {
   const it = { id: uid(), fecha: fecha, franja: franja, alimento: alimento,
-               cant: cant, grupo: grupo || "", factor: factor || 1 };
+               cant: cant, grupo: grupo || "", factor: factor || 1, nota: nota || "" };
   return pedir({ accion: "anotar", items: [it] }, "Añadiendo…");
 }
 
@@ -1576,7 +1628,7 @@ async function anotarVarios(items) {
   }
   return pedir({ accion: "anotar", items: items.map(function (x) {
     return { id: uid(), fecha: x.fecha, franja: x.franja, alimento: x.alimento,
-             cant: x.cant, grupo: x.grupo || "", factor: x.factor || 1 };
+             cant: x.cant, grupo: x.grupo || "", factor: x.factor || 1, nota: x.nota || "" };
   }) }, "Añadiendo…");
 }
 
@@ -1606,9 +1658,12 @@ function itemsDePlato(fecha, plato, cant, franja) {
   S.grupos = S.grupos || {};
   S.grupos[g] = plato;
   Store.set("carlos:grupos", S.grupos);
+  /* El nombre del plato va además en la nota de cada ingrediente. El id de grupo
+     ya viajaba a la hoja, pero el nombre vivía solo en este navegador: desde otro
+     dispositivo el plato salía como «Plato». Con la nota se reconstruye siempre. */
   return hay.map(function (x) {
     return { fecha:fecha, franja:franja, alimento:x[1],
-             cant: Math.round(x[2] * prop * 10) / 10, grupo:g, factor:x[3] };
+             cant: Math.round(x[2] * prop * 10) / 10, grupo:g, factor:x[3], nota: plato };
   });
 }
 
@@ -2436,6 +2491,26 @@ document.getElementById("app").addEventListener("click", function(ev){
   else if (a === "plegargrupo") {
     S.cerrados = S.cerrados || {};
     S.cerrados[g_(b.dataset.v)] = !S.cerrados[g_(b.dataset.v)];
+  }
+  else if (a === "plegarfranja") {
+    S.franjasCerradas = S.franjasCerradas || {};
+    const fx = b.dataset.v;
+    S.franjasCerradas[fx] = !S.franjasCerradas[fx];
+  }
+  else if (a === "borrarfranja") {
+    S.borrarFranja = b.dataset.v || null;
+    S.copiarA = null; S.guardarPlato = null; S.guardarVar = null; S.aviso = "";
+  }
+  else if (a === "confborrarfranja") {
+    const fx = b.dataset.v;
+    const ids = reg.filter(e => e[2] === fx).map(e => e[3]);
+    S.borrarFranja = null;
+    if (ids.length) {
+      S.aviso = "Vaciado «"+fx+"» del "+nfDia(parseIso(S.fecha))+".";
+      guardar();
+      borrarVarias(ids);
+      return;
+    }
   }
   else if (a === "plegaralfa") {
     S.alfa = S.alfa || {};
