@@ -351,7 +351,7 @@ const SEMILLA_RECETAS = [["Pollo thai con curry verde", "Zanahoria", 100.0, 1.07
 
 const VIAB  = [["Txuletón", "Comida"], ["Parrillada de carne (Kamado)", "Comida"], ["Costillas BBQ (Kamado)", "Comida"], ["Hamburguesa Berty's (Emily Love's)", "Comida"], ["Hamburguesa de restaurante", "Comida"], ["KFC (alitas de pollo)", "Comida"], ["Ramen tantanmen", "Comida"], ["Lasaña de atún", "Comida"], ["Pollo thai con curry verde", "Comida"], ["Lentejas caseras", "Comida"], ["Alubias caseras", "Comida"], ["Ensaladilla rusa", "Comida"], ["Vainas con patata", "Comida"], ["Ensalada con todo", "Comida"], ["Sopa y garbanzos", "Comida"], ["Fabada Cidacos", "Comida"], ["Pollo hindú Mercadona", "Comida"], ["Pizza Kamado casera", "Cena"], ["Zorza del Mercadona con patatas y huevos", "Cena"], ["Sushi (10-12 piezas)", "Cena"], ["Ensalada de tomate y bonito", "Cena"], ["Pintxo de tortilla con bonito y mayonesa (doble)", "Desayuno"], ["Domingo de chucherías", "Extras"]];
 
-const VERSION = "2026.09.11-1";
+const VERSION = "2026.09.18-2";
 const FRANJAS = ["Desayuno","Hamaiketako","Comida","Merienda","Cena","Extras"];
 /* Margen que la columna del medidor NO pinta en rojo. Pasarse un 1-2 % está
    dentro del ruido de estimar raciones: teñirlo de rojo lo convierte en un
@@ -447,6 +447,8 @@ const S = {
   fechaCopia: "",
   recien: [],
   borrarAlim: null,
+  kcalDia: Store.get("carlos:kcaldia", {}),
+  verKcal: Store.get("carlos:verkcal", false),
   borrarFranja: null,
   franjasCerradas: {},
   alfa:   {},
@@ -628,7 +630,12 @@ function vistaRegistro() {
     + '<button class="btn" data-act="crear" data-v="" style="white-space:nowrap">+ Nuevo</button></div>';
   if (S.q.trim().length >= 2) {
     const n = norm(S.q);
-    const res = catalogo().filter(it => norm(it[0]).indexOf(n) >= 0 || norm(it[1]).indexOf(n) >= 0).slice(0, 40);
+    /* Orden alfabético, y se ordena ANTES de cortar a 40: si se cortase primero,
+       los 40 que se ven serían un trozo arbitrario del catálogo y solo estarían
+       ordenados entre ellos. Así se ven siempre los 40 primeros por nombre. */
+    const res = catalogo().filter(it => norm(it[0]).indexOf(n) >= 0 || norm(it[1]).indexOf(n) >= 0)
+      .sort(function (a, b) { return a[0].localeCompare(b[0], "es"); })
+      .slice(0, 40);
     h += '<div class="res">';
     if (res.length === 0) h += '<div style="padding:12px"><p class="note" style="margin:0 0 10px">'
       + '<b>«'+esc(S.q.trim())+'»</b> no está en la lista. Créalo y lo tendrás para siempre.</p>'
@@ -1086,13 +1093,18 @@ function seriePeso() {
     }
     out.push({ k: k, peso: S.pesos[k] || null,
       media: v.length ? +(v.reduce((a,b)=>a+b,0)/v.length).toFixed(2) : null,
+      kcal: (S.kcalDia && S.kcalDia[k] != null) ? Number(S.kcalDia[k]) : null,
       objetivo: +(base - ritmo*(i/7)).toFixed(2) });
   }
   return out;
 }
 
 function grafico(serie) {
-  const W = 700, H = 200, PL = 40, PR = 8, PT = 10, PB = 22;
+  /* Las kcal no caben en el eje de kilos, así que van en un eje propio que ocupa
+     el mismo alto: se dibuja a la derecha y solo existe si están activadas. El
+     margen derecho crece solo en ese caso, para no mover el gráfico de siempre. */
+  const verK = !!S.verKcal;
+  const W = 700, H = 200, PL = 40, PR = verK ? 44 : 8, PT = 10, PB = 22;
   const vals = [];
   serie.forEach(p => { if (p.peso) vals.push(p.peso); if (p.media) vals.push(p.media); vals.push(p.objetivo); });
   vals.push(S.params.pesoObjetivo);
@@ -1105,6 +1117,28 @@ function grafico(serie) {
     .filter(Boolean).join(" ");
   const puntos = serie.map((p,i) => p.peso==null?"":
     '<circle cx="'+X(i).toFixed(1)+'" cy="'+Y(p.peso).toFixed(1)+'" r="3" fill="var(--quince)"/>').join("");
+  /* Eje de kcal: se ajusta a los datos, no arranca en cero, porque lo que
+     interesa es ver la variación de la ingesta día a día. Por eso se rotulan
+     siempre sus tres valores a la derecha: sin ellos la altura engañaría. */
+  const ks = serie.map(p => p.kcal).filter(v => v != null && v > 0);
+  let KY = null, kLo = 0, kHi = 0;
+  if (verK && ks.length) {
+    kLo = Math.min.apply(null, ks); kHi = Math.max.apply(null, ks);
+    if (kHi - kLo < 400) { const m = (kHi+kLo)/2; kLo = m-200; kHi = m+200; }
+    const span = (kHi - kLo) || 1;
+    kLo -= span*0.10; kHi += span*0.10;
+    KY = v => PT + (1-(v-kLo)/(kHi-kLo))*(H-PT-PB);
+  }
+  const tris = KY ? serie.map(function (p, i) {
+    if (p.kcal == null || !p.kcal) return "";
+    const x = X(i), y = KY(p.kcal);
+    return '<polygon points="'+x.toFixed(1)+','+(y-3.6).toFixed(1)+' '
+      + (x+3.3).toFixed(1)+','+(y+2.8).toFixed(1)+' '
+      + (x-3.3).toFixed(1)+','+(y+2.8).toFixed(1)+'" fill="var(--slate)" opacity="0.9"/>';
+  }).join("") : "";
+  const ticksK = KY ? [kLo+(kHi-kLo)*0.12, (kLo+kHi)/2, kHi-(kHi-kLo)*0.12].map(v =>
+    '<text x="'+(W-PR+6)+'" y="'+(KY(v)+3.5).toFixed(1)+'" font-size="9" fill="var(--slate)" '
+    + 'font-weight="600" font-family="IBM Plex Mono">'+Math.round(v)+'</text>').join("") : "";
   const yObj = Y(S.params.pesoObjetivo);
   const ticks = [lo+(hi-lo)*0.1, (lo+hi)/2, hi-(hi-lo)*0.1].map(v =>
     '<text x="'+(PL-6)+'" y="'+(Y(v)+3.5).toFixed(1)+'" text-anchor="end" font-size="9" fill="var(--ink)" font-weight="600" font-family="IBM Plex Mono">'
@@ -1112,10 +1146,12 @@ function grafico(serie) {
     + '" stroke="#B9C4BD" stroke-width="1"/>').join("");
   const et = i => { const d = parseIso(serie[i].k); return d.getDate()+"/"+(d.getMonth()+1); };
   return '<svg viewBox="0 0 '+W+' '+H+'" width="100%" height="200" role="img" '
-    + 'aria-label="Evolución del peso frente a la trayectoria prevista">'+ticks
+    + 'aria-label="Evolución del peso frente a la trayectoria prevista'
+    + (KY ? ', con las calorías consumidas cada día' : '')+'">'+ticks+ticksK
     + (yObj > PT && yObj < H-PB ? '<line x1="'+PL+'" x2="'+(W-PR)+'" y1="'+yObj.toFixed(1)+'" y2="'+yObj.toFixed(1)
       + '" stroke="var(--verde)" stroke-width="2" stroke-dasharray="5 4"/>' : "")
     + '<polyline points="'+linea("objetivo")+'" fill="none" stroke="#5D6C65" stroke-width="2" stroke-dasharray="4 4"/>'
+    + tris
     + puntos
     + '<polyline points="'+linea("media")+'" fill="none" stroke="var(--verde)" stroke-width="3.2" stroke-linejoin="round"/>'
     + '<text x="'+PL+'" y="'+(H-6)+'" font-size="9" fill="var(--ink)" font-weight="600" font-family="IBM Plex Mono">'+et(0)+'</text>'
@@ -1193,19 +1229,21 @@ function vistaPeso() {
   h += '</div>';
 
   if (serie.length > 1) {
-    h += '<div class="card"><span class="eyebrow">Tendencia frente a la trayectoria prevista</span>'
+    h += '<div class="card"><div class="row">'
+      + '<span class="eyebrow">Tendencia frente a la trayectoria prevista</span>'
+      + '<button class="btn tiny'+(S.verKcal ? "" : " ghost")+'" data-act="verkcal" '
+      + 'aria-pressed="'+(S.verKcal ? "true" : "false")+'">'
+      + (S.verKcal ? "Ocultar calorías" : "Ver calorías")+'</button></div>'
       + '<div style="margin-top:10px">'+grafico(serie)+'</div>'
       + '<p class="note" style="margin-top:6px;font-weight:500">'
       + '<span style="color:var(--verde);font-weight:800">━</span> media 7 días · '
       + '<span style="color:var(--quince);font-weight:800">●</span> peso diario · '
       + '<span style="color:#5D6C65;font-weight:800">┈</span> previsto · '
-      + '<span style="color:var(--verde);font-weight:800">┈</span> objetivo '+S.params.pesoObjetivo+' kg</p>'
+      + '<span style="color:var(--verde);font-weight:800">┈</span> objetivo '+S.params.pesoObjetivo+' kg'
+      + (S.verKcal ? ' · <span style="color:var(--slate);font-weight:800">▲</span> kcal del día (eje derecho)' : '')
+      + '</p>'
       + '<p class="note">'+esc(lectura)+'</p></div>';
   }
-  const n = Object.keys(S.pesos).length;
-  h += '<div class="card"><span class="eyebrow">Historial · '+n+(n===1?" pesada":" pesadas")+'</span>'
-    + '<p class="note" style="margin:8px 0 0">Los datos viven en este navegador. Si borras el historial de navegación '
-    + 'o cambias de dispositivo, los pierdes: exporta una copia de vez en cuando desde Ajustes.</p></div>';
   return h;
 }
 
@@ -1596,6 +1634,10 @@ function aplicar(d) {
     const dias = Object.keys(porDia).map(Number).sort((a,b) => a-b).map(k => porDia[k]);
     if (dias.length) { PLAN = dias; Store.set("carlos:plan", PLAN); }
   }
+  /* kcal por día de todo el historial, sumadas en la hoja. Solo sirven para
+     pintar la ingesta en el gráfico de peso; los totales del día siguen
+     calculándose en el navegador como siempre. */
+  if (d.kcalDia) { S.kcalDia = d.kcalDia; Store.set("carlos:kcaldia", S.kcalDia); }
   if (d.catVer) { S.catVer = d.catVer; Store.set("carlos:catver", d.catVer); }
 }
 
@@ -2096,6 +2138,38 @@ function vistaAlimentos() {
     h += '</div>';
   }
 
+  /* Ingredientes que las recetas nombran pero que no están en el catálogo. El
+     panel de arriba solo mira lo ya registrado (S.ent), así que una receta podía
+     estar sumando de menos sin avisar en ninguna parte. */
+  const faltanRec = {};
+  RECETAS.forEach(function (r) {
+    const ing = r[1];
+    if (!ing || BY[ing]) return;
+    if (!faltanRec[ing]) faltanRec[ing] = {};
+    faltanRec[ing][r[0]] = 1;
+  });
+  const listaR = Object.keys(faltanRec).sort(function (a, b) { return a.localeCompare(b, "es"); });
+  if (listaR.length) {
+    h += '<div class="card" style="border-color:var(--quince)">'
+      + '<span class="eyebrow" style="color:var(--quince)">Ingredientes que les faltan a tus recetas · '
+      + listaR.length+'</span>'
+      + '<p class="note" style="margin:8px 0 10px">Estas recetas nombran ingredientes que no están en el '
+      + 'catálogo. Los platos que los llevan suman menos kcal de las que deberían, los hayas registrado o no. '
+      + 'Créalos y volverán a cuadrar.</p>';
+    listaR.forEach(function (nm) {
+      const platos = Object.keys(faltanRec[nm]).sort(function (a, b) { return a.localeCompare(b, "es"); });
+      h += '<div class="platoc"><div class="ingr"><div class="info">'
+        + '<div style="font-size:15px;font-weight:600">'+esc(nm)+'</div>'
+        + '<div class="note">en '+platos.length+(platos.length===1?' plato: ':' platos: ')
+        + esc(platos.slice(0,4).join(", "))
+        + (platos.length>4 ? ' y '+(platos.length-4)+' más' : '')+'</div></div>'
+        + '<div style="display:flex;gap:6px;flex:0 0 auto">'
+        + '<button class="btn tiny" data-act="crearhuerfano" data-v="'+esc(nm)+'">Crearlo</button>'
+        + '</div></div></div>';
+    });
+    h += '</div>';
+  }
+
   if (S.recien && S.recien.length) {
     h += '<div class="card"><div class="row"><span class="eyebrow">Recién creados · '+S.recien.length+'</span>'
       + '<button class="btn ghost tiny" data-act="cerrarrecien">Cerrar</button></div>'
@@ -2491,6 +2565,10 @@ document.getElementById("app").addEventListener("click", function(ev){
   else if (a === "plegargrupo") {
     S.cerrados = S.cerrados || {};
     S.cerrados[g_(b.dataset.v)] = !S.cerrados[g_(b.dataset.v)];
+  }
+  else if (a === "verkcal") {
+    S.verKcal = !S.verKcal;
+    Store.set("carlos:verkcal", S.verKcal);
   }
   else if (a === "plegarfranja") {
     S.franjasCerradas = S.franjasCerradas || {};
