@@ -351,7 +351,7 @@ const SEMILLA_RECETAS = [["Pollo thai con curry verde", "Zanahoria", 100.0, 1.07
 
 const VIAB  = [["Txuletón", "Comida"], ["Parrillada de carne (Kamado)", "Comida"], ["Costillas BBQ (Kamado)", "Comida"], ["Hamburguesa Berty's (Emily Love's)", "Comida"], ["Hamburguesa de restaurante", "Comida"], ["KFC (alitas de pollo)", "Comida"], ["Ramen tantanmen", "Comida"], ["Lasaña de atún", "Comida"], ["Pollo thai con curry verde", "Comida"], ["Lentejas caseras", "Comida"], ["Alubias caseras", "Comida"], ["Ensaladilla rusa", "Comida"], ["Vainas con patata", "Comida"], ["Ensalada con todo", "Comida"], ["Sopa y garbanzos", "Comida"], ["Fabada Cidacos", "Comida"], ["Pollo hindú Mercadona", "Comida"], ["Pizza Kamado casera", "Cena"], ["Zorza del Mercadona con patatas y huevos", "Cena"], ["Sushi (10-12 piezas)", "Cena"], ["Ensalada de tomate y bonito", "Cena"], ["Pintxo de tortilla con bonito y mayonesa (doble)", "Desayuno"], ["Domingo de chucherías", "Extras"]];
 
-const VERSION = "2026.09.18-2";
+const VERSION = "2026.09.22-1";
 const FRANJAS = ["Desayuno","Hamaiketako","Comida","Merienda","Cena","Extras"];
 /* Margen que la columna del medidor NO pinta en rojo. Pasarse un 1-2 % está
    dentro del ruido de estimar raciones: teñirlo de rojo lo convierte en un
@@ -448,7 +448,7 @@ const S = {
   recien: [],
   borrarAlim: null,
   kcalDia: Store.get("carlos:kcaldia", {}),
-  verKcal: Store.get("carlos:verkcal", false),
+  verKcal: Store.get("carlos:verkcal2", true),
   borrarFranja: null,
   franjasCerradas: {},
   alfa:   {},
@@ -1194,10 +1194,28 @@ function vistaPeso() {
     return { fecha:f, dias:dias, kgSem: pend*7, semanas: Math.round(dias/7*10)/10 };
   })();
 
+  /* La última pesada no se veía en ninguna parte: el gráfico la dibuja, pero no
+     dice cuánto ni de cuándo es. Va junto al campo de anotar, que es donde se
+     mira justo antes de subirse a la báscula. */
+  const clavesP = Object.keys(S.pesos).sort();
+  const ultK = clavesP.length ? clavesP[clavesP.length - 1] : null;
+  let ultima = "";
+  if (ultK) {
+    const dias = Math.round((parseIso(iso(new Date())) - parseIso(ultK)) / 86400000);
+    const cuando = dias <= 0 ? "hoy" : (dias === 1 ? "ayer" : "hace "+dias+" días");
+    ultima = '<div class="row" style="margin-top:11px">'
+      + '<div><span class="eyebrow">Última pesada</span>'
+      + '<div class="note" style="margin-top:3px;font-weight:600">'+nfDia(parseIso(ultK))+' · '+cuando+'</div></div>'
+      + '<div class="disp mono" style="font-size:26px;white-space:nowrap">'
+      + Number(S.pesos[ultK]).toFixed(2)
+      + '<span class="note" style="font-weight:600"> kg</span></div></div>';
+  }
+
   let h = '<div class="card"><span class="eyebrow">Peso de hoy</span>'
     + '<div style="display:flex;gap:8px;margin-top:8px">'
     + '<input id="pesohoy" inputmode="decimal" enterkeyhint="done" placeholder="84,35" aria-label="Peso en kilos">'
     + '<button class="btn" data-act="peso">Anotar</button></div>'
+    + ultima
     + '<p class="note" style="margin:9px 0 0">Pésate en ayunas, después del baño. El dato del día no significa nada '
     + 'por sí solo: oscila 1-2 kg por agua y sal. Lo que mide tu progreso es la media de 7 días.</p></div>';
 
@@ -2568,7 +2586,7 @@ document.getElementById("app").addEventListener("click", function(ev){
   }
   else if (a === "verkcal") {
     S.verKcal = !S.verKcal;
-    Store.set("carlos:verkcal", S.verKcal);
+    Store.set("carlos:verkcal2", S.verKcal);
   }
   else if (a === "plegarfranja") {
     S.franjasCerradas = S.franjasCerradas || {};
