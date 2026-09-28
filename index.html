@@ -351,7 +351,7 @@ const SEMILLA_RECETAS = [["Pollo thai con curry verde", "Zanahoria", 100.0, 1.07
 
 const VIAB  = [["Txuletón", "Comida"], ["Parrillada de carne (Kamado)", "Comida"], ["Costillas BBQ (Kamado)", "Comida"], ["Hamburguesa Berty's (Emily Love's)", "Comida"], ["Hamburguesa de restaurante", "Comida"], ["KFC (alitas de pollo)", "Comida"], ["Ramen tantanmen", "Comida"], ["Lasaña de atún", "Comida"], ["Pollo thai con curry verde", "Comida"], ["Lentejas caseras", "Comida"], ["Alubias caseras", "Comida"], ["Ensaladilla rusa", "Comida"], ["Vainas con patata", "Comida"], ["Ensalada con todo", "Comida"], ["Sopa y garbanzos", "Comida"], ["Fabada Cidacos", "Comida"], ["Pollo hindú Mercadona", "Comida"], ["Pizza Kamado casera", "Cena"], ["Zorza del Mercadona con patatas y huevos", "Cena"], ["Sushi (10-12 piezas)", "Cena"], ["Ensalada de tomate y bonito", "Cena"], ["Pintxo de tortilla con bonito y mayonesa (doble)", "Desayuno"], ["Domingo de chucherías", "Extras"]];
 
-const VERSION = "2026.09.22-1";
+const VERSION = "2026.09.28-2";
 const FRANJAS = ["Desayuno","Hamaiketako","Comida","Merienda","Cena","Extras"];
 /* Margen que la columna del medidor NO pinta en rojo. Pasarse un 1-2 % está
    dentro del ruido de estimar raciones: teñirlo de rojo lo convierte en un
@@ -1578,21 +1578,28 @@ async function pedir(cuerpo, texto) {
   }
   trabajando(true, texto || "Guardando…");
   try {
-    const res = await fetch(S.sync.url, {
-      method: "POST",
-      headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify(Object.assign({ token: S.sync.token, fecha: S.fecha, catVer: S.catVer || "" }, cuerpo))
-    });
-    const d = await res.json();
+    let d = await pedirUnaVez(cuerpo);
+    /* Apps Script contesta al POST con una redirección a googleusercontent.com.
+       Cuando esa redirección caduca, la petición acaba ejecutando doGet y vuelve
+       un JSON sin «backend»: no es que el script esté desplegado antiguo.
+       Reintentar es seguro SOLO en las lecturas. Repetir una escritura
+       duplicaría la fila: el id lo pone el cliente y la hoja añade sin
+       comprobar, así que la primera pudo haberse guardado ya. */
+    if (d && !d.error && !d.backend && cuerpo.accion === "cargar") d = await pedirUnaVez(cuerpo);
+
+    if (!d) {
+      colaError = "Sin conexión con la hoja. Comprueba la red y vuelve a intentarlo.";
+      return null;
+    }
     if (d.error) {
       colaError = d.mensaje || "No se ha podido guardar.";
       if (d.error === "ocupado") colaError = "El otro dispositivo estaba guardando. Vuelve a intentarlo.";
       return null;
     }
-    aplicar(d);
     if (!d.backend) {
-      colaError = "El script de Google que tienes desplegado es antiguo y no guarda nada. "
-        + "En Apps Script: Implementar → Gestionar implementaciones → lápiz → Versión nueva → Implementar.";
+      colaError = "Google ha devuelto una respuesta incompleta: la petición ha acabado en el punto de "
+        + "entrada equivocado del script. Suele arreglarse con Reintentar. Si se repite siempre, entonces "
+        + "sí toca redesplegar: Implementar → Gestionar implementaciones → lápiz → Versión nueva → Implementar.";
       return null;
     }
     if (d.backend !== VERSION) {
@@ -1600,14 +1607,32 @@ async function pedir(cuerpo, texto) {
         + ". Vuelve a desplegar el script (Versión nueva) o sube el index.html que le corresponda.";
       return null;
     }
+    /* aplicar() va DESPUÉS de validar. Antes iba antes, así que una respuesta
+       incompleta vaciaba S.ent y dejaba el día en blanco, también en la copia
+       local. */
+    aplicar(d);
     colaError = "";
     return d;
-  } catch (err) {
-    colaError = "Sin conexión con la hoja. Comprueba la red y vuelve a intentarlo.";
-    return null;
   } finally {
     trabajando(false);
     render();
+  }
+}
+
+async function pedirUnaVez(cuerpo) {
+  try {
+    const res = await fetch(S.sync.url, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify(Object.assign(
+        { token: S.sync.token, fecha: S.fecha, catVer: S.catVer || "",
+          /* El mapa de kcal por día solo lo necesita el gráfico de Peso: pedirlo
+             en cada anotación obligaba a la hoja a recorrer todo el histórico. */
+          pedirKcal: cuerpo.accion === "cargar" || S.vista === "peso" }, cuerpo))
+    });
+    return await res.json();
+  } catch (err) {
+    return null;
   }
 }
 
@@ -2302,7 +2327,47 @@ document.getElementById("app").addEventListener("click", function(ev){
 const TABS = [["registro","Registro"],["alimentos","Alimentos"],["peso","Peso"],["ajustes","Ajustes"]];
 /* «¿Cabe?» sigue existiendo (vistaViabilidad) pero no se muestra como pestaña. */
 
+/* ---------- dirección: la pestaña y el día viven en el fragmento ----------
+   Se usa el fragmento (lo que va tras la almohadilla) y no una ruta de verdad
+   porque GitHub Pages es alojamiento estático: /peso/2026-09-28 daría 404 al
+   recargar. El fragmento no se envía al servidor, así que siempre se sirve este
+   mismo index.html y el service worker sigue guardando una sola copia.
+   Formato:  #/registro/2026-09-28  ·  #/peso  ·  #/alimentos  ·  #/ajustes */
+const VISTAS = ["registro", "alimentos", "peso", "ajustes"];
+
+function leerRuta() {
+  const t = String(location.hash || "").replace(/^#\/?/, "").split("/");
+  const v = VISTAS.indexOf(t[0]) >= 0 ? t[0] : null;
+  let f = null;
+  if (t[1] && /^\d{4}-\d{2}-\d{2}$/.test(t[1])) {
+    const d = parseIso(t[1]);
+    /* iso(d) === t[1] descarta fechas imposibles tipo 2026-02-31, que el
+       constructor Date acepta corriéndolas al mes siguiente. */
+    if (!isNaN(d.getTime()) && iso(d) === t[1]) f = t[1];
+  }
+  return { vista: v, fecha: f };
+}
+
+/* replaceState y no pushState: en la app instalada, llenar el historial con una
+   entrada por pestaña hace que el botón de atrás no salga nunca de la app. */
+function escribirRuta() {
+  const h = "#/" + S.vista + (S.vista === "registro" ? "/" + S.fecha : "");
+  if (location.hash === h) return;
+  try { history.replaceState(null, "", h); } catch (e) {}
+}
+
+/* Solo se dispara si tú editas la dirección o abres un enlace en esta pestaña:
+   replaceState no genera este evento. */
+function aplicarRuta() {
+  const r = leerRuta();
+  if (!r.vista) { escribirRuta(); return; }
+  S.vista = r.vista;
+  if (r.fecha && r.fecha !== S.fecha) { irA(r.fecha); return; }
+  render();
+}
+
 function render() {
+  escribirRuta();
   try { pintar(); }
   catch (err) {
     document.getElementById("app").innerHTML =
@@ -2793,8 +2858,18 @@ document.getElementById("app").addEventListener("change", function(ev){
   lector.readAsText(f);
 });
 
+/* Si la dirección trae pestaña y día, mandan sobre los valores por defecto. Se
+   aplican antes del primer dibujado para no pintar dos veces, y cargar() ya pide
+   a la hoja la semana de S.fecha, así que una fecha de otra semana llega sola. */
+(function () {
+  const r0 = leerRuta();
+  if (r0.vista) S.vista = r0.vista;
+  if (r0.fecha) S.fecha = r0.fecha;
+})();
+
 render();
 cargar("Cargando…");
+window.addEventListener("hashchange", aplicarRuta);
 
 /* No se recarga al volver a la pestaña: movía el foco y la página de sitio.
    Se relee al abrir la app, al recuperar la red y cuando tú lo pides en Ajustes. */
