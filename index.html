@@ -218,10 +218,10 @@ td.num,th.num{text-align:right;font-family:'IBM Plex Mono',monospace;font-varian
 #restante .ru{font-family:'Instrument Sans',sans-serif;font-size:16px;font-weight:600}
 #restante .rt2{font-family:'Instrument Sans',system-ui,-apple-system,sans-serif;font-size:12.5px;font-weight:500;
   color:var(--hero-soft);margin-top:3px}
-.rok{color:var(--verde-claro)} .rno{color:var(--rojo-claro)}
+.rok{color:var(--verde-claro)} .rno{color:var(--rojo-claro)} .rnar{color:#FFC170}
 /* pantalla ancha: columna flotante a la derecha */
 @media (min-width:1240px){
-  #restante{top:88px;right:22px;width:300px;padding:13px 15px}
+  #restante{top:88px;right:22px;width:340px;padding:13px 15px}
   #restante .rejilla{grid-template-columns:1fr}
   #restante .rf-kcal{grid-column:auto}
   #restante .rk{font-size:38px}
@@ -318,8 +318,10 @@ td.num,th.num{text-align:right;font-family:'IBM Plex Mono',monospace;font-varian
 .filaf .fp{font-size:14px;flex:1}
 
 /* ---------- panel flotante, más bajo ---------- */
-#restante .rejilla{display:grid;grid-template-columns:1fr 1fr;gap:1px 14px}
-#restante .rf{display:flex;justify-content:space-between;gap:9px;align-items:baseline;padding:2px 0;min-width:0;border-top:none}
+/* columna derecha (grasa, verdura) ajustada a su contenido y pegada al borde */
+#restante .rejilla{display:grid;grid-template-columns:1fr auto;gap:1px 20px}
+#restante .niv{font-size:11px}
+#restante .rf{display:flex;justify-content:space-between;gap:6px;align-items:baseline;padding:2px 0;min-width:0;border-top:none}
 #restante .rn{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #restante .rf-kcal{grid-column:1 / -1;border-bottom:1px solid rgba(255,255,255,.16);
   padding-bottom:4px;margin-bottom:3px}
@@ -351,17 +353,21 @@ const SEMILLA_RECETAS = [["Pollo thai con curry verde", "Zanahoria", 100.0, 1.07
 
 const VIAB  = [["Txuletón", "Comida"], ["Parrillada de carne (Kamado)", "Comida"], ["Costillas BBQ (Kamado)", "Comida"], ["Hamburguesa Berty's (Emily Love's)", "Comida"], ["Hamburguesa de restaurante", "Comida"], ["KFC (alitas de pollo)", "Comida"], ["Ramen tantanmen", "Comida"], ["Lasaña de atún", "Comida"], ["Pollo thai con curry verde", "Comida"], ["Lentejas caseras", "Comida"], ["Alubias caseras", "Comida"], ["Ensaladilla rusa", "Comida"], ["Vainas con patata", "Comida"], ["Ensalada con todo", "Comida"], ["Sopa y garbanzos", "Comida"], ["Fabada Cidacos", "Comida"], ["Pollo hindú Mercadona", "Comida"], ["Pizza Kamado casera", "Cena"], ["Zorza del Mercadona con patatas y huevos", "Cena"], ["Sushi (10-12 piezas)", "Cena"], ["Ensalada de tomate y bonito", "Cena"], ["Pintxo de tortilla con bonito y mayonesa (doble)", "Desayuno"], ["Domingo de chucherías", "Extras"]];
 
-const VERSION = "2026.09.28-3";
+const VERSION = "2026.10.02-3";
 const FRANJAS = ["Desayuno","Hamaiketako","Comida","Merienda","Cena","Extras"];
 /* Margen que la columna del medidor NO pinta en rojo. Pasarse un 1-2 % está
    dentro del ruido de estimar raciones: teñirlo de rojo lo convierte en un
    fallo del día cuando no lo es. El resto de avisos (textos, panel, etiquetas)
    siguen marcando el exceso desde el primer kcal. */
-const TOL_COLOR = 1.02;
+/* El porcentaje se elige en Ajustes («Margen sin rojo»); por defecto, 2 %. */
+function tolColor() {
+  const v = Number(S && S.params ? S.params.tolColor : 2);
+  return 1 + (isFinite(v) ? Math.max(0, Math.min(50, v)) : 2) / 100;
+}
 const DIAS = ["lunes","martes","miércoles","jueves","viernes","sábado","domingo"];
 const MESES = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
 const DEFAULTS = { peso:84.35, altura:182, edad:48, factor:1.5, deficit:400,
-  protGkg:1.8, grasaGkg:0.8, ajusteLab:135, objVF:500, pesoObjetivo:78, planStart:null };
+  protGkg:1.8, grasaGkg:0.8, ajusteLab:135, objVF:500, pesoObjetivo:78, planStart:null, tolColor:2 };
 
 /* ---------- utilidades ---------- */
 const pad = n => String(n).padStart(2,"0");
@@ -573,7 +579,7 @@ function hero() {
       + fmt(d.kc)+' de '+fmt(d.objD)+' kcal"'
       + (d.k === S.fecha ? ' data-hoy="1"' : '')+'>'
       + '<span class="fill" style="height:'+alto+'%;background:'
-      + (d.kc > d.objD * TOL_COLOR ? "var(--pimenton)" : "var(--mint)")+'"></span>'
+      + (d.kc > d.objD * tolColor() ? "var(--pimenton)" : "var(--mint)")+'"></span>'
       + '<span class="tick" style="bottom:calc('+marca+'% - 2px)"></span>'
       + '</button>';
     labs += '<span class="'+(d.k===S.fecha?"on":"")+'">'+DIAS[i].charAt(0).toUpperCase()+'</span>';
@@ -919,6 +925,7 @@ function vistaAjustes() {
     + campo("deficit","Déficit diario","kcal",25)
     + campo("protGkg","Proteína","g por kg",0.1) + campo("grasaGkg","Grasa","g por kg",0.1)
     + campo("ajusteLab","Ajuste laborables","kcal",5) + campo("objVF","Verdura y fruta","g al día",50)
+    + campo("tolColor","Margen sin rojo","% que puedes pasarte sin que se pinte en rojo",0.5)
     + '</div><p class="note" style="margin-top:12px">El factor 1,5 corresponde a 9.500 pasos diarios más 3-4 sesiones '
     + 'de fuerza. Si la media de 7 días no baja al ritmo previsto después de tres semanas, bájalo antes de recortar comida.</p></div>';
 
@@ -993,13 +1000,24 @@ function panelRestante(t, objD, o) {
   let h = '<div id="restante" aria-live="polite"><div class="rejilla">';
   filas.forEach(function (f, k) {
     const dif = f[2] - f[1];
-    const ok = f[3] === "min" ? dif <= 0.5 : dif >= 0;
-    const cls = ok ? "rok" : "rno";
+    /* Mismo margen que las columnas del medidor (tolColor): pasarse de un máximo
+       o quedarse corto de un mínimo en menos de ese porcentaje no se pinta en rojo. */
+    const tc = tolColor();
+    const ok = f[3] === "min" ? (dif <= 0.5 || f[1] >= f[2] / tc)
+                              : (dif >= 0 || f[1] <= f[2] * tc);
+    let cls = ok ? "rok" : "rno", nivel = "";
+    /* Proteína: el color lo da el nivel en g por kg de peso (el de Ajustes),
+       no el objetivo. Rojo por debajo de 1,6; naranja de 1,6 a 1,9; verde por encima. */
+    if (k === 1 && Number(S.params.peso) > 0) {
+      const gk = Math.round(f[1] / Number(S.params.peso) * 1000) / 1000;
+      cls = gk > 1.9 ? "rok" : (gk >= 1.6 ? "rnar" : "rno");
+      nivel = ' <span class="'+cls+' niv">('+gk.toFixed(2).replace(".", ",")+')</span>';
+    }
     h += '<div class="rf'+(k === 0 ? " rf-kcal" : "")+'">'
       + '<span class="rn">'+f[0]+'</span>'
       + '<span class="rv"><span class="'+cls+'">'+fmt(f[1])+'</span>'
       + '<span class="obj">/'+fmt(f[2])+'</span>'
-      + ' <span class="'+cls+'">'+fmt(Math.abs(dif))+'</span></span></div>';
+      + ' <span class="'+cls+'">'+fmt(Math.abs(dif))+'</span>'+nivel+'</span></div>';
   });
   h += '</div></div>';
   return h;
@@ -2793,6 +2811,7 @@ document.getElementById("app").addEventListener("input", function(ev){
     const k = el.dataset.par;
     S.params[k] = k === "planStart" ? el.value : (cantidad(el.value) || parseFloat(String(el.value).replace(",", ".")) || 0);
     guardar();
+    if (k === "tolColor") { pintarPanel(); }
     clearTimeout(esperaParams);
     esperaParams = setTimeout(function () { guardarParams(); render(); }, 900);
   }
