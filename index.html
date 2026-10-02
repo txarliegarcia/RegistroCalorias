@@ -118,6 +118,13 @@ input:focus-visible{outline:2px solid var(--pine);outline-offset:-1px}
 .alfa th:last-child,.alfa td:last-child{padding-right:13px}
 .alfa thead th{padding-top:4px}
 .alfa tbody tr:last-child td{border-bottom:none;padding-bottom:11px}
+/* ---- desglose de la receta dentro del editor de un alimento ---- */
+.receta{border-top:1px solid var(--line);margin-top:16px;padding-top:13px}
+.receta table{width:100%}
+.receta td,.receta th{padding-top:6px;padding-bottom:6px}
+.receta .rsuma td{border-top:2px solid var(--ink)}
+.receta input{font-size:14px;padding:5px 7px}
+.rfalta{background:#FBE4E0}
 .res{max-height:250px;overflow-y:auto;border:1px solid var(--line);border-top:none;background:#fff}
 .res button{display:block;width:100%;text-align:left;background:none;border:none;padding:10px;
   font-size:14.5px;border-bottom:1px solid var(--line)}
@@ -353,7 +360,7 @@ const SEMILLA_RECETAS = [["Pollo thai con curry verde", "Zanahoria", 100.0, 1.07
 
 const VIAB  = [["Txuletón", "Comida"], ["Parrillada de carne (Kamado)", "Comida"], ["Costillas BBQ (Kamado)", "Comida"], ["Hamburguesa Berty's (Emily Love's)", "Comida"], ["Hamburguesa de restaurante", "Comida"], ["KFC (alitas de pollo)", "Comida"], ["Ramen tantanmen", "Comida"], ["Lasaña de atún", "Comida"], ["Pollo thai con curry verde", "Comida"], ["Lentejas caseras", "Comida"], ["Alubias caseras", "Comida"], ["Ensaladilla rusa", "Comida"], ["Vainas con patata", "Comida"], ["Ensalada con todo", "Comida"], ["Sopa y garbanzos", "Comida"], ["Fabada Cidacos", "Comida"], ["Pollo hindú Mercadona", "Comida"], ["Pizza Kamado casera", "Cena"], ["Zorza del Mercadona con patatas y huevos", "Cena"], ["Sushi (10-12 piezas)", "Cena"], ["Ensalada de tomate y bonito", "Cena"], ["Pintxo de tortilla con bonito y mayonesa (doble)", "Desayuno"], ["Domingo de chucherías", "Extras"]];
 
-const VERSION = "2026.10.02-3";
+const VERSION = "2026.10.02-4";
 const FRANJAS = ["Desayuno","Hamaiketako","Comida","Merienda","Cena","Extras"];
 /* Margen que la columna del medidor NO pinta en rojo. Pasarse un 1-2 % está
    dentro del ruido de estimar raciones: teñirlo de rojo lo convierte en un
@@ -1986,6 +1993,120 @@ function abrirEd(nombre) {
               : { nombre:"", nombreOrig:"", cat:"Alimentos sueltos", kcal:"", prot:"", grasa:"",
                   hidratos:"", alc:"", verdura:"", fruta:"", racion:"", base:1, baseOrig:1,
                   unidad:"raciones", unidadOrig:"raciones", propio:true };
+  /* La receta se edita aquí mismo: se copia a S.ed y solo se escribe al guardar,
+     igual que el resto de campos del alimento. */
+  const r = nombre ? recetaDe(nombre) : [];
+  S.ed.receta = r.map(function (x) { return { ing: x[1], cant: x[2] }; });
+  S.ed.factor = r.length ? (r[0][3] || 1) : 1;
+  S.ed.habiaReceta = r.length > 0;
+  S.ed.qIng = "";
+}
+
+/* Qué aporta cada ingrediente de la receta que se está editando, con la misma
+   fórmula que usa el registro: kcal * cantidad / cantidad_ref * factor. */
+function desgloseReceta(ed) {
+  const f = cantidad(ed.factor) || 1;
+  const filas = (ed.receta || []).map(function (r, i) {
+    const it = BY[r.ing];
+    const q = cantidad(r.cant) || 0;
+    if (!it) return { i:i, ing:r.ing, cant:r.cant, uni:"", falta:true,
+                      kcal:0, prot:0, grasa:0, hidratos:0 };
+    const p = q / (BASE(it) || 1) * f;
+    return { i:i, ing:r.ing, cant:r.cant, uni:UNI(it), falta:false,
+             kcal:it[2]*p, prot:it[3]*p, grasa:it[4]*p, hidratos:it[5]*p,
+             vf:(Number(it[7])||0 + Number(it[8])||0)*p };
+  });
+  const T = { kcal:0, prot:0, grasa:0, hidratos:0, vf:0 };
+  filas.forEach(function (x) {
+    T.kcal += x.kcal; T.prot += x.prot; T.grasa += x.grasa;
+    T.hidratos += x.hidratos; T.vf += (x.vf || 0);
+  });
+  return { filas:filas, total:T, factor:f, faltan:filas.filter(function(x){ return x.falta; }).length };
+}
+
+/* Tabla de auditoría: de dónde salen los números del plato y si cuadran. */
+function bloqueReceta(ed) {
+  const d = desgloseReceta(ed);
+  const num = function (v) { const x = parseFloat(String(v==null?"":v).replace(",", ".")); return isNaN(x)?0:x; };
+  const g = { kcal:num(ed.kcal), prot:num(ed.prot), grasa:num(ed.grasa), hidratos:num(ed.hidratos) };
+  let h = '<div class="receta"><div class="row" style="margin-bottom:9px">'
+    + '<span class="eyebrow">'+(d.filas.length ? 'Ingredientes de la receta · '+d.filas.length : 'Sin receta')+'</span>'
+    + (d.filas.length ? '<label class="note" style="font-weight:600;display:flex;align-items:center;gap:7px">factor'
+        + '<input id="ed_factor" data-ed="factor" value="'+esc(String(ed.factor))+'" inputmode="decimal" '
+        + 'style="width:86px;text-align:right" aria-label="Factor de la receta"></label>' : '')
+    + '</div>';
+
+  if (!d.filas.length) {
+    h += '<p class="note" style="margin:0">Este plato no tiene receta: los valores de arriba están puestos '
+      + 'a mano. Añádele ingredientes y podrás comprobar de dónde salen.</p>';
+  } else {
+    h += '<div style="overflow-x:auto"><table><thead><tr><th>Ingrediente</th><th class="num">Cantidad</th>'
+      + '<th class="num">kcal</th><th class="num">%</th><th class="num">P</th><th class="num">G</th>'
+      + '<th class="num">H</th><th></th></tr></thead><tbody>';
+    /* Ordenada por calorías: lo que más pesa, arriba. Reordena al salir del
+       campo, no mientras escribes, porque la cantidad no repinta hasta el blur. */
+    d.filas.slice().sort(function (a, b) { return b.kcal - a.kcal; }).forEach(function (x) {
+      h += '<tr'+(x.falta ? ' class="rfalta"' : '')+'><td>'+esc(x.ing)
+        + (x.falta ? ' <span class="veredicto v-no">no está en el catálogo</span>' : '')+'</td>'
+        + '<td class="num"><input id="ri_'+x.i+'" data-ring="'+x.i+'" '
+        + 'value="'+esc(fmtCant(cantidad(x.cant) || 0))+'" inputmode="decimal" enterkeyhint="done" '
+        + 'style="width:74px;text-align:right" aria-label="Cantidad de '+esc(x.ing)+'"> '
+        + '<span class="note">'+esc(x.uni)+'</span></td>'
+        + '<td class="num">'+fmt(x.kcal)+'</td>'
+        + '<td class="num">'+(d.total.kcal > 0
+            ? String(Math.round(x.kcal/d.total.kcal*1000)/10).replace(".", ",")+' %' : '—')+'</td>'
+        + '<td class="num">'+fmt(x.prot)+'</td><td class="num">'+fmt(x.grasa)+'</td>'
+        + '<td class="num">'+fmt(x.hidratos)+'</td>'
+        + '<td><button class="quitax" data-act="ringquitar" data-v="'+x.i+'" '
+        + 'title="Quitar este ingrediente" aria-label="Quitar '+esc(x.ing)+'">✕</button></td></tr>';
+    });
+    const dif = { kcal:d.total.kcal-g.kcal, prot:d.total.prot-g.prot,
+                  grasa:d.total.grasa-g.grasa, hidratos:d.total.hidratos-g.hidratos };
+    const rojo = function (v) { return Math.abs(v) >= 1 ? ' style="color:var(--rojo);font-weight:700"' : ''; };
+    /* fmt() redondea, así que una diferencia de -0,4 se pintaba como «-0». */
+    const signo = function (v) { const r = Math.round(v); return r === 0 ? "0" : (r > 0 ? "+" : "") + fmt(r); };
+    h += '<tr class="rsuma"><td><b>Suma de ingredientes</b></td><td></td>'
+      + '<td class="num"><b>'+fmt(d.total.kcal)+'</b></td><td></td>'
+      + '<td class="num"><b>'+fmt(d.total.prot)+'</b></td><td class="num"><b>'+fmt(d.total.grasa)+'</b></td>'
+      + '<td class="num"><b>'+fmt(d.total.hidratos)+'</b></td><td></td></tr>'
+      + '<tr><td>Guardado en el plato</td><td></td><td class="num">'+fmt(g.kcal)+'</td><td></td>'
+      + '<td class="num">'+fmt(g.prot)+'</td><td class="num">'+fmt(g.grasa)+'</td>'
+      + '<td class="num">'+fmt(g.hidratos)+'</td><td></td></tr>'
+      + '<tr><td>Diferencia</td><td></td>'
+      + '<td class="num"'+rojo(dif.kcal)+'>'+signo(dif.kcal)+'</td><td></td>'
+      + '<td class="num"'+rojo(dif.prot)+'>'+signo(dif.prot)+'</td>'
+      + '<td class="num"'+rojo(dif.grasa)+'>'+signo(dif.grasa)+'</td>'
+      + '<td class="num"'+rojo(dif.hidratos)+'>'+signo(dif.hidratos)+'</td><td></td></tr>'
+      + '</tbody></table></div>';
+    if (d.faltan) h += '<p class="aviso" style="margin-top:9px">'+d.faltan
+      + (d.faltan === 1 ? ' ingrediente no está' : ' ingredientes no están')
+      + ' en el catálogo: suman cero y descuadran la receta. Créalos en Alimentos.</p>';
+    h += '<p class="note" style="margin:9px 0 0">El <b>factor</b> es lo que se concentra o se pierde al '
+      + 'cocinar: 1 deja las cantidades tal cual, 1,07 sube todo un 7 %.</p>'
+      + '<div style="margin-top:10px"><button class="btn ghost tiny" data-act="rusarsuma">'
+      + 'Copiar la suma a los campos de arriba</button></div>';
+  }
+
+  h += '<div style="margin-top:13px"><span class="eyebrow">Añadir un ingrediente</span>'
+    + '<input id="qing" value="'+esc(ed.qIng || "")+'" style="margin-top:5px" '
+    + 'placeholder="Busca en el catálogo: lechuga, aceite…" aria-label="Buscar ingrediente">';
+  const q = String(ed.qIng || "").trim();
+  if (q.length >= 2) {
+    const nq = norm(q);
+    /* Se excluye el propio plato: un plato no puede ser ingrediente de sí mismo. */
+    const res = catalogo().filter(function (it) {
+        return it[0] !== ed.nombreOrig && norm(it[0]).indexOf(nq) >= 0; })
+      .sort(function (a, b) { return a[0].localeCompare(b[0], "es"); }).slice(0, 25);
+    h += '<div class="res">';
+    if (!res.length) h += '<div style="padding:12px"><p class="note" style="margin:0">Nada con ese nombre.</p></div>';
+    res.forEach(function (it) {
+      h += '<button data-act="ringadd" data-v="'+esc(it[0])+'"><div class="row"><span>'+esc(it[0])+'</span>'
+        + '<span class="mono" style="font-size:13px;font-weight:600;color:var(--verde);white-space:nowrap">'
+        + fmt(it[2])+' kcal / '+fmtCant(BASE(it))+' '+esc(UNI(it))+'</span></div></button>';
+    });
+    h += '</div>';
+  }
+  return h + '</div></div>';
 }
 
 function guardarEd() {
@@ -2001,8 +2122,23 @@ function guardarEd() {
               0, bs, e.unidad || "raciones", "propio"];
   ITEMS = ITEMS.filter(x => x[0] !== e.nombreOrig && x[0] !== nom).concat([it]);
   reindex();
+  /* La receta viaja con el plato. El factor es común a todas las filas, que es
+     como lo guarda la hoja, y solo se mandan ingredientes que existen y con
+     cantidad mayor que cero. */
+  const fac = cantidad(e.factor) || 1;
+  const recetas = (e.receta || [])
+    .filter(function (x) { return x.ing && BY[x.ing] && (cantidad(x.cant) || 0) > 0; })
+    .map(function (x) { return [nom, x.ing, cantidad(x.cant), fac]; });
+  /* Si tenía receta y se queda sin ingredientes no se puede guardar: el backend
+     solo reemplaza las filas de los platos que aparecen en «recetas», así que
+     mandar cero filas no borraría nada y la receta volvería en la siguiente
+     carga. Vaciarla del todo se hace en la pestaña «recetas» de la hoja. */
+  if (e.habiaReceta && !recetas.length)
+    return "Una receta no puede quedarse sin ingredientes. Para quitarla entera, bórrala en la pestaña «recetas» de la hoja.";
+  RECETAS = RECETAS.filter(function (r) { return r[0] !== e.nombreOrig && r[0] !== nom; }).concat(recetas);
+
   const bajas = (e.nombreOrig && nom !== e.nombreOrig) ? [e.nombreOrig] : [];
-  guardarPlatos([filaCat(it)], bajas, []);
+  guardarPlatos([filaCat(it)], bajas, recetas);
   if (e.nombreOrig && nom !== e.nombreOrig) {
     Object.keys(S.ent).forEach(function(id){
       if (S.ent[id].alimento === e.nombreOrig) tocar(id, { alimento: nom });
@@ -2104,6 +2240,7 @@ function vistaAlimentos() {
       + ' kcal, '+fmt(original[3])+' g de proteína, '+fmt(original[4])+' g de grasa, '+fmt(original[5])
       + ' g de hidratos y '+fmt(original[7]+original[8])+' g de verdura y fruta, por '+fmtCant(original[12])
       + ' '+esc(original[13])+'.</p>';
+    h += bloqueReceta(e);
     h += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">'
       + '<button class="btn" data-act="edok">Guardar</button>'
       + '<button class="btn ghost" data-act="edno">Cancelar</button>';
@@ -2310,7 +2447,7 @@ function pantallaEdge() {
 /* Al salir de un campo del editor se repinta una vez, para recalcular los avisos. */
 document.getElementById("app").addEventListener("change", function (ev) {
   const el = ev.target;
-  if (el && el.dataset && el.dataset.ed && S.ed) render();
+  if (el && el.dataset && (el.dataset.ed || el.dataset.ring) && S.ed) render();
 });
 
 document.getElementById("app").addEventListener("click", function(ev){
@@ -2428,7 +2565,7 @@ function pintar() {
 /* Al salir de un campo del editor se repinta una vez, para recalcular los avisos. */
 document.getElementById("app").addEventListener("change", function (ev) {
   const el = ev.target;
-  if (el && el.dataset && el.dataset.ed && S.ed) render();
+  if (el && el.dataset && (el.dataset.ed || el.dataset.ring) && S.ed) render();
 });
 
 document.getElementById("app").addEventListener("click", function(ev){
@@ -2614,6 +2751,35 @@ document.getElementById("app").addEventListener("click", function(ev){
     guardarPlatos([], [nom], []);
     S.aviso = "Borrado «"+nom+"».";
   }
+  else if (a === "ringquitar") {
+    if (S.ed && S.ed.receta) { S.ed.receta.splice(Number(b.dataset.v), 1); S.aviso = ""; }
+  }
+  else if (a === "ringadd") {
+    if (S.ed) {
+      const nm = b.dataset.v, it = BY[nm];
+      S.ed.receta = S.ed.receta || [];
+      if (S.ed.receta.some(function (x) { return x.ing === nm; })) {
+        S.aviso = "«"+nm+"» ya está en la receta. Cambia su cantidad en la tabla.";
+      } else {
+        /* Entra con la cantidad de referencia del propio alimento: es el valor
+           que menos sorprende y se corrige en la misma fila. */
+        S.ed.receta.push({ ing: nm, cant: it ? BASE(it) : 1 });
+        S.ed.qIng = "";
+        S.aviso = "";
+      }
+    }
+  }
+  else if (a === "rusarsuma") {
+    if (S.ed) {
+      const d = desgloseReceta(S.ed);
+      S.ed.kcal = Math.round(d.total.kcal);
+      S.ed.prot = Math.round(d.total.prot * 10) / 10;
+      S.ed.grasa = Math.round(d.total.grasa * 10) / 10;
+      S.ed.hidratos = Math.round(d.total.hidratos * 10) / 10;
+      S.ed.vf = Math.round(d.total.vf);
+      S.aviso = "Campos rellenados con la suma de los ingredientes. Aún tienes que pulsar Guardar.";
+    }
+  }
   else if (a === "ednuevo") { S.vista = "alimentos"; abrirEd(null); S.aviso = ""; }
   else if (a === "ededit") { S.vista = "alimentos"; abrirEd(b.dataset.v); S.aviso = ""; }
   else if (a === "edno") { S.ed = null; S.aviso = ""; }
@@ -2777,6 +2943,13 @@ document.getElementById("app").addEventListener("input", function(ev){
   const el = ev.target;
   if (el.id === "buscar") { S.q = el.value; render(); return; }
   if (el.id === "qalim") { S.qa = el.value; render(); return; }
+  if (el.id === "qing" && S.ed) { S.ed.qIng = el.value; render(); return; }
+  /* Sin repintar, como los demás campos del editor: se perdía el cursor. */
+  if (el.dataset.ring && S.ed && S.ed.receta) {
+    const r = S.ed.receta[Number(el.dataset.ring)];
+    if (r) r.cant = el.value;
+    return;
+  }
   if (el.id === "nomplato") { S.nomPlato = el.value; return; }
   if (el.id === "fechaCopia") { S.fechaCopia = el.value; return; }
   if (el.id === "pegado") { S.pegado = el.value; render(); return; }
